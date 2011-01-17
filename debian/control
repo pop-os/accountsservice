@@ -3,8 +3,8 @@ Section: gnome
 Priority: optional
 Maintainer: Alessio Treglia <alessio@debian.org>
 Build-Depends: debhelper (>= 7.0.50~),
- dh-autoreconf,
- gnome-pkg-tools,
+ automake,
+ autoconf,
  gnome-doc-utils,
  gnome-common,
  xmlto,
