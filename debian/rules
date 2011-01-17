@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+LDFLAGS+=-Wl,--as-needed
+
+%:
+	dh $@ --with autoreconf
+
+override_dh_auto_clean:
+	rm -rf m4
+	dh_auto_clean
+
+override_dh_autoreconf:
+	mkdir m4
+	autoreconf --install --force --symlink --verbose
+	intltoolize --force
+	dh_autoreconf
+
+# Disabled to avoid FTBFS
+override_dh_auto_test:
+
+override_dh_installchangelogs:
+	dh_installchangelogs NEWS

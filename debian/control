@@ -1,0 +1,27 @@
+Source: accountsservice
+Section: gnome
+Priority: optional
+Maintainer: Alessio Treglia <alessio@debian.org>
+Build-Depends: debhelper (>= 7.0.50~),
+ dh-autoreconf,
+ gnome-pkg-tools,
+ gnome-doc-utils,
+ gnome-common,
+ xmlto,
+ libdbus-glib-1-dev,
+ libpolkit-gobject-1-dev
+Standards-Version: 3.9.1
+Homepage: http://cgit.freedesktop.org/accountsservice/
+Vcs-Git: git://git.debian.org/collab-maint/accountsservice.git
+Vcs-Browser: http://git.debian.org/?p=collab-maint/accountsservice.git
+
+Package: accountsservice
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Suggests: gnome-control-center
+Description: query and manipulate user account information
+ The accountsservice project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
