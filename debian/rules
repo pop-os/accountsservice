@@ -7,7 +7,8 @@ LDFLAGS+=-Wl,--as-needed
 	dh $@
 
 override_dh_auto_configure:
-	gnome-autogen.sh
+	NOCONFIGURE=y ./autogen.sh
+	dh_auto_configure
 
 # Disabled to avoid FTBFS
 override_dh_auto_test:
