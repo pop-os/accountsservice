@@ -1,0 +1,4 @@
+version=3
+http://cgit.freedesktop.org/accountsservice \
+/accountsservice/snapshot/accountsservice-([\d\.]+)\.tar\.bz2
+

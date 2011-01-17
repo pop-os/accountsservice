@@ -1,0 +1,19 @@
+General
+-------
+
+- rethink password setting
+
+- maybe prevent deleting / downgrading the last admin user
+
+- add supervisor user to supervised accounts
+
+- fix the docs build
+
+Other
+-----
+
+- approach IPA guys to 'make infopipe like this service'
+
+- push forward to minimal, but functional state
+
+

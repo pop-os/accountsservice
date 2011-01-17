@@ -1,0 +1,5 @@
+accountsservice (0.6.1-1) unstable; urgency=low
+
+  * Initial release (Closes: #606002).
+
+ -- Alessio Treglia <alessio@debian.org>  Mon, 17 Jan 2011 10:14:35 +0100

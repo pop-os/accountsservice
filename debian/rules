@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+LDFLAGS+=-Wl,--as-needed
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	NOCONFIGURE=y ./autogen.sh
+	dh_auto_configure
+
+# Disabled to avoid FTBFS
+override_dh_auto_test:
+
+override_dh_installchangelogs:
+	dh_installchangelogs NEWS
