@@ -5,11 +5,14 @@ Maintainer: Alessio Treglia <alessio@debian.org>
 Build-Depends: debhelper (>= 7.0.50~),
  automake,
  autoconf,
+ libtool,
  gnome-doc-utils,
  gnome-common,
  xmlto,
  libdbus-glib-1-dev,
- libpolkit-gobject-1-dev
+ libpolkit-gobject-1-dev,
+ libglib2.0-dev (>= 2.25.11),
+ libgirepository1.0-dev (>= 0.9.12)
 Standards-Version: 3.9.1
 Homepage: http://cgit.freedesktop.org/accountsservice/
 Vcs-Git: git://git.debian.org/collab-maint/accountsservice.git
