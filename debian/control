@@ -1,5 +1,5 @@
 Source: accountsservice
-Section: gnome
+Section: admin
 Priority: optional
 Maintainer: Alessio Treglia <alessio@debian.org>
 Build-Depends: debhelper (>= 7.0.50~),
@@ -23,7 +23,53 @@ Depends: ${shlibs:Depends},
  ${misc:Depends}
 Suggests: gnome-control-center
 Description: query and manipulate user account information
- The accountsservice project provides a set of D-Bus
+ The AccountService project provides a set of D-Bus
  interfaces for querying and manipulating user account
  information and an implementation of these interfaces,
  based on the useradd, usermod and userdel commands.
+
+Package: libaccountsservice0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Suggests: gnome-control-center
+Description: query and manipulate user account information - shared libraries
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This package provides the shared libraries of the
+ AccountService library.
+
+Package: libaccountsservice-dev
+Section: libdevel
+Architecture: all
+Depends: libaccountsservice0 (>= ${source:Version}),
+ libaccountsservice0 (<< ${source:Upstream-Version}+1~),
+ ${misc:Depends}
+Suggests: gnome-control-center
+Description: query and manipulate user account information - header files
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This package provides the development files for the
+ AccountService library.
+
+Package: gir1.0-accountservice-1.0
+Section: libs
+Architecture: any
+Depends: libaccountsservice0 (= ${binary:Version}),
+ gir1.0-glib-2.0 (>= 0.9.12),
+ ${misc:Depends}
+Description: GObject introspection data for AccountService
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This package provides the introspection data for the
+ AccountService library.
