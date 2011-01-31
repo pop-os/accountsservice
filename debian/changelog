@@ -1,4 +1,4 @@
-accountsservice (0.6.2-1) unstable; urgency=low
+accountsservice (0.6.2-1) experimental; urgency=low
 
   * New upstream release:
     - Remove the unused UserChanged signal.
