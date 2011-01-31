@@ -1,3 +1,23 @@
+accountsservice (0.6.2-1) unstable; urgency=low
+
+  * New upstream release:
+    - Remove the unused UserChanged signal.
+    - Add a small client library, based on code from gdm.
+    - Don't use gnome-common.
+    - Use the user-administration privilege for autologin changes.
+  * Update build-dependencies.
+  * Switch to dh-autoreconf.
+  * Provide po/Makefile.in.in
+  * Don't build static libraries
+  * Split files in several packages:
+    - accountsservice to provide the runtime service files.
+    - libaccountsservice0 to provide the shared libraries.
+    - libaccountsservice-dev to provide the development files.
+    - gir1.0-accountservice-1.0 to provide GObject introspection
+      data files.
+
+ -- Alessio Treglia <alessio@debian.org>  Mon, 31 Jan 2011 16:04:17 +0100
+
 accountsservice (0.6.1-1) unstable; urgency=low
 
   * Initial release (Closes: #606002).
