@@ -50,6 +50,11 @@ Section: libdevel
 Architecture: all
 Depends: libaccountsservice0 (>= ${source:Version}),
  libaccountsservice0 (<< ${source:Upstream-Version}+1~),
+ libdbus-glib-1-dev,
+ libpolkit-gobject-1-dev,
+ libglib2.0-dev (>= 2.25.11),
+ libgirepository1.0-dev (>= 0.9.12),
+ gobject-introspection (>= 0.9.12),
  ${misc:Depends}
 Suggests: gnome-control-center
 Description: query and manipulate user account information - header files
