@@ -20,6 +20,7 @@ Vcs-Browser: http://git.debian.org/?p=collab-maint/accountsservice.git
 Package: accountsservice
 Architecture: any
 Depends: ${shlibs:Depends},
+ dbus,
  ${misc:Depends}
 Suggests: gnome-control-center
 Description: query and manipulate user account information
