@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.2])
+AC_INIT([AccountsService],[0.6.3])
 AM_INIT_AUTOMAKE(dist-bzip2 no-dist-gzip foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -15,6 +15,7 @@ AC_PROG_CC
 PKG_PROG_PKG_CONFIG
 AM_GLIB_GNU_GETTEXT
 IT_PROG_INTLTOOL([0.40.0])
+AC_USE_SYSTEM_EXTENSIONS
 
 LT_INIT
 LT_CURRENT=0
