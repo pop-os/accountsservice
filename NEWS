@@ -1,3 +1,12 @@
+Changes in 0.6.4
+================
+
+* fix typo in HomeDirectory property
+
+* fix bug in asynchronous loading code
+
+* drop some random g_print's
+
 Changes in 0.6.3
 ================
 
