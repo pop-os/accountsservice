@@ -1,3 +1,39 @@
+Changes in 0.6.5
+================
+
+* No longer return excluded users from cached listings
+
+* Add a --debug command line option
+
+* Use proper dbus proxy for settings api in client lib
+
+* Expose XSession property over bus
+
+Changes in 0.6.4
+================
+
+* minor fixes
+
+Changes in 0.6.3
+================
+
+* Add more getters to client library
+
+* Add an initial cut at a setter api
+
+* Add XSession property type
+
+Changes in 0.6.2
+================
+
+* Remove the unused UserChanged signal
+
+* Add a small client library, based on code from gdm
+
+* Don't use gnome-common
+
+* Use the user-administration privilege for autologin changes
+
 Changes in 0.6.1
 ================
 

@@ -63,7 +63,8 @@ void         user_local_register            (User          *user);
 void         user_local_unregister          (User          *user);
 
 const gchar *user_local_get_user_name       (User          *user);
-const gchar *user_local_get_object_path     (User          *user);
+const gchar *user_local_get_user_name       (User          *user);
+uid_t        user_local_get_uid             (User          *user);
 
 /* exported methods */
 
@@ -78,6 +79,9 @@ gboolean       user_set_email          (User                  *user,
                                         DBusGMethodInvocation *context);
 gboolean       user_set_language       (User                  *user,
                                         const gchar           *language,
+                                        DBusGMethodInvocation *context);
+gboolean       user_set_x_session      (User                  *user,
+                                        const gchar           *x_session,
                                         DBusGMethodInvocation *context);
 gboolean       user_set_location       (User                  *user,
                                         const gchar           *location,

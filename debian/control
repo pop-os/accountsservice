@@ -1,15 +1,19 @@
 Source: accountsservice
-Section: gnome
+Section: admin
 Priority: optional
 Maintainer: Alessio Treglia <alessio@debian.org>
 Build-Depends: debhelper (>= 7.0.50~),
- automake,
- autoconf,
+ dh-autoreconf,
+ intltool,
  gnome-doc-utils,
- gnome-common,
  xmlto,
+ gir1.2-glib-2.0,
+ gir1.2-freedesktop,
  libdbus-glib-1-dev,
- libpolkit-gobject-1-dev
+ libpolkit-gobject-1-dev,
+ libglib2.0-dev (>= 2.25.11),
+ libgirepository1.0-dev (>= 0.9.12),
+ gobject-introspection (>= 0.9.12-4~)
 Standards-Version: 3.9.1
 Homepage: http://cgit.freedesktop.org/accountsservice/
 Vcs-Git: git://git.debian.org/collab-maint/accountsservice.git
@@ -18,10 +22,61 @@ Vcs-Browser: http://git.debian.org/?p=collab-maint/accountsservice.git
 Package: accountsservice
 Architecture: any
 Depends: ${shlibs:Depends},
+ libaccountsservice0 (= ${binary:Version}),
+ dbus,
  ${misc:Depends}
 Suggests: gnome-control-center
 Description: query and manipulate user account information
- The accountsservice project provides a set of D-Bus
+ The AccountService project provides a set of D-Bus
  interfaces for querying and manipulating user account
  information and an implementation of these interfaces,
  based on the useradd, usermod and userdel commands.
+
+Package: libaccountsservice0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${misc:Depends}
+Breaks: accountsservice (<< 0.6.5)
+Description: query and manipulate user account information - shared libraries
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This package provides the shared libraries of the
+ AccountService library.
+
+Package: libaccountsservice-dev
+Section: libdevel
+Architecture: all
+Depends: libaccountsservice0 (>= ${source:Version}),
+ libaccountsservice0 (<< ${source:Upstream-Version}+1~),
+ libdbus-glib-1-dev,
+ libpolkit-gobject-1-dev,
+ libglib2.0-dev (>= 2.25.11),
+ libgirepository1.0-dev (>= 0.9.12),
+ ${misc:Depends}
+Description: query and manipulate user account information - header files
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This package provides the development files for the
+ AccountService library.
+
+Package: gir1.2-accountservice-1.0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends},
+ ${gir:Depends},
+ ${misc:Depends}
+Description: GObject introspection data for AccountService
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This package provides the introspection data for the
+ AccountService library.

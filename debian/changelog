@@ -1,3 +1,19 @@
+accountsservice (0.6.5-1) experimental; urgency=low
+
+  * New upstream release.
+  * Update build-dependencies.
+  * Switch to dh-autoreconf.
+  * Provide po/Makefile.in.in
+  * Don't build static libraries
+  * Split files in several packages:
+    - accountsservice to provide the runtime service files.
+    - libaccountsservice0 to provide the shared libraries.
+    - libaccountsservice-dev to provide the development files.
+    - gir1.0-accountservice-1.0 to provide GObject introspection
+      data files.
+
+ -- Alessio Treglia <alessio@debian.org>  Sun, 13 Mar 2011 11:10:25 +0100
+
 accountsservice (0.6.1-1) unstable; urgency=low
 
   * Initial release (Closes: #606002).

@@ -111,6 +111,21 @@ acquire_name_on_proxy (DBusGProxy *system_bus_proxy,
         return ret;
 }
 
+static gboolean debug;
+
+static void
+log_handler (const gchar   *domain,
+             GLogLevelFlags level,
+             const gchar   *message,
+             gpointer       data)
+{
+        /* filter out DEBUG messages if debug isn't set */
+        if ((level & G_LOG_LEVEL_MASK) == G_LOG_LEVEL_DEBUG && !debug)
+                return;
+
+        g_log_default_handler (domain, level, message, data);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -125,6 +140,8 @@ main (int argc, char *argv[])
         static GOptionEntry entries[] = {
                 { "version", 0, 0, G_OPTION_ARG_NONE, &show_version, N_("Output version information and exit"), NULL },
                 { "replace", 0, 0, G_OPTION_ARG_NONE, &replace, N_("Replace existing instance"), NULL },
+                { "debug", 0, 0, G_OPTION_ARG_NONE, &debug, N_("Enable debugging code"), NULL },
+
                 { NULL }
         };
 
@@ -159,6 +176,8 @@ main (int argc, char *argv[])
                 goto out;
         }
 
+        g_log_set_default_handler (log_handler, NULL);
+
         bus = dbus_g_bus_get (DBUS_BUS_SYSTEM, &error);
         if (bus == NULL) {
                 g_warning ("Could not connect to system bus: %s", error->message);
@@ -192,7 +211,7 @@ main (int argc, char *argv[])
 
         loop = g_main_loop_new (NULL, FALSE);
 
-        g_print ("entering main loop\n");
+        g_debug ("entering main loop\n");
         g_main_loop_run (loop);
 
         g_main_loop_unref (loop);
