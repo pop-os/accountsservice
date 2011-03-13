@@ -37,6 +37,7 @@ Section: libs
 Architecture: any
 Depends: ${shlibs:Depends},
  ${misc:Depends}
+Breaks: accountsservice (<< 0.6.5)
 Description: query and manipulate user account information - shared libraries
  The AccountService project provides a set of D-Bus
  interfaces for querying and manipulating user account
