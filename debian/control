@@ -49,9 +49,8 @@ Description: query and manipulate user account information - shared libraries
 
 Package: libaccountsservice-dev
 Section: libdevel
-Architecture: all
-Depends: libaccountsservice0 (>= ${source:Version}),
- libaccountsservice0 (<< ${source:Upstream-Version}+1~),
+Architecture: any
+Depends: libaccountsservice0 (= ${binary:Version}),
  libdbus-glib-1-dev,
  libpolkit-gobject-1-dev,
  libglib2.0-dev (>= 2.25.11),
