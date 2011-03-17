@@ -1,8 +1,9 @@
 accountsservice (0.6.5-2) experimental; urgency=low
 
-  * start new upload
+  * Switch libaccountsservice-dev to architecture 'any';
+    also closes: #618643.
 
- -- Alessio Treglia <alessio@debian.org>  Wed, 16 Mar 2011 11:20:05 +0100
+ -- Alessio Treglia <alessio@debian.org>  Thu, 17 Mar 2011 11:20:19 +0100
 
 accountsservice (0.6.5-1) experimental; urgency=low
 
