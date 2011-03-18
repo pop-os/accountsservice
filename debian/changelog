@@ -1,3 +1,9 @@
+accountsservice (0.6.6-1) experimental; urgency=low
+
+  * New upstream release.
+
+ -- Alessio Treglia <alessio@debian.org>  Fri, 18 Mar 2011 10:28:02 +0100
+
 accountsservice (0.6.5-2) experimental; urgency=low
 
   * Switch libaccountsservice-dev to architecture 'any';
