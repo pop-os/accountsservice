@@ -279,7 +279,7 @@ act_user_class_init (ActUserClass *class)
                                                            "Account Type",
                                                            "The account type for this user.",
                                                            ACT_USER_ACCOUNT_TYPE_STANDARD,
-                                                           ACT_USER_ACCOUNT_TYPE_SUPERVISED,
+                                                           ACT_USER_ACCOUNT_TYPE_ADMINISTRATOR,
                                                            ACT_USER_ACCOUNT_TYPE_STANDARD,
                                                            G_PARAM_READABLE));
         g_object_class_install_property (gobject_class,
@@ -506,7 +506,12 @@ act_user_get_real_name (ActUser *user)
 {
         g_return_val_if_fail (ACT_IS_USER (user), NULL);
 
-        return (user->real_name ? user->real_name : user->user_name);
+        if (user->real_name == NULL ||
+            user->real_name[0] == '\0') {
+                return user->user_name;
+        }
+
+        return user->real_name;
 }
 
 /**
@@ -1019,6 +1024,7 @@ on_get_all_finished (DBusGProxy     *proxy,
         gboolean     res;
 
         g_assert (user->get_all_call == call);
+        g_assert (DBUS_IS_G_PROXY (user->object_proxy));
         g_assert (user->object_proxy == proxy);
 
         error = NULL;
@@ -1029,13 +1035,12 @@ on_get_all_finished (DBusGProxy     *proxy,
                                      &hash_table,
                                      G_TYPE_INVALID);
         user->get_all_call = NULL;
-        user->object_proxy = NULL;
 
         if (! res) {
                 g_debug ("Error calling GetAll() when retrieving properties for %s: %s",
                          user->object_path, error->message);
                 g_error_free (error);
-                goto out;
+                return;
         }
         g_hash_table_foreach (hash_table, (GHFunc) collect_props, user);
         g_hash_table_unref (hash_table);
@@ -1045,23 +1050,16 @@ on_get_all_finished (DBusGProxy     *proxy,
         }
 
         g_signal_emit (user, signals[CHANGED], 0);
-
-out:
-        g_object_unref (proxy);
 }
 
 static gboolean
 update_info (ActUser *user)
 {
-        DBusGProxy     *proxy;
         DBusGProxyCall *call;
 
-        proxy = dbus_g_proxy_new_for_name (user->connection,
-                                           ACCOUNTS_NAME,
-                                           user->object_path,
-                                           DBUS_INTERFACE_PROPERTIES);
+        g_assert (DBUS_IS_G_PROXY (user->object_proxy));
 
-        call = dbus_g_proxy_begin_call (proxy,
+        call = dbus_g_proxy_begin_call (user->object_proxy,
                                         "GetAll",
                                         (DBusGProxyCallNotify)
                                         on_get_all_finished,
@@ -1076,15 +1074,14 @@ update_info (ActUser *user)
                 goto failed;
         }
 
+        if (user->get_all_call != NULL) {
+                dbus_g_proxy_cancel_call (user->object_proxy, user->get_all_call);
+        }
+
         user->get_all_call = call;
-        user->object_proxy = proxy;
         return TRUE;
 
 failed:
-        if (proxy != NULL) {
-                g_object_unref (proxy);
-        }
-
         return FALSE;
 }
 
@@ -1124,6 +1121,11 @@ _act_user_update_from_object_path (ActUser    *user,
 
         dbus_g_proxy_connect_signal (user->accounts_proxy, "Changed",
                                      G_CALLBACK (changed_handler), user, NULL);
+
+        user->object_proxy = dbus_g_proxy_new_for_name (user->connection,
+                                                        ACCOUNTS_NAME,
+                                                        user->object_path,
+                                                        DBUS_INTERFACE_PROPERTIES);
 
         if (!update_info (user)) {
                 g_warning ("Couldn't update info for user with object path %s", object_path);
