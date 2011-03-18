@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.5])
+AC_INIT([AccountsService],[0.6.6])
 AM_INIT_AUTOMAKE(dist-bzip2 no-dist-gzip foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -161,9 +161,14 @@ AC_PATH_PROG([XSLTPROC], [xsltproc])
 AC_ARG_WITH([systemdsystemunitdir],
         AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files]),
         [],
-        [with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
-AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
-AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir"])
+        [with_systemdsystemunitdir=yes])
+if test "x$with_systemdsystemunitdir" = "xyes"; then
+    with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+fi
+if test "x$with_systemdsystemunitdir" != "xno"; then
+    AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
+fi
+AM_CONDITIONAL(HAVE_SYSTEMD, [test -n "$with_systemdsystemunitdir" -a "x$with_systemdsystemunitdir" != "xno" ])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([

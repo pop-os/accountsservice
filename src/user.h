@@ -37,8 +37,7 @@ G_BEGIN_DECLS
 typedef enum {
         ACCOUNT_TYPE_STANDARD,
         ACCOUNT_TYPE_ADMINISTRATOR,
-        ACCOUNT_TYPE_SUPERVISED,
-#define ACCOUNT_TYPE_LAST ACCOUNT_TYPE_SUPERVISED
+#define ACCOUNT_TYPE_LAST ACCOUNT_TYPE_ADMINISTRATOR
 } AccountType;
 
 typedef enum {
@@ -64,6 +63,7 @@ void         user_local_unregister          (User          *user);
 
 const gchar *user_local_get_user_name       (User          *user);
 const gchar *user_local_get_user_name       (User          *user);
+const gchar *user_local_get_object_path     (User          *user);
 uid_t        user_local_get_uid             (User          *user);
 
 /* exported methods */
