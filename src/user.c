@@ -409,41 +409,36 @@ user_finalize (GObject *object)
 }
 
 static gint
-account_type_from_groups (struct passwd *pwent)
+account_type_from_pwent (struct passwd *pwent)
 {
         struct group *grp;
-        gid_t desktop_user_r;
-        gid_t desktop_admin_r;
+        gid_t wheel;
         gid_t *groups;
         gint ngroups;
         gint i;
 
-        grp = getgrnam ("desktop_user_r");
-        if (grp == NULL) {
-                g_warning ("desktop_user_r group not found");
-                return ACCOUNT_TYPE_STANDARD;
+        if (pwent->pw_uid == 0) {
+                g_debug ("user is root so account type is administrator");
+                return ACCOUNT_TYPE_ADMINISTRATOR;
         }
-        desktop_user_r = grp->gr_gid;
 
-        grp = getgrnam ("desktop_admin_r");
+        grp = getgrnam ("wheel");
         if (grp == NULL) {
-                g_warning ("desktop_admin_r group not found");
+                g_debug ("wheel group not found");
                 return ACCOUNT_TYPE_STANDARD;
         }
-        desktop_admin_r = grp->gr_gid;
+        wheel = grp->gr_gid;
 
         ngroups = get_user_groups (pwent->pw_name, pwent->pw_gid, &groups);
 
         for (i = 0; i < ngroups; i++) {
-                if (groups[i] == desktop_user_r)
-                        return ACCOUNT_TYPE_STANDARD;
-                if (groups[i] == desktop_admin_r)
+                if (groups[i] == wheel)
                         return ACCOUNT_TYPE_ADMINISTRATOR;
         }
 
         g_free (groups);
 
-        return ACCOUNT_TYPE_SUPERVISED;
+        return ACCOUNT_TYPE_STANDARD;
 }
 
 void
@@ -514,7 +509,7 @@ user_local_update_from_pwent (User          *user,
         /* GID */
         user->gid = pwent->pw_gid;
 
-        user->account_type = account_type_from_groups (pwent);
+        user->account_type = account_type_from_pwent (pwent);
 
         /* Username */
         if (g_strcmp0 (user->user_name, pwent->pw_name) != 0) {
@@ -1352,6 +1347,30 @@ user_change_icon_file_authorized_cb (Daemon                *daemon,
 
         filename = g_strdup (data);
 
+        if (filename == NULL ||
+            *filename == '\0') {
+                char *dest_path;
+                GFile *dest;
+                GError *error;
+
+                g_free (filename);
+                filename = NULL;
+
+                dest_path = g_build_filename (ICONDIR, user->user_name, NULL);
+                dest = g_file_new_for_path (dest_path);
+                g_free (dest_path);
+
+                error = NULL;
+                if (!g_file_delete (dest, NULL, &error)) {
+                        g_object_unref (dest);
+                        throw_error (context, ERROR_FAILED, "failed to remove user icon, %s", error->message);
+                        g_error_free (error);
+                        return;
+                }
+                g_object_unref (dest);
+                goto icon_saved;
+        }
+
         file = g_file_new_for_path (filename);
         info = g_file_query_info (file, G_FILE_ATTRIBUTE_UNIX_MODE ","
                                         G_FILE_ATTRIBUTE_STANDARD_SIZE,
@@ -1363,7 +1382,7 @@ user_change_icon_file_authorized_cb (Daemon                *daemon,
         g_object_unref (file);
 
         if (size > 1048576) {
-                g_warning ("file too large\n");
+                g_debug ("file too large\n");
                 /* 1MB ought to be enough for everybody */
                 throw_error (context, ERROR_FAILED, "file '%s' is too large to be used as an icon", filename);
                 g_free (filename);
@@ -1447,6 +1466,7 @@ user_change_icon_file_authorized_cb (Daemon                *daemon,
                 filename = dest_path;
         }
 
+icon_saved:
         g_free (user->icon_file);
         user->icon_file = filename;
 
@@ -1564,8 +1584,7 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
         gid_t *groups;
         gint ngroups;
         GString *str;
-        gid_t desktop_user_r;
-        gid_t desktop_admin_r;
+        gid_t wheel;
         struct group *grp;
         gint i;
         gchar *argv[5];
@@ -1575,34 +1594,24 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
                          "change account type of user '%s' (%d) to %d",
                          user->user_name, user->uid, account_type);
 
-                grp = getgrnam ("desktop_user_r");
+                grp = getgrnam ("wheel");
                 if (grp == NULL) {
-                        throw_error (context, ERROR_FAILED, "failed to set account type: desktop_user_r group not found");
+                        throw_error (context, ERROR_FAILED, "failed to set account type: wheel group not found");
                         return;
                 }
-                desktop_user_r = grp->gr_gid;
-
-                grp = getgrnam ("desktop_admin_r");
-                if (grp == NULL) {
-                        throw_error (context, ERROR_FAILED, "failed to set account type: desktop_admin_r group not found");
-                        return;
-                }
-                desktop_admin_r = grp->gr_gid;
+                wheel = grp->gr_gid;
 
                 ngroups = get_user_groups (user->user_name, user->gid, &groups);
 
                 str = g_string_new ("");
                 for (i = 0; i < ngroups; i++) {
-                        if (groups[i] == desktop_user_r || groups[i] == desktop_admin_r)
+                        if (groups[i] == wheel)
                                 continue;
                         g_string_append_printf (str, "%d,", groups[i]);
                 }
                 switch (account_type) {
-                case ACCOUNT_TYPE_STANDARD:
-                        g_string_append_printf (str, "%d", desktop_user_r);
-                        break;
                 case ACCOUNT_TYPE_ADMINISTRATOR:
-                        g_string_append_printf (str, "%d", desktop_admin_r);
+                        g_string_append_printf (str, "%d", wheel);
                         break;
                 default:
                         /* remove excess comma */
