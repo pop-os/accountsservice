@@ -1,1 +1,3 @@
+0001-do-not-consider-system-users-returned-from-consolekit.patch
+0002-create-and-manage-groups-like-on-a-debian-system.patch
 1001-buildsystem.patch
