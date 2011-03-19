@@ -1,3 +1,13 @@
+accountsservice (0.6.6-2) experimental; urgency=low
+
+  * Rename 0001-buildsystem.patch -> 1001-buildsystem.patch
+  * Match Debian user/groups system;
+    thanks to Frederic Peters for the patchset (Closes: #618764):
+    - 0001-do-not-consider-system-users-returned-from-consolekit.patch.
+    - 0002-create-and-manage-groups-like-on-a-debian-system.patch.
+
+ -- Alessio Treglia <alessio@debian.org>  Sat, 19 Mar 2011 10:39:28 +0100
+
 accountsservice (0.6.6-1) experimental; urgency=low
 
   * New upstream release.
