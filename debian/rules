@@ -11,7 +11,9 @@ override_dh_shlibdeps:
 	dh_girepository -l src:debian/libaccountsservice-dev/usr/share/gir-1.0
 
 override_dh_auto_configure:
-	dh_auto_configure -- --enable-static=no
+	dh_auto_configure -- \
+		--enable-static=no \
+		--with-systemdsystemunitdir=/lib/systemd/system
 
 # Disabled to avoid FTBFS
 override_dh_auto_test:
