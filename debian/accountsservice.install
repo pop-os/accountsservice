@@ -2,5 +2,6 @@ usr/lib/accountsservice
 usr/share/dbus-1
 usr/share/locale
 usr/share/polkit-1
+lib
 var
 etc
