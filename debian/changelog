@@ -1,3 +1,11 @@
+accountsservice (0.6.6-3) experimental; urgency=low
+
+  * Pass systemd unit dir to the configure script to properly provide
+    service file (Closes: #619796); thanks to Alban Browaeys for the
+    report.
+
+ -- Alessio Treglia <alessio@debian.org>  Sun, 27 Mar 2011 10:11:39 +0200
+
 accountsservice (0.6.6-2) experimental; urgency=low
 
   * Rename 0001-buildsystem.patch -> 1001-buildsystem.patch
