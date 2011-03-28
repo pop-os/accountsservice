@@ -1,3 +1,10 @@
+accountsservice (0.6.6-4) UNRELEASED; urgency=low
+
+  * 0002-create-and-manage-groups-like-on-a-debian-system.patch: fixed 
+    to not add user to useless group, and to use sudo instead of admin.
+
+ -- Josselin Mouette <joss@debian.org>  Mon, 28 Mar 2011 18:57:59 +0530
+
 accountsservice (0.6.6-3) experimental; urgency=low
 
   * Pass systemd unit dir to the configure script to properly provide

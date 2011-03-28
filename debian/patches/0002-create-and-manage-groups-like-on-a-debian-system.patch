@@ -3,17 +3,17 @@ Bug-Debian: http://bugs.debian.org/618764
 Forwarded: not-needed
 Description: Create and manage groups like on a debian system.
 ---
- src/daemon.c |   27 +++++++++++++--------------
- src/user.c   |   24 +++++++++++++-----------
- src/util.c   |   42 ++++++++++++++++++++++++++++++++++++++++++
- src/util.h   |    9 +++++++++
- 4 files changed, 77 insertions(+), 25 deletions(-)
+ daemon.c |   20 ++++++--------------
+ user.c   |   24 +++++++++++++-----------
+ util.c   |   42 ++++++++++++++++++++++++++++++++++++++++++
+ util.h   |    9 +++++++++
+ 4 files changed, 70 insertions(+), 25 deletions(-)
 
-diff --git a/src/daemon.c b/src/daemon.c
-index a32276b..54e4b7d 100644
---- a/src/daemon.c
-+++ b/src/daemon.c
-@@ -1107,20 +1107,8 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
+Index: accountsservice/src/daemon.c
+===================================================================
+--- accountsservice.orig/src/daemon.c	2011-03-28 17:08:12.599040731 +0530
++++ accountsservice/src/daemon.c	2011-03-28 17:13:15.803292345 +0530
+@@ -1107,20 +1107,8 @@
          argv[1] = "-m";
          argv[2] = "-c";
          argv[3] = cd->real_name;
@@ -36,29 +36,22 @@ index a32276b..54e4b7d 100644
  
          error = NULL;
          if (!spawn_with_login_uid (context, argv, &error)) {
-@@ -1129,6 +1117,17 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
+@@ -1129,6 +1117,10 @@
                  return;
          }
  
 +        if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
-+                add_user_to_group (context, cd->user_name, "admin");
-+        }
-+        if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR ||
-+            cd->account_type == ACCOUNT_TYPE_STANDARD) {
-+                add_user_to_group (context, cd->user_name, "audio");
-+                add_user_to_group (context, cd->user_name, "cdrom");
-+                add_user_to_group (context, cd->user_name, "dialout");
-+                add_user_to_group (context, cd->user_name, "plugdev");
++                add_user_to_group (context, cd->user_name, "sudo");
 +        }
 +
          user = daemon_local_find_user_by_name (daemon, cd->user_name);
  
          dbus_g_method_return (context, user_local_get_object_path (user));
-diff --git a/src/user.c b/src/user.c
-index 738b0d3..b9719ee 100644
---- a/src/user.c
-+++ b/src/user.c
-@@ -412,7 +412,7 @@ static gint
+Index: accountsservice/src/user.c
+===================================================================
+--- accountsservice.orig/src/user.c	2011-03-28 17:02:43.615040892 +0530
++++ accountsservice/src/user.c	2011-03-28 17:13:13.471040456 +0530
+@@ -412,7 +412,7 @@
  account_type_from_pwent (struct passwd *pwent)
  {
          struct group *grp;
@@ -67,15 +60,15 @@ index 738b0d3..b9719ee 100644
          gid_t *groups;
          gint ngroups;
          gint i;
-@@ -422,18 +422,20 @@ account_type_from_pwent (struct passwd *pwent)
+@@ -422,18 +422,20 @@
                  return ACCOUNT_TYPE_ADMINISTRATOR;
          }
  
 -        grp = getgrnam ("wheel");
-+        grp = getgrnam ("admin");
++        grp = getgrnam ("sudo");
          if (grp == NULL) {
 -                g_debug ("wheel group not found");
-+                g_debug ("admin group not found");
++                g_debug ("sudo group not found");
                  return ACCOUNT_TYPE_STANDARD;
          }
 -        wheel = grp->gr_gid;
@@ -92,7 +85,7 @@ index 738b0d3..b9719ee 100644
          }
  
          g_free (groups);
-@@ -1584,7 +1586,7 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
+@@ -1584,7 +1586,7 @@
          gid_t *groups;
          gint ngroups;
          GString *str;
@@ -101,15 +94,15 @@ index 738b0d3..b9719ee 100644
          struct group *grp;
          gint i;
          gchar *argv[5];
-@@ -1594,24 +1596,24 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
+@@ -1594,24 +1596,24 @@
                           "change account type of user '%s' (%d) to %d",
                           user->user_name, user->uid, account_type);
  
 -                grp = getgrnam ("wheel");
-+                grp = getgrnam ("admin");
++                grp = getgrnam ("sudo");
                  if (grp == NULL) {
 -                        throw_error (context, ERROR_FAILED, "failed to set account type: wheel group not found");
-+                        throw_error (context, ERROR_FAILED, "failed to set account type: admin group not found");
++                        throw_error (context, ERROR_FAILED, "failed to set account type: sudo group not found");
                          return;
                  }
 -                wheel = grp->gr_gid;
@@ -131,11 +124,11 @@ index 738b0d3..b9719ee 100644
                          break;
                  default:
                          /* remove excess comma */
-diff --git a/src/util.c b/src/util.c
-index 7f044f4..f933761 100644
---- a/src/util.c
-+++ b/src/util.c
-@@ -282,3 +282,45 @@ get_caller_uid (DBusGMethodInvocation *context, gint *uid)
+Index: accountsservice/src/util.c
+===================================================================
+--- accountsservice.orig/src/util.c	2011-03-28 17:02:43.615040892 +0530
++++ accountsservice/src/util.c	2011-03-28 17:08:14.559043233 +0530
+@@ -282,3 +282,45 @@
  
          return TRUE;
  }
@@ -181,11 +174,11 @@ index 7f044f4..f933761 100644
 +                return;
 +        }
 +}
-diff --git a/src/util.h b/src/util.h
-index bfdf780..323e858 100644
---- a/src/util.h
-+++ b/src/util.h
-@@ -41,6 +41,15 @@ gint get_user_groups (const gchar  *username,
+Index: accountsservice/src/util.h
+===================================================================
+--- accountsservice.orig/src/util.h	2011-03-28 17:02:43.615040892 +0530
++++ accountsservice/src/util.h	2011-03-28 17:08:14.559043233 +0530
+@@ -41,6 +41,15 @@
                        gid_t         group,
                        gid_t       **groups);
  
@@ -201,6 +194,3 @@ index bfdf780..323e858 100644
  G_END_DECLS
  
  #endif /* __UTIL_H__ */
--- 
-1.7.4.1
-
