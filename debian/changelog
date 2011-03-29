@@ -1,10 +1,11 @@
-accountsservice (0.6.6-4) UNRELEASED; urgency=low
+accountsservice (0.6.6-4) experimental; urgency=low
 
-  * 0002-create-and-manage-groups-like-on-a-debian-system.patch: fixed 
-    to not add user to useless group, and to use sudo instead of admin.
-    Closes: #619914.
+  [ Josselin Mouette ]
+  * 0002-create-and-manage-groups-like-on-a-debian-system.patch:
+    - fixed  to not add user to useless group, and to use sudo instead of
+      admin (Closes: #619914).
 
- -- Josselin Mouette <joss@debian.org>  Mon, 28 Mar 2011 18:57:59 +0530
+ -- Alessio Treglia <alessio@debian.org>  Tue, 29 Mar 2011 11:44:39 +0200
 
 accountsservice (0.6.6-3) experimental; urgency=low
 
