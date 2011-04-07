@@ -1111,8 +1111,8 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
                 argv[7] = NULL;
         }
         else if (cd->account_type == ACCOUNT_TYPE_STANDARD) {
-                argv[6] = cd->user_name;
-                argv[7] = NULL;
+                argv[4] = cd->user_name;
+                argv[5] = NULL;
         }
         else {
                 throw_error (context, ERROR_FAILED, "Don't know how to add user of type %d", cd->account_type);
@@ -1371,7 +1371,7 @@ load_autologin (Daemon      *daemon,
                 g_free (string);
                 return FALSE;
         }
-        if (g_strcmp0 (string, "True") == 0) {
+        if (string != NULL && (g_ascii_strcasecmp (string, "true") == 0 || strcmp (string, "1") == 0)) {
                 *enabled = TRUE;
         }
         else {
