@@ -1,0 +1,22 @@
+Description: Prevent it crashes due to getpwnam returning NULL value.
+From: Mattias Eriksson <snaggen@acc.umu.se>
+Forwarded: Matthias Clasen <mclasen@redhat.com>
+---
+ src/daemon.c |    6 ++++++
+ 1 file changed, 6 insertions(+)
+
+--- accountsservice.orig/src/daemon.c
++++ accountsservice/src/daemon.c
+@@ -346,6 +346,12 @@ process_ck_history_line (Daemon      *da
+         }
+ 
+         pw = getpwnam (username);
++
++        if (pw == NULL) {
++                g_debug ("getpwnam returned null for user '%s'", username);
++                g_free (username);
++                return;
++        }
+ 
+         if (user_is_excluded (daemon, username, pw->pw_uid)) {
+                 g_debug ("excluding user '%s'", username);
