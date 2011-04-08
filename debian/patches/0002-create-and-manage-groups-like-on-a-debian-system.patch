@@ -3,17 +3,15 @@ Bug-Debian: http://bugs.debian.org/618764
 Forwarded: not-needed
 Description: Create and manage groups like on a debian system.
 ---
- daemon.c |   20 ++++++--------------
- user.c   |   24 +++++++++++++-----------
- util.c   |   42 ++++++++++++++++++++++++++++++++++++++++++
- util.h   |    9 +++++++++
- 4 files changed, 70 insertions(+), 25 deletions(-)
+ src/daemon.c |   20 ++++++--------------
+ src/user.c   |   22 +++++++++++-----------
+ src/util.c   |   42 ++++++++++++++++++++++++++++++++++++++++++
+ src/util.h   |    9 +++++++++
+ 4 files changed, 68 insertions(+), 25 deletions(-)
 
-Index: accountsservice/src/daemon.c
-===================================================================
---- accountsservice.orig/src/daemon.c	2011-03-28 17:08:12.599040731 +0530
-+++ accountsservice/src/daemon.c	2011-03-28 17:13:15.803292345 +0530
-@@ -1107,20 +1107,8 @@
+--- accountsservice.orig/src/daemon.c
++++ accountsservice/src/daemon.c
+@@ -1107,20 +1107,8 @@ daemon_create_user_authorized_cb (Daemon
          argv[1] = "-m";
          argv[2] = "-c";
          argv[3] = cd->real_name;
@@ -24,8 +22,8 @@ Index: accountsservice/src/daemon.c
 -                argv[7] = NULL;
 -        }
 -        else if (cd->account_type == ACCOUNT_TYPE_STANDARD) {
--                argv[6] = cd->user_name;
--                argv[7] = NULL;
+-                argv[4] = cd->user_name;
+-                argv[5] = NULL;
 -        }
 -        else {
 -                throw_error (context, ERROR_FAILED, "Don't know how to add user of type %d", cd->account_type);
@@ -36,7 +34,7 @@ Index: accountsservice/src/daemon.c
  
          error = NULL;
          if (!spawn_with_login_uid (context, argv, &error)) {
-@@ -1129,6 +1117,10 @@
+@@ -1129,6 +1117,10 @@ daemon_create_user_authorized_cb (Daemon
                  return;
          }
  
@@ -47,11 +45,9 @@ Index: accountsservice/src/daemon.c
          user = daemon_local_find_user_by_name (daemon, cd->user_name);
  
          dbus_g_method_return (context, user_local_get_object_path (user));
-Index: accountsservice/src/user.c
-===================================================================
---- accountsservice.orig/src/user.c	2011-03-28 17:02:43.615040892 +0530
-+++ accountsservice/src/user.c	2011-03-28 17:13:13.471040456 +0530
-@@ -412,7 +412,7 @@
+--- accountsservice.orig/src/user.c
++++ accountsservice/src/user.c
+@@ -412,7 +412,7 @@ static gint
  account_type_from_pwent (struct passwd *pwent)
  {
          struct group *grp;
@@ -60,7 +56,7 @@ Index: accountsservice/src/user.c
          gid_t *groups;
          gint ngroups;
          gint i;
-@@ -422,18 +422,20 @@
+@@ -422,17 +422,17 @@ account_type_from_pwent (struct passwd *
                  return ACCOUNT_TYPE_ADMINISTRATOR;
          }
  
@@ -77,15 +73,12 @@ Index: accountsservice/src/user.c
          ngroups = get_user_groups (pwent->pw_name, pwent->pw_gid, &groups);
  
          for (i = 0; i < ngroups; i++) {
--                if (groups[i] == wheel)
+-                if (groups[i] == wheel) {
 +                if (groups[i] == admin) {
-+                        g_free (groups);
+                         g_free (groups);
                          return ACCOUNT_TYPE_ADMINISTRATOR;
-+                }
-         }
- 
-         g_free (groups);
-@@ -1584,7 +1586,7 @@
+                 }
+@@ -1586,7 +1586,7 @@ user_change_account_type_authorized_cb (
          gid_t *groups;
          gint ngroups;
          GString *str;
@@ -94,7 +87,7 @@ Index: accountsservice/src/user.c
          struct group *grp;
          gint i;
          gchar *argv[5];
-@@ -1594,24 +1596,24 @@
+@@ -1596,24 +1596,24 @@ user_change_account_type_authorized_cb (
                           "change account type of user '%s' (%d) to %d",
                           user->user_name, user->uid, account_type);
  
@@ -124,11 +117,9 @@ Index: accountsservice/src/user.c
                          break;
                  default:
                          /* remove excess comma */
-Index: accountsservice/src/util.c
-===================================================================
---- accountsservice.orig/src/util.c	2011-03-28 17:02:43.615040892 +0530
-+++ accountsservice/src/util.c	2011-03-28 17:08:14.559043233 +0530
-@@ -282,3 +282,45 @@
+--- accountsservice.orig/src/util.c
++++ accountsservice/src/util.c
+@@ -282,3 +282,45 @@ get_caller_uid (DBusGMethodInvocation *c
  
          return TRUE;
  }
@@ -174,11 +165,9 @@ Index: accountsservice/src/util.c
 +                return;
 +        }
 +}
-Index: accountsservice/src/util.h
-===================================================================
---- accountsservice.orig/src/util.h	2011-03-28 17:02:43.615040892 +0530
-+++ accountsservice/src/util.h	2011-03-28 17:08:14.559043233 +0530
-@@ -41,6 +41,15 @@
+--- accountsservice.orig/src/util.h
++++ accountsservice/src/util.h
+@@ -41,6 +41,15 @@ gint get_user_groups (const gchar  *user
                        gid_t         group,
                        gid_t       **groups);
  
