@@ -7,16 +7,16 @@ Forwarded: Matthias Clasen <mclasen@redhat.com>
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -346,6 +346,12 @@ process_ck_history_line (Daemon      *da
-         }
+@@ -347,6 +347,12 @@ process_ck_history_line (Daemon      *da
  
          pw = getpwnam (username);
-+
+ 
 +        if (pw == NULL) {
 +                g_debug ("getpwnam returned null for user '%s'", username);
 +                g_free (username);
 +                return;
 +        }
- 
-         if (user_is_excluded (daemon, username, pw->pw_uid)) {
++
+         if (daemon_local_user_is_excluded (daemon, username, pw->pw_uid)) {
                  g_debug ("excluding user '%s'", username);
+                 g_free (username);

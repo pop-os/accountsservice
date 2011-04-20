@@ -20,10 +20,10 @@ Forwarded: not-needed
                  return;
          }
  
--        if (user_is_excluded (daemon, username, daemon->priv->minimal_uid)) {
+-        if (daemon_local_user_is_excluded (daemon, username, daemon->priv->minimal_uid)) {
 +        pw = getpwnam (username);
 +
-+        if (user_is_excluded (daemon, username, pw->pw_uid)) {
++        if (daemon_local_user_is_excluded (daemon, username, pw->pw_uid)) {
                  g_debug ("excluding user '%s'", username);
                  g_free (username);
                  return;
