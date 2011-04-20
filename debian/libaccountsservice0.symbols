@@ -23,6 +23,7 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_get_x_session@Base 0.6.8
  act_user_is_loaded@Base 0.6.8
  act_user_is_logged_in@Base 0.6.8
+ act_user_is_system_account@Base 0.6.9
  act_user_manager_activate_user_session@Base 0.6.8
  act_user_manager_can_switch@Base 0.6.8
  act_user_manager_error_quark@Base 0.6.8
