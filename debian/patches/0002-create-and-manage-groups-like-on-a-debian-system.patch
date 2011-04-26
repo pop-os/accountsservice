@@ -47,7 +47,7 @@ Description: Create and manage groups like on a debian system.
          dbus_g_method_return (context, user_local_get_object_path (user));
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
-@@ -412,7 +412,7 @@ static gint
+@@ -429,7 +429,7 @@ static gint
  account_type_from_pwent (struct passwd *pwent)
  {
          struct group *grp;
@@ -56,7 +56,7 @@ Description: Create and manage groups like on a debian system.
          gid_t *groups;
          gint ngroups;
          gint i;
-@@ -422,17 +422,17 @@ account_type_from_pwent (struct passwd *
+@@ -439,17 +439,17 @@ account_type_from_pwent (struct passwd *
                  return ACCOUNT_TYPE_ADMINISTRATOR;
          }
  
@@ -78,7 +78,7 @@ Description: Create and manage groups like on a debian system.
                          g_free (groups);
                          return ACCOUNT_TYPE_ADMINISTRATOR;
                  }
-@@ -1586,7 +1586,7 @@ user_change_account_type_authorized_cb (
+@@ -1607,7 +1607,7 @@ user_change_account_type_authorized_cb (
          gid_t *groups;
          gint ngroups;
          GString *str;
@@ -87,7 +87,7 @@ Description: Create and manage groups like on a debian system.
          struct group *grp;
          gint i;
          gchar *argv[5];
-@@ -1596,24 +1596,24 @@ user_change_account_type_authorized_cb (
+@@ -1617,24 +1617,24 @@ user_change_account_type_authorized_cb (
                           "change account type of user '%s' (%d) to %d",
                           user->user_name, user->uid, account_type);
  
