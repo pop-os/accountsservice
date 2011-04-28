@@ -4,16 +4,16 @@ Priority: optional
 Maintainer: Alessio Treglia <alessio@debian.org>
 Build-Depends: debhelper (>= 7.0.50~),
  dh-autoreconf,
- intltool,
- gnome-doc-utils,
- xmlto,
- gir1.2-glib-2.0,
  gir1.2-freedesktop,
+ gir1.2-glib-2.0,
+ gnome-doc-utils,
+ gobject-introspection (>= 0.9.12-4~),
+ intltool,
  libdbus-glib-1-dev,
- libpolkit-gobject-1-dev,
- libglib2.0-dev (>= 2.25.11),
  libgirepository1.0-dev (>= 0.9.12),
- gobject-introspection (>= 0.9.12-4~)
+ libglib2.0-dev (>= 2.25.11),
+ libpolkit-gobject-1-dev,
+ xmlto
 Standards-Version: 3.9.2
 Homepage: http://cgit.freedesktop.org/accountsservice/
 Vcs-Git: git://git.debian.org/collab-maint/accountsservice.git
