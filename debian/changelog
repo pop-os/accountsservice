@@ -1,3 +1,12 @@
+accountsservice (0.6.9-2) unstable; urgency=low
+
+  * Small change to reload_ck_history in order to make accountsservice
+    filter by 'x11' session type (Closes: #624474);
+    thanks to Josselin Mouette for the report and patch.
+  * Bump Standards.
+
+ -- Alessio Treglia <alessio@debian.org>  Thu, 28 Apr 2011 20:03:07 +0200
+
 accountsservice (0.6.9-1) unstable; urgency=low
 
   * New upstream release.
