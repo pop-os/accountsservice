@@ -1,0 +1,19 @@
+Description: Make accountsservice filter by 'x11' session type.
+Author: Josselin Mouette <joss@debian.org>
+Bug-Debian: http://bugs.debian.org/624474
+Forwarded: no
+---
+ src/daemon.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- accountsservice.orig/src/daemon.c
++++ accountsservice/src/daemon.c
+@@ -418,7 +418,7 @@ reload_ck_history (Daemon *daemon)
+         gint standard_out;
+         GIOChannel *channel;
+ 
+-        command = g_strdup ("ck-history --frequent --session-type=''");
++        command = g_strdup ("ck-history --frequent --session-type='x11'");
+         g_debug ("running '%s'", command);
+         error = NULL;
+         if (! g_shell_parse_argv (command, NULL, &argv, &error)) {
