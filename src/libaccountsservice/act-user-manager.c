@@ -140,6 +140,7 @@ struct ActUserManagerPrivate
 
         GSList                *new_sessions;
         GSList                *new_users;
+        GSList                *new_users_inhibiting_load;
         GSList                *fetch_user_requests;
 
         GSList                *exclude_usernames;
@@ -533,7 +534,8 @@ on_user_changed (ActUser        *user,
                  ActUserManager *manager)
 {
         if (manager->priv->is_loaded) {
-                g_debug ("ActUserManager: user changed");
+                g_debug ("ActUserManager: user %s changed",
+                         act_user_get_user_name (user));
                 g_signal_emit (manager, signals[USER_CHANGED], 0, user);
         }
 }
@@ -571,6 +573,8 @@ on_get_seat_id_finished (DBusGProxy     *proxy,
                                  "current session");
                 }
                 unload_seat (manager);
+
+                g_debug ("ActUserManager: GetSeatId call failed, so trying to set loaded property");
                 maybe_set_is_loaded (manager);
                 return;
         }
@@ -692,6 +696,7 @@ add_user (ActUserManager *manager,
 {
         const char *object_path;
 
+        g_debug ("ActUserManager: tracking user '%s'", act_user_get_user_name (user));
         g_hash_table_insert (manager->priv->users_by_name,
                              g_strdup (act_user_get_user_name (user)),
                              g_object_ref (user));
@@ -713,7 +718,10 @@ add_user (ActUserManager *manager,
                           manager);
 
         if (manager->priv->is_loaded) {
+                g_debug ("ActUserManager: loaded, so emitting user-added signal");
                 g_signal_emit (manager, signals[USER_ADDED], 0, user);
+        } else {
+                g_debug ("ActUserManager: not yet loaded, so not emitting user-added signal");
         }
 
         if (g_hash_table_size (manager->priv->users_by_name) > 1) {
@@ -725,6 +733,10 @@ static void
 remove_user (ActUserManager *manager,
              ActUser        *user)
 {
+        g_debug ("ActUserManager: no longer tracking user '%s' (with object path %s)",
+                 act_user_get_user_name (user),
+                 act_user_get_object_path (user));
+
         g_object_ref (user);
 
         g_signal_handlers_disconnect_by_func (user, on_user_changed, manager);
@@ -738,7 +750,10 @@ remove_user (ActUserManager *manager,
         }
 
         if (manager->priv->is_loaded) {
+                g_debug ("ActUserManager: loaded, so emitting user-removed signal");
                 g_signal_emit (manager, signals[USER_REMOVED], 0, user);
+        } else {
+                g_debug ("ActUserManager: not yet loaded, so not emitting user-removed signal");
         }
 
         g_object_unref (user);
@@ -757,12 +772,16 @@ on_new_user_loaded (ActUser        *user,
         ActUser *old_user;
 
         if (!act_user_is_loaded (user)) {
+                g_debug ("ActUserManager: user '%s' loaded function called when not loaded",
+                         act_user_get_user_name (user));
                 return;
         }
-
         g_signal_handlers_disconnect_by_func (user, on_new_user_loaded, manager);
+
         manager->priv->new_users = g_slist_remove (manager->priv->new_users,
                                                    user);
+        manager->priv->new_users_inhibiting_load = g_slist_remove (manager->priv->new_users_inhibiting_load,
+                                                                   user);
 
         username = act_user_get_user_name (user);
 
@@ -780,13 +799,15 @@ on_new_user_loaded (ActUser        *user,
                                    (int) act_user_get_uid (user));
                 }
                 g_object_unref (user);
-                return;
+                goto out;
         }
+
+        g_debug ("ActUserManager: user '%s' is now loaded", username);
 
         if (username_in_exclude_list (manager, username)) {
                 g_debug ("ActUserManager: excluding user '%s'", username);
                 g_object_unref (user);
-                return;
+                goto out;
         }
 
         old_user = g_hash_table_lookup (manager->priv->users_by_name, username);
@@ -794,14 +815,20 @@ on_new_user_loaded (ActUser        *user,
         /* If username got added earlier by a different means, trump it now.
          */
         if (old_user != NULL) {
+                g_debug ("ActUserManager: user '%s' was already known, "
+                         "replacing with freshly loaded object", username);
                 remove_user (manager, old_user);
         }
 
         add_user (manager, user);
         g_object_unref (user);
 
-        if (manager->priv->new_users == NULL) {
-                set_is_loaded (manager, TRUE);
+out:
+        if (manager->priv->new_users_inhibiting_load == NULL) {
+                g_debug ("ActUserManager: no pending users, trying to set loaded property");
+                maybe_set_is_loaded (manager);
+        } else {
+                g_debug ("ActUserManager: not all users loaded yet");
         }
 }
 
@@ -814,8 +841,13 @@ add_new_user_for_object_path (const char     *object_path,
         user = g_hash_table_lookup (manager->priv->users_by_object_path, object_path); 
 
         if (user != NULL) {
+                g_debug ("ActUserManager: tracking existing user %s with object path %s",
+                         act_user_get_user_name (user), object_path);
                 return user;
         }
+
+        g_debug ("ActUserManager: tracking new user with object path %s", object_path);
+
         user = create_new_user (manager);
         _act_user_update_from_object_path (user, object_path);
 
@@ -829,6 +861,12 @@ on_new_user_in_accounts_service (DBusGProxy *proxy,
 {
         ActUserManager *manager = ACT_USER_MANAGER (user_data);
 
+        if (!manager->priv->is_loaded) {
+                g_debug ("ActUserManager: ignoring new user in accounts service with object path %s since not loaded yet", object_path);
+                return;
+        }
+
+        g_debug ("ActUserManager: new user in accounts service with object path %s", object_path);
         add_new_user_for_object_path (object_path, manager);
 }
 
@@ -839,6 +877,8 @@ on_user_removed_in_accounts_service (DBusGProxy *proxy,
 {
         ActUserManager *manager = ACT_USER_MANAGER (user_data);
         ActUser        *user;
+
+        g_debug ("ActUserManager: user removed from accounts service with object path %s", object_path);
 
         user = g_hash_table_lookup (manager->priv->users_by_object_path, object_path);
 
@@ -879,6 +919,7 @@ on_get_current_session_finished (DBusGProxy     *proxy,
                         g_debug ("Failed to identify the current session");
                 }
                 unload_seat (manager);
+                g_debug ("ActUserManager: no current session, so trying to set loaded property");
                 maybe_set_is_loaded (manager);
                 return;
         }
@@ -1132,6 +1173,19 @@ set_is_loaded (ActUserManager *manager,
 }
 
 static void
+add_new_inhibiting_user_for_object_path (const char     *object_path,
+                                         ActUserManager *manager)
+{
+        ActUser *user;
+
+        user = add_new_user_for_object_path (object_path, manager);
+
+        if (!manager->priv->is_loaded) {
+                manager->priv->new_users_inhibiting_load = g_slist_prepend (manager->priv->new_users_inhibiting_load, user);
+        }
+}
+
+static void
 on_list_cached_users_finished (DBusGProxy     *proxy,
                                DBusGProxyCall *call_id,
                                gpointer        data)
@@ -1155,8 +1209,13 @@ on_list_cached_users_finished (DBusGProxy     *proxy,
                 return;
         }
 
-        maybe_set_is_loaded (manager);
-        g_ptr_array_foreach (paths, (GFunc)add_new_user_for_object_path, manager);
+        /* We now have a batch of unloaded users that we know about. Once that initial
+         * batch is loaded up, we can mark the manager as loaded.
+         *
+         * (see on_new_user_loaded)
+         */
+        g_debug ("ActUserManager: ListCachedUsers finished, will set loaded property after list is fully loaded");
+        g_ptr_array_foreach (paths, (GFunc)add_new_inhibiting_user_for_object_path, manager);
 
         g_ptr_array_foreach (paths, (GFunc)g_free, NULL);
         g_ptr_array_free (paths, TRUE);
@@ -1578,6 +1637,9 @@ on_user_manager_maybe_ready_for_request (ActUserManager                 *manager
                 return;
         }
 
+        g_debug ("ActUserManager: user manager now loaded, proceeding with fetch user request for user '%s'",
+                 request->username);
+
         g_signal_handlers_disconnect_by_func (manager, on_user_manager_maybe_ready_for_request, request);
 
         request->state++;
@@ -1676,6 +1738,7 @@ act_user_manager_get_user (ActUserManager *manager,
 
         /* if we don't have it loaded try to load it now */
         if (user == NULL) {
+                g_debug ("ActUserManager: trying to track new user with username %s", username);
                 user = create_new_user (manager);
 
                 if (manager->priv->accounts_proxy != NULL) {
@@ -1721,22 +1784,34 @@ static void
 maybe_set_is_loaded (ActUserManager *manager)
 {
         if (manager->priv->is_loaded) {
+                g_debug ("ActUserManager: already loaded, so not setting loaded property");
                 return;
         }
 
         if (manager->priv->get_sessions_call != NULL) {
+                g_debug ("ActUserManager: GetSessions call pending, so not setting loaded property");
                 return;
         }
 
         if (manager->priv->listing_cached_users) {
+                g_debug ("ActUserManager: Listing cached users, so not setting loaded property");
+                return;
+        }
+
+        if (manager->priv->new_users_inhibiting_load != NULL) {
+                g_debug ("ActUserManager: Loading new users, so not setting loaded property");
                 return;
         }
 
         /* Don't set is_loaded yet unless the seat is already loaded
          * or failed to load.
          */
-        if (manager->priv->seat.state != ACT_USER_MANAGER_SEAT_STATE_LOADED
-            && manager->priv->seat.state != ACT_USER_MANAGER_SEAT_STATE_UNLOADED) {
+        if (manager->priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_LOADED) {
+                g_debug ("ActUserManager: Seat loaded, so now setting loaded property");
+        } else if (manager->priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_UNLOADED) {
+                g_debug ("ActUserManager: Seat wouldn't load, so giving up on it and setting loaded property");
+        } else {
+                g_debug ("ActUserManager: Seat still actively loading, so not setting loaded property");
                 return;
         }
 
@@ -1811,6 +1886,8 @@ on_get_sessions_finished (DBusGProxy     *proxy,
                                   (int) sessions->len);
         g_ptr_array_foreach (sessions, (GFunc) g_free, NULL);
         g_ptr_array_free (sessions, TRUE);
+
+        g_debug ("ActUserManager: GetSessions call finished, so trying to set loaded property");
         maybe_set_is_loaded (manager);
 }
 
@@ -1880,6 +1957,7 @@ load_seat_incrementally (ActUserManager *manager)
                 load_sessions (manager);
         }
 
+        g_debug ("ActUserManager: Seat loading sequence complete, so trying to set loaded property");
         maybe_set_is_loaded (manager);
 }
 
@@ -2132,6 +2210,8 @@ act_user_manager_finalize (GObject *object)
         g_slist_foreach (manager->priv->fetch_user_requests,
                          (GFunc) free_fetch_user_request, NULL);
         g_slist_free (manager->priv->fetch_user_requests);
+
+        g_slist_free (manager->priv->new_users_inhibiting_load);
 
         node = manager->priv->new_users;
         while (node != NULL) {

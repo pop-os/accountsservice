@@ -1,3 +1,11 @@
+accountsservice (0.6.10-1) unstable; urgency=low
+
+  * New upstream release:
+    - An assortment of race fixes.
+    - Translation updates.
+
+ -- Alessio Treglia <alessio@debian.org>  Sat, 07 May 2011 13:02:07 +0200
+
 accountsservice (0.6.9-2) unstable; urgency=low
 
   * Small change to reload_ck_history in order to make accountsservice
