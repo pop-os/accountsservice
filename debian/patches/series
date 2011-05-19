@@ -2,4 +2,5 @@
 0002-create-and-manage-groups-like-on-a-debian-system.patch
 0003-getpwnam_null_crash.patch
 0004-history-filter-sessions.patch
+0005-gdm_config_file_path.patch
 1001-buildsystem.patch
