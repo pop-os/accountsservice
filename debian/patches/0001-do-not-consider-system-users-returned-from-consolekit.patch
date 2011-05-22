@@ -8,7 +8,7 @@ Forwarded: not-needed
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -336,6 +336,7 @@ process_ck_history_line (Daemon      *da
+@@ -347,6 +347,7 @@ process_ck_history_line (Daemon      *da
          gchar *username;
          gulong frequency;
          User *user;
@@ -16,7 +16,7 @@ Forwarded: not-needed
  
          frequency = 0;
          username = NULL;
-@@ -344,7 +345,9 @@ process_ck_history_line (Daemon      *da
+@@ -355,7 +356,9 @@ process_ck_history_line (Daemon      *da
                  return;
          }
  

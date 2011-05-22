@@ -7,7 +7,7 @@ Forwarded: Matthias Clasen <mclasen@redhat.com>
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -347,6 +347,12 @@ process_ck_history_line (Daemon      *da
+@@ -358,6 +358,12 @@ process_ck_history_line (Daemon      *da
  
          pw = getpwnam (username);
  

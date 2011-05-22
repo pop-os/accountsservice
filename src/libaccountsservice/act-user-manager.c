@@ -572,10 +572,9 @@ on_get_seat_id_finished (DBusGProxy     *proxy,
                         g_debug ("Failed to identify the seat of the "
                                  "current session");
                 }
-                unload_seat (manager);
 
-                g_debug ("ActUserManager: GetSeatId call failed, so trying to set loaded property");
-                maybe_set_is_loaded (manager);
+                g_debug ("ActUserManager: GetSeatId call failed, so unloading seat");
+                unload_seat (manager);
                 return;
         }
 
@@ -878,9 +877,14 @@ on_user_removed_in_accounts_service (DBusGProxy *proxy,
         ActUserManager *manager = ACT_USER_MANAGER (user_data);
         ActUser        *user;
 
-        g_debug ("ActUserManager: user removed from accounts service with object path %s", object_path);
-
         user = g_hash_table_lookup (manager->priv->users_by_object_path, object_path);
+
+        if (user == NULL) {
+                g_debug ("ActUserManager: ignoring untracked user %s", object_path);
+                return;
+        } else {
+                g_debug ("ActUserManager: tracked user %s removed from accounts service", object_path);
+        }
 
         manager->priv->new_users = g_slist_remove (manager->priv->new_users, user);
 
@@ -919,8 +923,6 @@ on_get_current_session_finished (DBusGProxy     *proxy,
                         g_debug ("Failed to identify the current session");
                 }
                 unload_seat (manager);
-                g_debug ("ActUserManager: no current session, so trying to set loaded property");
-                maybe_set_is_loaded (manager);
                 return;
         }
 
@@ -1214,8 +1216,13 @@ on_list_cached_users_finished (DBusGProxy     *proxy,
          *
          * (see on_new_user_loaded)
          */
-        g_debug ("ActUserManager: ListCachedUsers finished, will set loaded property after list is fully loaded");
-        g_ptr_array_foreach (paths, (GFunc)add_new_inhibiting_user_for_object_path, manager);
+        if (paths->len > 0) {
+                g_debug ("ActUserManager: ListCachedUsers finished, will set loaded property after list is fully loaded");
+                g_ptr_array_foreach (paths, (GFunc)add_new_inhibiting_user_for_object_path, manager);
+        } else {
+                g_debug ("ActUserManager: ListCachedUsers finished with empty list, maybe setting loaded property now");
+                maybe_set_is_loaded (manager);
+        }
 
         g_ptr_array_foreach (paths, (GFunc)g_free, NULL);
         g_ptr_array_free (paths, TRUE);
@@ -1544,6 +1551,9 @@ unload_seat (ActUserManager *manager)
 
         g_free (manager->priv->seat.session_id);
         manager->priv->seat.session_id = NULL;
+
+        g_debug ("ActUserManager: seat unloaded, so trying to set loaded property");
+        maybe_set_is_loaded (manager);
 }
 
 static void
@@ -2281,4 +2291,45 @@ act_user_manager_get_default (void)
         }
 
         return ACT_USER_MANAGER (user_manager_object);
+}
+
+
+gboolean
+act_user_manager_create_user (ActUserManager     *manager,
+                              const char         *username,
+                              const char         *fullname,
+                              ActUserAccountType  accounttype)
+{
+        GError *error;
+        gboolean res;
+        gchar *path;
+
+        g_debug ("ActUserManager: Creating user '%s', '%s', %d",
+                 username, fullname, accounttype);
+
+        g_assert (manager->priv->accounts_proxy != NULL);
+
+        error = NULL;
+        res = dbus_g_proxy_call (manager->priv->accounts_proxy,
+                                 "CreateUser",
+                                 &error,
+                                 G_TYPE_STRING, username,
+                                 G_TYPE_STRING, fullname,
+                                 G_TYPE_INT, accounttype,
+                                 G_TYPE_INVALID,
+                                 DBUS_TYPE_G_OBJECT_PATH, &path,
+                                 G_TYPE_INVALID);
+        if (! res) {
+                if (error != NULL) {
+                        g_warning ("Failed to create user: %s", error->message);
+                        g_error_free (error);
+                } else {
+                        g_warning ("Failed to create user");
+                }
+                goto out;
+        }
+out:
+        g_free (path);
+
+        return res;
 }
