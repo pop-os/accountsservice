@@ -1,3 +1,13 @@
+accountsservice (0.6.12-1) unstable; urgency=low
+
+  * New upstream bugfix release.
+  * Update symbols.
+  * Fix path to the GDM configuration file, which is different
+    in Debian (Closes: #627311).
+  * Refresh patches.
+
+ -- Alessio Treglia <alessio@debian.org>  Sun, 22 May 2011 10:21:10 +0200
+
 accountsservice (0.6.10-1) unstable; urgency=low
 
   * New upstream release:
