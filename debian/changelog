@@ -1,3 +1,12 @@
+accountsservice (0.6.12-2) unstable; urgency=low
+
+  * Disable 0005-gdm_config_file_path.patch in debian/patches/ubuntu.series as
+    it doesn't apply to Ubuntu.
+  * On Ubuntu apply 0002-create-and-manage-groups-like-on-a-ubuntu-system.patch
+    instead of 0002-create-and-manage-groups-like-on-a-debian-system.patch
+
+ -- Alessio Treglia <alessio@debian.org>  Sun, 05 Jun 2011 12:40:37 +0200
+
 accountsservice (0.6.12-1) unstable; urgency=low
 
   * New upstream bugfix release.
