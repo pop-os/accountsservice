@@ -1,3 +1,11 @@
+accountsservice (0.6.12-3) unstable; urgency=low
+
+  * Add accountsservice.{postinst,prerm} scripts to properly shut down
+    the daemon on package upgrade and removal (Closes: #630577);
+    thanks to Rodrigo Moya for the patch.
+
+ -- Alessio Treglia <alessio@debian.org>  Thu, 16 Jun 2011 11:09:34 +0200
+
 accountsservice (0.6.12-2) unstable; urgency=low
 
   * Disable 0005-gdm_config_file_path.patch in debian/patches/ubuntu.series as
