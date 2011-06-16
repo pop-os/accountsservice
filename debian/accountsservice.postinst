@@ -19,3 +19,5 @@ if [ "$1" = "configure" ]; then
    # restart daemon if it was running before
    [ -z "$pid" ] || /usr/lib/accountsservice/accounts-daemon & >/dev/null || true # will trigger through D-Bus activation
 fi
+
+#DEBHELPER#
