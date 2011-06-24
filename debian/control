@@ -65,7 +65,7 @@ Description: query and manipulate user account information - header files
  This package provides the development files for the
  AccountService library.
 
-Package: gir1.2-accountservice-1.0
+Package: gir1.2-accountsservice-1.0
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends},
@@ -79,3 +79,17 @@ Description: GObject introspection data for AccountService
  .
  This package provides the introspection data for the
  AccountService library.
+
+Package: gir1.2-accountservice-1.0
+Section: libs
+Architecture: all
+Depends: gir1.2-accountsservice-1.0,
+ ${misc:Depends}
+Description: GObject introspection data for AccountService (dummy package)
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This is a dummy transitional package and it may safely removed after
+ the installation.
