@@ -3,8 +3,9 @@ accountsservice (0.6.12-4) unstable; urgency=low
   * Fix mistake in the name of a runtime package:
     - Rename gir1.2-accountservice-1.0 to gir1.2-accountsservice-1.0.
     - Introduce a transitional dummy package for a tiny-and-smooth transition.
+  * Enable parallel building.
 
- -- Alessio Treglia <alessio@debian.org>  Thu, 30 Jun 2011 10:35:27 +0200
+ -- Alessio Treglia <alessio@debian.org>  Thu, 30 Jun 2011 10:38:40 +0200
 
 accountsservice (0.6.12-3) unstable; urgency=low
 
