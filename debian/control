@@ -91,5 +91,5 @@ Description: GObject introspection data for AccountService (dummy package)
  information and an implementation of these interfaces,
  based on the useradd, usermod and userdel commands.
  .
- This is a dummy transitional package and it may safely removed after
+ This is a dummy transitional package and it may be safely removed after
  the installation.
