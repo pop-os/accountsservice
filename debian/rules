@@ -4,7 +4,7 @@
 LDFLAGS+=-Wl,--as-needed
 
 %:
-	dh $@ --with autoreconf
+	dh $@ --parallel --with autoreconf
 
 override_dh_shlibdeps:
 	dh_shlibdeps
