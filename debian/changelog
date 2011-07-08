@@ -1,3 +1,10 @@
+accountsservice (0.6.12-5) UNRELEASED; urgency=low
+
+  * debian/control: Add missing Breaks/Replaces: to
+    gir1.2-accountsservice-1.0 for the package renaming.
+
+ -- Martin Pitt <mpitt@debian.org>  Fri, 08 Jul 2011 07:41:13 +0200
+
 accountsservice (0.6.12-4) unstable; urgency=low
 
   * Fix mistake in the name of a runtime package:

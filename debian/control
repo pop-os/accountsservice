@@ -71,6 +71,8 @@ Architecture: any
 Depends: ${shlibs:Depends},
  ${gir:Depends},
  ${misc:Depends}
+Replaces: gir1.2-accountservice-1.0 (<< 0.6.12-4)
+Breaks: gir1.2-accountservice-1.0 (<< 0.6.12-4)
 Description: GObject introspection data for AccountService
  The AccountService project provides a set of D-Bus
  interfaces for querying and manipulating user account
