@@ -11,8 +11,22 @@ accountsservice (0.6.13-1) unstable; urgency=low
     - leak and warning fixes
     - clean up polkit deprectation warnings
     - add '--' before username to account helper programs
+  * Dropped patches (they don't apply for now):
+    - 0001-do-not-consider-system-users-returned-from-consolekit.patch
+    - 0003-getpwnam_null_crash.patch
+    - 0004-history-filter-sessions.patch
+  * Refreshed:
+    - 0002-create-and-manage-groups-like-on-a-{debian,ubuntu}-system.patch
+    - 0005-gdm_config_file_path.patch
+  * Update symbols.
+  * debian/patches/0006-adduser_instead_of_useradd.patch
+    - Replace useradd with adduser to comply with Debian Policy.
+      In collaboration with Ubuntu, thanks to Sebastien Bacher and other
+      Ubuntu guys (LP: #810907).
+  * Remove the dummy package gir1.2-accountservice-1.0, the previous version
+    has already reached Wheezy and there is no reverse dependencies.
 
- -- Alessio Treglia <alessio@debian.org>  Sat, 23 Jul 2011 12:30:49 +0200
+ -- Alessio Treglia <alessio@debian.org>  Mon, 25 Jul 2011 12:17:33 +0200
 
 accountsservice (0.6.12-5) unstable; urgency=low
 
