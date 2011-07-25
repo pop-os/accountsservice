@@ -1,2 +1,3 @@
 0002-create-and-manage-groups-like-on-a-ubuntu-system.patch
+0006-adduser_instead_of_useradd.patch
 1001-buildsystem.patch
