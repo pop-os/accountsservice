@@ -1021,12 +1021,9 @@ on_get_unix_user_finished (DBusGProxy               *proxy,
                            DBusGProxyCall           *call,
                            ActUserManagerNewSession *new_session)
 {
-        ActUserManager *manager;
         GError         *error;
         guint           uid;
         gboolean        res;
-
-        manager = new_session->manager;
 
         g_assert (new_session->get_unix_user_call == call);
 
@@ -1344,7 +1341,7 @@ maybe_add_new_session (ActUserManagerNewSession *new_session)
         manager = ACT_USER_MANAGER (new_session->manager);
 
         if (session_is_login_window (manager, new_session->id)) {
-                return;
+                goto done;
         }
 
         errno = 0;
@@ -1374,7 +1371,8 @@ maybe_add_new_session (ActUserManagerNewSession *new_session)
                 _act_user_update_login_frequency (user, 1);
         }
 
-        manager->priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_LOADED;
+done:
+        new_session->state = ACT_USER_MANAGER_NEW_SESSION_STATE_LOADED;
         unload_new_session (new_session);
         return;
 
@@ -1560,11 +1558,9 @@ static void
 get_accounts_proxy (ActUserManager *manager)
 {
         DBusGProxy      *proxy;
-        GError          *error;
 
         g_assert (manager->priv->accounts_proxy == NULL);
 
-        error = NULL;
         proxy = dbus_g_proxy_new_for_name (manager->priv->connection,
                                            ACCOUNTS_NAME,
                                            ACCOUNTS_PATH,
@@ -2294,25 +2290,39 @@ act_user_manager_get_default (void)
 }
 
 
-gboolean
-act_user_manager_create_user (ActUserManager     *manager,
-                              const char         *username,
-                              const char         *fullname,
-                              ActUserAccountType  accounttype)
+/**
+ * act_user_manager_create_user:
+ * @manager: a #ActUserManager
+ * @username: a unix user name
+ * @fullname: a unix GECOS value
+ * @accounttype: a #ActUserAccountType
+ * @error: a #GError
+ *
+ * Creates a user account on the system.
+ *
+ * Returns: (transfer full): user object
+ */
+ActUser *
+act_user_manager_create_user (ActUserManager      *manager,
+                              const char          *username,
+                              const char          *fullname,
+                              ActUserAccountType   accounttype,
+                              GError             **error)
 {
-        GError *error;
+        GError *local_error;
         gboolean res;
         gchar *path;
+        ActUser *user;
 
         g_debug ("ActUserManager: Creating user '%s', '%s', %d",
                  username, fullname, accounttype);
 
         g_assert (manager->priv->accounts_proxy != NULL);
 
-        error = NULL;
+        local_error = NULL;
         res = dbus_g_proxy_call (manager->priv->accounts_proxy,
                                  "CreateUser",
-                                 &error,
+                                 &local_error,
                                  G_TYPE_STRING, username,
                                  G_TYPE_STRING, fullname,
                                  G_TYPE_INT, accounttype,
@@ -2320,16 +2330,43 @@ act_user_manager_create_user (ActUserManager     *manager,
                                  DBUS_TYPE_G_OBJECT_PATH, &path,
                                  G_TYPE_INVALID);
         if (! res) {
-                if (error != NULL) {
-                        g_warning ("Failed to create user: %s", error->message);
-                        g_error_free (error);
-                } else {
-                        g_warning ("Failed to create user");
-                }
-                goto out;
+                g_propagate_error (error, local_error);
+                return NULL;
         }
-out:
+
+        user = add_new_user_for_object_path (path, manager);
+
         g_free (path);
+
+        return user;
+}
+
+gboolean
+act_user_manager_delete_user (ActUserManager  *manager,
+                              ActUser         *user,
+                              gboolean         remove_files,
+                              GError         **error)
+{
+        GError *local_error;
+        gboolean res;
+
+        g_debug ("ActUserManager: Deleting user '%s' (uid %ld)", act_user_get_user_name (user), (long) act_user_get_uid (user));
+
+        g_assert (manager->priv->accounts_proxy != NULL);
+
+        local_error = NULL;
+        res = dbus_g_proxy_call (manager->priv->accounts_proxy,
+                                 "DeleteUser",
+                                 &local_error,
+                                 G_TYPE_INT64, act_user_get_uid (user),
+                                 G_TYPE_BOOLEAN, remove_files,
+                                 G_TYPE_INVALID,
+                                 G_TYPE_INVALID);
+
+        if (! res) {
+                g_propagate_error (error, local_error);
+        }
 
         return res;
 }
+

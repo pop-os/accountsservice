@@ -9,7 +9,7 @@ Bug-Debian: http://bugs.debian.org/627311
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -628,7 +628,7 @@ reload_autologin_timeout (Daemon *daemon
+@@ -455,7 +455,7 @@ reload_autologin_timeout (Daemon *daemon
          daemon->priv->autologin_id = 0;
  
          if (!load_autologin (daemon, &name, &enabled, &error)) {
@@ -18,7 +18,7 @@ Bug-Debian: http://bugs.debian.org/627311
                  g_error_free (error);
                  g_free (name);
  
-@@ -1382,7 +1382,7 @@ load_autologin (Daemon      *daemon,
+@@ -1201,7 +1201,7 @@ load_autologin (Daemon      *daemon,
          GError *local_error;
          gchar *string;
  
@@ -27,7 +27,7 @@ Bug-Debian: http://bugs.debian.org/627311
  
          keyfile = g_key_file_new ();
          if (!g_key_file_load_from_file (keyfile,
-@@ -1432,7 +1432,7 @@ save_autologin (Daemon      *daemon,
+@@ -1251,7 +1251,7 @@ save_autologin (Daemon      *daemon,
          gchar *data;
          gboolean result;
  
