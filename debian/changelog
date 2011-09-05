@@ -1,3 +1,16 @@
+accountsservice (0.6.14-1) UNRELEASED; urgency=low
+
+  * New upstream release:
+    - ignore extraneous SetAutomaticLogin(false) calls for a user
+    - monitor /etc/gdm/custom.conf for changes in autologin config
+    - fix fast user switching
+    - fix docs to build
+    - translation updates
+  * Refresh Debian's series of patches.
+  * Refresh Ubuntu's series of patches.
+
+ -- Alessio Treglia <alessio@debian.org>  Mon, 05 Sep 2011 11:19:55 +0200
+
 accountsservice (0.6.13-1) unstable; urgency=low
 
   * New upstream release:
