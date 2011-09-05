@@ -50,6 +50,7 @@
 #define PATH_PASSWD "/etc/passwd"
 #define PATH_SHADOW "/etc/shadow"
 #define PATH_LOGIN_DEFS "/etc/login.defs"
+#define PATH_GDM_CUSTOM "/etc/gdm/custom.conf"
 
 #ifndef FALLBACK_MINIMAL_UID
 #define FALLBACK_MINIMAL_UID 500
@@ -106,6 +107,7 @@ struct DaemonPrivate {
 
         GFileMonitor *passwd_monitor;
         GFileMonitor *shadow_monitor;
+        GFileMonitor *gdm_monitor;
 
         guint reload_id;
         guint autologin_id;
@@ -450,7 +452,7 @@ reload_autologin_timeout (Daemon *daemon)
         gboolean enabled;
         gchar *name = NULL;
         GError *error = NULL;
-        User *user;
+        User *user = NULL;
 
         daemon->priv->autologin_id = 0;
 
@@ -462,11 +464,23 @@ reload_autologin_timeout (Daemon *daemon)
                 return FALSE;
         }
 
+        if (enabled && name)
+                user = daemon_local_find_user_by_name (daemon, name);
+
+        if (daemon->priv->autologin != NULL && daemon->priv->autologin != user) {
+                g_object_set (daemon->priv->autologin, "automatic-login", FALSE, NULL);
+                g_signal_emit_by_name (daemon->priv->autologin, "changed", 0);
+                g_object_unref (daemon->priv->autologin);
+                daemon->priv->autologin = NULL;
+        }
+
         if (enabled) {
                 g_debug ("automatic login is enabled for '%s'\n", name);
-                user = daemon_local_find_user_by_name (daemon, name);
-                g_object_set (user, "automatic-login", TRUE, NULL);
-                daemon->priv->autologin = g_object_ref (user);
+                if (daemon->priv->autologin != user) {
+                        g_object_set (user, "automatic-login", TRUE, NULL);
+                        daemon->priv->autologin = g_object_ref (user);
+                        g_signal_emit_by_name (daemon->priv->autologin, "changed", 0);
+                }
         }
         else {
                 g_debug ("automatic login is disabled\n");
@@ -475,6 +489,19 @@ reload_autologin_timeout (Daemon *daemon)
         g_free (name);
 
         return FALSE;
+}
+
+static void
+queue_reload_users_soon (Daemon *daemon)
+{
+        if (daemon->priv->reload_id > 0) {
+                return;
+        }
+
+        /* we wait half a second or so in case /etc/passwd and
+         * /etc/shadow are changed at the same time, or repeatedly.
+         */
+        daemon->priv->reload_id = g_timeout_add (500, (GSourceFunc)reload_users_timeout, daemon);
 }
 
 static void
@@ -509,7 +536,22 @@ on_passwd_monitor_changed (GFileMonitor      *monitor,
                 return;
         }
 
-        reload_users (daemon);
+        queue_reload_users_soon (daemon);
+}
+
+static void
+on_gdm_monitor_changed (GFileMonitor      *monitor,
+                        GFile             *file,
+                        GFile             *other_file,
+                        GFileMonitorEvent  event_type,
+                        Daemon            *daemon)
+{
+        if (event_type != G_FILE_MONITOR_EVENT_CHANGED &&
+            event_type != G_FILE_MONITOR_EVENT_CREATED) {
+                return;
+        }
+
+        queue_reload_autologin (daemon);
 }
 
 static uid_t
@@ -602,6 +644,12 @@ daemon_init (Daemon *daemon)
                                                             NULL,
                                                             &error);
         g_object_unref (file);
+        file = g_file_new_for_path (PATH_GDM_CUSTOM);
+        daemon->priv->gdm_monitor = g_file_monitor_file (file,
+                                                         G_FILE_MONITOR_NONE,
+                                                         NULL,
+                                                         &error);
+        g_object_unref (file);
 
         if (daemon->priv->passwd_monitor != NULL) {
                 g_signal_connect (daemon->priv->passwd_monitor,
@@ -619,6 +667,15 @@ daemon_init (Daemon *daemon)
                                   daemon);
         } else {
                 g_warning ("Unable to monitor %s: %s", PATH_SHADOW, error->message);
+                g_error_free (error);
+       }
+        if (daemon->priv->gdm_monitor != NULL) {
+                g_signal_connect (daemon->priv->gdm_monitor,
+                                  "changed",
+                                  G_CALLBACK (on_gdm_monitor_changed),
+                                  daemon);
+        } else {
+                g_warning ("Unable to monitor %s: %s", PATH_GDM_CUSTOM, error->message);
                 g_error_free (error);
        }
 
@@ -1207,15 +1264,12 @@ load_autologin (Daemon      *daemon,
                 GError     **error)
 {
         GKeyFile *keyfile;
-        const gchar *filename;
         GError *local_error;
         gchar *string;
 
-        filename = "/etc/gdm/custom.conf";
-
         keyfile = g_key_file_new ();
         if (!g_key_file_load_from_file (keyfile,
-                                        filename,
+                                        PATH_GDM_CUSTOM,
                                         G_KEY_FILE_KEEP_COMMENTS,
                                         error)) {
                 g_key_file_free (keyfile);
@@ -1257,15 +1311,12 @@ save_autologin (Daemon      *daemon,
                 GError     **error)
 {
         GKeyFile *keyfile;
-        const gchar *filename;
         gchar *data;
         gboolean result;
 
-        filename = "/etc/gdm/custom.conf";
-
         keyfile = g_key_file_new ();
         if (!g_key_file_load_from_file (keyfile,
-                                        filename,
+                                        PATH_GDM_CUSTOM,
                                         G_KEY_FILE_KEEP_COMMENTS,
                                         error)) {
                 g_key_file_free (keyfile);
@@ -1276,7 +1327,7 @@ save_autologin (Daemon      *daemon,
         g_key_file_set_string (keyfile, "daemon", "AutomaticLogin", name);
 
         data = g_key_file_to_data (keyfile, NULL, NULL);
-        result = g_file_set_contents (filename, data, -1, error);
+        result = g_file_set_contents (PATH_GDM_CUSTOM, data, -1, error);
 
         g_key_file_free (keyfile);
         g_free (data);
@@ -1291,6 +1342,10 @@ daemon_local_set_automatic_login (Daemon    *daemon,
                                   GError   **error)
 {
         if (daemon->priv->autologin == user && enabled) {
+                return TRUE;
+        }
+
+        if (daemon->priv->autologin != user && !enabled) {
                 return TRUE;
         }
 
