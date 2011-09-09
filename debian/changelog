@@ -3,6 +3,9 @@ accountsservice (0.6.14-2) UNRELEASED; urgency=low
   * 0002-create-and-manage-groups-like-on-a-ubuntu-system.patch: Add admin
     users to the same groups as Ubiquity, i. e. add "adm", "lpadmin", and
     "sambashare". Patch by Rodrigo Moya. (LP #810907)
+  * Add 0008-nopasswdlogin-group.patch: When setting a user to have no
+    password, also add them to the 'nopasswdlogin' group. Patch by Mike Terry.
+    (Applied for Ubuntu only.) (LP #815271)
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 09 Sep 2011 13:08:08 +0200
 
