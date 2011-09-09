@@ -3,6 +3,9 @@ accountsservice (0.6.14-2) UNRELEASED; urgency=low
   * 0002-create-and-manage-groups-like-on-a-ubuntu-system.patch: Add admin
     users to the same groups as Ubiquity, i. e. add "adm", "lpadmin", and
     "sambashare". Patch by Rodrigo Moya. (LP #810907)
+  * Add 0007-add-lightdm-support.patch: Support setting/reading LightDM
+    autologin settings. Patch by Mike Terry. Applied to both Debian and Ubuntu
+    builds. (fd.o #40020, LP#798962)
   * Add 0008-nopasswdlogin-group.patch: When setting a user to have no
     password, also add them to the 'nopasswdlogin' group. Patch by Mike Terry.
     (Applied for Ubuntu only.) (LP #815271)
