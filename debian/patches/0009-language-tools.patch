@@ -1,0 +1,442 @@
+Description: Help files for dealing with language settings.
+Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
+
+--- accountsservice.orig/configure.ac	2011-07-19 21:48:12 +0200
++++ accountsservice/configure.ac	2011-08-10 15:08:50 +0200
+@@ -175,6 +175,7 @@
+ Makefile
+ po/Makefile.in
+ data/Makefile
++data/langtools/Makefile
+ src/Makefile
+ src/libaccountsservice/Makefile
+ src/libaccountsservice/accountsservice.pc
+
+--- accountsservice.orig/data/langtools/language2locale	1970-01-01 01:00:00 +0100
++++ accountsservice/data/langtools/language2locale	2011-07-25 17:48:30 +0200
+@@ -0,0 +1,65 @@
++#!/bin/sh -e
++#
++# - takes the first choice language in the LANGUAGE priority list as argument
++# - outputs locale name corresponding to that language
++
++lang=$1
++locale_name=
++
++test -n "$lang" || exit 0
++
++langtoolsdir=/usr/share/language-tools
++
++langcode=${lang%%[_@]*}
++locales=
++for loc in $( locale -a | grep -F .utf8 ); do
++    # skip locales for other languages
++    if [ $langcode = ${loc%%[._@]*} ]; then
++        loc=${loc%.*}${loc#*.utf8}
++        locales="$locales $loc"
++    fi
++done
++
++# exact match
++for loc in $locales; do
++    if [ $lang = $loc ]; then
++        locale_name=$( echo $loc | sed -r 's/([^@]+)/\1.UTF-8/' )
++        break
++    fi
++done
++
++if [ -z "$locale_name" -a $lang = ${lang%_[A-Z]*} ]; then
++
++    # try the "main" country code if any
++    main_country=
++    while read line; do
++        if [ "${line%%[[:space:]]*}" = $langcode ]; then
++            main_country=${line##*[[:space:]]}
++            if [ $lang != ${lang#*@} ]; then
++                main_country=$main_country@${lang#*@}
++            fi
++            break
++        fi
++    done < $langtoolsdir/main-countries
++    if [ -n "$main_country" ]; then
++        for loc in $locales; do
++            if [ $main_country = $loc ]; then
++                locale_name=$( echo $loc | sed -r 's/([^@]+)/\1.UTF-8/' )
++                break
++            fi
++        done
++    fi
++
++    # try out fitting locale with any country code
++    if [ -z "$locale_name" -a $langcode != 'zh' ]; then
++        for loc in $locales; do
++            if [ "${loc%%[_@]*}" = $langcode ]; then
++                locale_name=$( echo $loc | sed -r 's/([^@]+)/\1.UTF-8/' )
++                break
++            fi
++        done
++    fi
++fi
++
++echo $locale_name
++
+
+--- accountsservice.orig/data/langtools/language-options	1970-01-01 01:00:00 +0100
++++ accountsservice/data/langtools/language-options	2011-07-25 17:49:25 +0200
+@@ -0,0 +1,66 @@
++#!/usr/bin/perl
++use strict;
++use warnings;
++
++my $langtoolsdir = '/usr/share/language-tools';
++
++# get the locales available on the system
++my @avail_locales = map { chomp; s/\.utf8//; $_ } qx( locale -a | grep -F .utf8 );
++
++# add items without country code to facilitate lookups
++my %extended_localelist;
++for my $loc (@avail_locales) {
++    ( my $lang = $loc ) =~ s/_[A-Z]+//;
++    @extended_localelist{$loc, $lang} = (1, 1);
++}
++
++# get the union of /usr/share/locale-langpack and /usr/share/locale
++my %translation_dirs;
++for my $dir ('/usr/share/locale-langpack', '/usr/share/locale') {
++    if ( opendir my ($dh), $dir ) {
++        $translation_dirs{$_} = 1 for readdir $dh;
++    }
++}
++
++# get the intersection of available translation_dirs and the extended locale list
++my %intersection;
++for ( keys %extended_localelist ) {
++    $intersection{$_} = 1 if $translation_dirs{$_};
++}
++
++# adjustments
++if ( open my $fh, '<', "$langtoolsdir/main-countries" ) {
++    # If country code items in a language exist:
++    # - Remove the item without country code, since gettext won't find a
++    #   translation under e.g. 'de_DE' if the first item in LANGUAGE is 'de'
++    #   (see https://launchpad.net/bugs/700213). 'en' is kept, though, since
++    #   it's always the last item in LANGUAGE per design.
++    # - Make sure that the main dialect of the language is represented among
++    #   the country code items (see https://launchpad.net/bugs/710148).
++    my %main;
++    while ( <$fh> ) {
++        next if /^\s*(?:#|$)/;
++        my ($k, $v) = split;
++        $main{$k} = $v;
++    }
++    my %count;
++    for ( keys %intersection ) {
++        next if /^en[^a-z]/;
++        ( my $not_country = $_ ) =~ s/_[A-Z]+//;
++        $count{$not_country} ++;
++    }
++    for my $langcode ( keys %count ) {
++        if ( $count{$langcode} > 1 ) {
++            delete $intersection{$langcode};
++            $intersection{ $main{$langcode} } = 1 if $main{$langcode};
++        }
++    }
++} else {
++    # not access to the language-to-main-dialect map
++    # => stick with a minimum of list manipulation
++    delete $intersection{'zh'};
++}
++
++# print the resulting list of language options
++print join("\n", keys %intersection) || 'en';
++
+
+--- accountsservice.orig/data/langtools/language-validate	1970-01-01 01:00:00 +0100
++++ accountsservice/data/langtools/language-validate	2011-07-25 17:50:31 +0200
+@@ -0,0 +1,73 @@
++#!/bin/sh -e
++
++lang=$1
++validated_language=
++
++test -n "$lang" || exit 0
++
++langtoolsdir=/usr/share/language-tools
++
++#
++# remove possible encoding part
++#
++if [ $lang != ${lang%.utf8*} ]; then
++    lang=${lang%.*}${lang#*.utf8}
++elif [ $lang != ${lang%.UTF-8*} ]; then
++    lang=${lang%.*}${lang#*.UTF-8}
++fi
++
++#
++# make sure that the output is a valid language option
++#
++options=$( $langtoolsdir/language-options )
++
++# exact match
++for opt in $options; do
++    if [ $opt = $lang ]; then
++        validated_language=$lang
++        break
++    fi
++done
++
++if [ -z "$validated_language" ]; then
++    langcode=${lang%%[_@]*}
++
++    # try the "main" country code if any
++    main_country=
++    while read line; do
++        if [ "${line%%[[:space:]]*}" = $langcode ]; then
++            main_country=${line##*[[:space:]]}
++            if [ $lang != ${lang#*@} ]; then
++                main_country=$main_country@${lang#*@}
++                is_variant=true
++            fi
++            break
++        fi
++    done < $langtoolsdir/main-countries
++    if [ -n "$main_country" ]; then
++        for opt in $options; do
++            if [ $main_country = $opt ]; then
++                validated_language=$main_country
++                break
++            fi
++        done
++    fi
++
++    # try out fitting language option without paying regard to
++    # country code or variant
++    if [ -z "$validated_language" ]; then
++        for opt in $options; do
++            if [ "${opt%%[_@]*}" = $langcode -a $langcode != 'zh' ]; then
++                validated_language=$opt
++                break
++            fi
++        done
++    fi
++fi
++
++if [ -z "$validated_language" ]; then
++    validated_language='en'
++fi
++
++echo $validated_language
++
+
+--- accountsservice.orig/data/langtools/main-countries	1970-01-01 01:00:00 +0100
++++ accountsservice/data/langtools/main-countries	2011-05-17 13:19:55 +0200
+@@ -0,0 +1,28 @@
++# If multiple country codes are present among the available locales for
++# a language, we may want to map the language code to the language's
++# main or origin country. The list below aims to serve that purpose.
++#
++aa	aa_ET
++ar	ar_EG
++bn	bn_BD
++ca	ca_ES
++de	de_DE
++el	el_GR
++en	en_US
++es	es_ES
++eu	eu_ES
++fr	fr_FR
++fy	fy_NL
++it	it_IT
++li	li_NL
++nl	nl_NL
++om	om_ET
++pa	pa_PK
++pt	pt_PT
++ru	ru_RU
++so	so_SO
++sr	sr_RS
++sv	sv_SE
++ti	ti_ER
++tr	tr_TR
++
+
+--- accountsservice.orig/data/langtools/Makefile.am	1970-01-01 01:00:00 +0100
++++ accountsservice/data/langtools/Makefile.am	2011-08-10 15:26:00 +0200
+@@ -0,0 +1,16 @@
++langtoolsdir = ${datadir}/language-tools
++
++install-data-hook:
++	if test '!' -d $(DESTDIR)$(langtoolsdir); then \
++		$(mkinstalldirs) $(DESTDIR)$(langtoolsdir); \
++		chmod 755 $(DESTDIR)$(langtoolsdir); \
++	fi
++
++	$(INSTALL_SCRIPT)  language-options     $(DESTDIR)$(langtoolsdir)/language-options
++	$(INSTALL_SCRIPT)  language-validate    $(DESTDIR)$(langtoolsdir)/language-validate
++	$(INSTALL_SCRIPT)  language2locale      $(DESTDIR)$(langtoolsdir)/language2locale
++	$(INSTALL_DATA)    main-countries       $(DESTDIR)$(langtoolsdir)/main-countries
++	$(INSTALL_SCRIPT)  save-to-profile      $(DESTDIR)$(langtoolsdir)/save-to-profile
++	$(INSTALL_SCRIPT)  set-language-helper  $(DESTDIR)$(langtoolsdir)/set-language-helper
++	$(INSTALL_SCRIPT)  update-langlist      $(DESTDIR)$(langtoolsdir)/update-langlist
++
+
+--- accountsservice.orig/data/langtools/save-to-profile	1970-01-01 01:00:00 +0100
++++ accountsservice/data/langtools/save-to-profile	2011-08-11 13:53:10 +0200
+@@ -0,0 +1,54 @@
++#!/bin/sh
++#
++# attempts to update the language settings in the user's ~/.profile config file
++
++user=$1
++language_list=$2
++locale_name=$3
++
++test -n "$user" || exit 0
++
++# look up the user's home directory first
++while read line; do
++    [ "${line%%:*}" = $user ] && break
++done < '/etc/passwd'
++if [ -n "$line" ]; then
++    OLDIFS=$IFS
++    IFS=':'
++    i=1
++    for homedir in $line; do
++        if [ $i -ne 6 ]; then
++            i=$(( $i + 1 ))
++            continue
++        fi
++        break
++    done
++    IFS=$OLDIFS
++fi
++if [ "$( echo $homedir )" = '' -o ! -d "$homedir" ]; then
++    exit 0
++fi
++
++# create ~/.profile if it doesn't exist
++test -f "$homedir/.profile" || {
++    touch $homedir/.profile
++    chown $user:$user $homedir/.profile
++}
++
++save_to_profile() {
++    var=$1; value=$2
++    if [ "$( grep "^[[:space:]]*export $var=" $homedir/.profile )" ]; then
++        sed -r -i "s/^[[:space:]]*(export $var=).*/\1\"$value\"/" $homedir/.profile
++    else
++        echo "export $var=\"$value\"" >> $homedir/.profile
++    fi
++}
++test -n "$language_list" && save_to_profile 'LANGUAGE' $language_list
++test -n "$locale_name" && {
++    save_to_profile 'LC_MESSAGES' $locale_name
++    save_to_profile 'LC_CTYPE'    $locale_name
++    save_to_profile 'LC_COLLATE'  $locale_name
++}
++
++exit 0
++
+
+--- accountsservice.orig/data/langtools/set-language-helper	1970-01-01 01:00:00 +0100
++++ accountsservice/data/langtools/set-language-helper	2011-08-07 13:19:08 +0200
+@@ -0,0 +1,25 @@
++#!/bin/sh -e
++
++user=$1
++language=$2
++validated_language=
++
++[ -n "$user" -a -n "$language" ] || exit 0
++
++langtoolsdir=/usr/share/language-tools
++
++if [ $language = "${language%:*}" ]; then
++    validated_language=$( $langtoolsdir/language-validate $language )
++    renewed_langlist=$( $langtoolsdir/update-langlist $validated_language $user )
++else
++    # $language contains a priority list
++    validated_language=$( $langtoolsdir/language-validate ${language%%:*} )
++    renewed_langlist=$validated_language:${language#*:}
++fi
++
++locale_name=$( $langtoolsdir/language2locale $validated_language )
++
++( $langtoolsdir/save-to-profile $user $renewed_langlist $locale_name )
++
++echo $validated_language
++
+
+--- accountsservice.orig/data/langtools/update-langlist	1970-01-01 01:00:00 +0100
++++ accountsservice/data/langtools/update-langlist	2011-08-11 13:53:29 +0200
+@@ -0,0 +1,61 @@
++#!/bin/sh -e
++#
++# update-langlist maintains the LANGUAGE priority list. It does so in
++# a simplified manner, unlike the principal UI for setting the user
++# language which provides full control.
++
++first_language=$1
++user=$2
++renewed_langlist=
++
++[ -n "$first_language" -a -n "$user" ] || exit 0
++
++get_old_langlist() {
++    while read line; do
++        [ "${line%%:*}" = $user ] && break
++    done < /etc/passwd
++    if [ -n "$line" ]; then
++        OLDIFS=$IFS
++        IFS=':'
++        i=1
++        for homedir in $line; do
++            if [ $i -ne 6 ]; then
++                i=$(( $i + 1 ))
++                continue
++            fi
++            break
++        done
++        IFS=$OLDIFS
++    fi
++
++    if [ -r "$homedir/.profile" ]; then
++        old_langlist=$( grep "^[[:space:]]*export LANGUAGE=" \
++                        $homedir/.profile | cut -d '"' -f 2 )
++    fi
++}
++
++old_langlist=
++english=true
++if [ ${first_language%%[_@]*} != 'en' ]; then
++    get_old_langlist
++    english=false
++fi
++
++if [ -n "$old_langlist" ] && ! $english; then
++    if expr $old_langlist : ".*:$first_language:" > /dev/null ; then
++        renewed_langlist=$( echo $old_langlist | sed -r "s/(.+:)($first_language:)/\2\1/" )
++    elif [ ${old_langlist%%:*} = $first_language ]; then
++        # no change
++        renewed_langlist=$old_langlist
++    else
++        renewed_langlist=$first_language:$old_langlist
++    fi
++else
++    # build fresh list with 'en' as the last element
++    # no other languages needed if English was selected
++    renewed_langlist=$first_language
++    [ $first_language != 'en' ] && renewed_langlist=$renewed_langlist:en
++fi
++
++echo $renewed_langlist
++
+
+--- accountsservice.orig/data/Makefile.am	2011-07-19 21:48:12 +0200
++++ accountsservice/data/Makefile.am	2011-08-10 15:10:27 +0200
+@@ -1,3 +1,4 @@
++SUBDIRS = langtools
+ 
+ dbusifdir   = $(datadir)/dbus-1/interfaces
+ dbusif_DATA = \
+

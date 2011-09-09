@@ -6,6 +6,15 @@ accountsservice (0.6.14-2) UNRELEASED; urgency=low
   * Add 0008-nopasswdlogin-group.patch: When setting a user to have no
     password, also add them to the 'nopasswdlogin' group. Patch by Mike Terry.
     (Applied for Ubuntu only.) (LP #815271)
+  * Add 0009-language-tools.patch: Helper scripts for managing the language
+    environment are made available in /usr/share/language-tools. They are
+    supporting accountsservice's "SetLanguage" method, but for now some of the
+    files may also be called from other packages directly. Patch by Gunnar
+    Hjalmarsson. (Applied for Ubuntu only.)
+  * Add 0010-set-language.patch: When a new language is set, update the user's
+    ~/.profile file with the corresponding environment variables.
+    Patch by Gunnar Hjalmarsson. (Applied for Ubuntu only.)
+  * debian/rules: Install language tools, when built.
 
  -- Martin Pitt <mpitt@debian.org>  Fri, 09 Sep 2011 13:08:08 +0200
 
