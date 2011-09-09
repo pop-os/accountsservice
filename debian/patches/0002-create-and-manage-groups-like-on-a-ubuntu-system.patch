@@ -9,9 +9,11 @@ Description: Create and manage groups like on a debian system.
  src/util.h   |    9 +++++++++
  4 files changed, 68 insertions(+), 27 deletions(-)
 
---- accountsservice.orig/src/daemon.c
-+++ accountsservice/src/daemon.c
-@@ -1016,22 +1016,8 @@ daemon_create_user_authorized_cb (Daemon
+Index: accountsservice/src/daemon.c
+===================================================================
+--- accountsservice.orig/src/daemon.c	2011-09-09 13:07:23.311889282 +0200
++++ accountsservice/src/daemon.c	2011-09-09 13:09:23.511890114 +0200
+@@ -1016,22 +1016,8 @@
          argv[1] = "-m";
          argv[2] = "-c";
          argv[3] = cd->real_name;
@@ -36,20 +38,25 @@ Description: Create and manage groups like on a debian system.
  
          error = NULL;
          if (!spawn_with_login_uid (context, argv, &error)) {
-@@ -1040,6 +1026,10 @@ daemon_create_user_authorized_cb (Daemon
+@@ -1040,6 +1026,13 @@
                  return;
          }
  
 +        if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
 +                add_user_to_group (context, cd->user_name, "admin");
++		 add_user_to_group (context, cd->user_name, "adm");
++		 add_user_to_group (context, cd->user_name, "lpadmin");
++		 add_user_to_group (context, cd->user_name, "sambashare");
 +        }
 +
          user = daemon_local_find_user_by_name (daemon, cd->user_name);
  
          dbus_g_method_return (context, user_local_get_object_path (user));
---- accountsservice.orig/src/user.c
-+++ accountsservice/src/user.c
-@@ -429,7 +429,7 @@ static gint
+Index: accountsservice/src/user.c
+===================================================================
+--- accountsservice.orig/src/user.c	2011-09-09 13:07:23.321889283 +0200
++++ accountsservice/src/user.c	2011-09-09 13:09:23.511890114 +0200
+@@ -429,7 +429,7 @@
  account_type_from_pwent (struct passwd *pwent)
  {
          struct group *grp;
@@ -58,7 +65,7 @@ Description: Create and manage groups like on a debian system.
          gid_t *groups;
          gint ngroups;
          gint i;
-@@ -439,17 +439,17 @@ account_type_from_pwent (struct passwd *
+@@ -439,17 +439,17 @@
                  return ACCOUNT_TYPE_ADMINISTRATOR;
          }
  
@@ -80,7 +87,7 @@ Description: Create and manage groups like on a debian system.
                          g_free (groups);
                          return ACCOUNT_TYPE_ADMINISTRATOR;
                  }
-@@ -1612,7 +1612,7 @@ user_change_account_type_authorized_cb (
+@@ -1612,7 +1612,7 @@
          gid_t *groups;
          gint ngroups;
          GString *str;
@@ -89,7 +96,7 @@ Description: Create and manage groups like on a debian system.
          struct group *grp;
          gint i;
          gchar *argv[6];
-@@ -1622,24 +1622,24 @@ user_change_account_type_authorized_cb (
+@@ -1622,24 +1622,24 @@
                           "change account type of user '%s' (%d) to %d",
                           user->user_name, user->uid, account_type);
  
@@ -119,9 +126,11 @@ Description: Create and manage groups like on a debian system.
                          break;
                  default:
                          /* remove excess comma */
---- accountsservice.orig/src/util.c
-+++ accountsservice/src/util.c
-@@ -273,3 +273,45 @@ get_caller_uid (DBusGMethodInvocation *c
+Index: accountsservice/src/util.c
+===================================================================
+--- accountsservice.orig/src/util.c	2011-09-09 13:07:23.321889283 +0200
++++ accountsservice/src/util.c	2011-09-09 13:09:23.511890114 +0200
+@@ -273,3 +273,45 @@
  
          return TRUE;
  }
@@ -167,9 +176,11 @@ Description: Create and manage groups like on a debian system.
 +                return;
 +        }
 +}
---- accountsservice.orig/src/util.h
-+++ accountsservice/src/util.h
-@@ -41,6 +41,15 @@ gint get_user_groups (const gchar  *user
+Index: accountsservice/src/util.h
+===================================================================
+--- accountsservice.orig/src/util.h	2011-09-09 13:07:23.321889283 +0200
++++ accountsservice/src/util.h	2011-09-09 13:09:23.511890114 +0200
+@@ -41,6 +41,15 @@
                        gid_t         group,
                        gid_t       **groups);
  
