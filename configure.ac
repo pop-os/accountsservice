@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.14])
+AC_INIT([AccountsService],[0.6.15])
 AM_INIT_AUTOMAKE(no-dist-gzip dist-xz tar-ustar foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -119,6 +119,9 @@ AC_CACHE_CHECK([for supported warning flags], accountsservice_cv_warn_cflags, [
 
 WARN_CFLAGS="$accountsservice_cv_warn_cflags"
 AC_SUBST(WARN_CFLAGS)
+
+AC_CHECK_HEADERS([shadow.h utmpx.h])
+AC_CHECK_FUNCS([fgetpwent])
 
 dnl ---------------------------------------------------------------------------
 dnl - DocBook Documentation

@@ -20,3 +20,10 @@ override_dh_auto_test:
 
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS
+
+override_dh_install:
+	dh_install
+	# patch is only applied conditionally, only install when present
+	if [ -d debian/tmp/usr/share/language-tools ]; then \
+	    cp -r debian/tmp/usr/share/language-tools debian/accountsservice/usr/share/; \
+	fi

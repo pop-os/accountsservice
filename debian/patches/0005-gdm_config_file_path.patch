@@ -9,7 +9,7 @@ Bug-Debian: http://bugs.debian.org/627311
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -50,7 +50,7 @@
+@@ -52,7 +52,7 @@
  #define PATH_PASSWD "/etc/passwd"
  #define PATH_SHADOW "/etc/shadow"
  #define PATH_LOGIN_DEFS "/etc/login.defs"
@@ -18,7 +18,7 @@ Bug-Debian: http://bugs.debian.org/627311
  
  #ifndef FALLBACK_MINIMAL_UID
  #define FALLBACK_MINIMAL_UID 500
-@@ -457,7 +457,7 @@ reload_autologin_timeout (Daemon *daemon
+@@ -478,7 +478,7 @@ reload_autologin_timeout (Daemon *daemon
          daemon->priv->autologin_id = 0;
  
          if (!load_autologin (daemon, &name, &enabled, &error)) {

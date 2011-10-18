@@ -11,7 +11,7 @@ Description: Create and manage groups like on a debian system.
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -1016,22 +1016,8 @@ daemon_create_user_authorized_cb (Daemon
+@@ -1037,22 +1037,8 @@ daemon_create_user_authorized_cb (Daemon
          argv[1] = "-m";
          argv[2] = "-c";
          argv[3] = cd->real_name;
@@ -36,7 +36,7 @@ Description: Create and manage groups like on a debian system.
  
          error = NULL;
          if (!spawn_with_login_uid (context, argv, &error)) {
-@@ -1040,6 +1026,10 @@ daemon_create_user_authorized_cb (Daemon
+@@ -1061,6 +1047,10 @@ daemon_create_user_authorized_cb (Daemon
                  return;
          }
  
@@ -49,7 +49,7 @@ Description: Create and manage groups like on a debian system.
          dbus_g_method_return (context, user_local_get_object_path (user));
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
-@@ -429,7 +429,7 @@ static gint
+@@ -431,7 +431,7 @@ static gint
  account_type_from_pwent (struct passwd *pwent)
  {
          struct group *grp;
@@ -58,7 +58,7 @@ Description: Create and manage groups like on a debian system.
          gid_t *groups;
          gint ngroups;
          gint i;
-@@ -439,17 +439,17 @@ account_type_from_pwent (struct passwd *
+@@ -441,17 +441,17 @@ account_type_from_pwent (struct passwd *
                  return ACCOUNT_TYPE_ADMINISTRATOR;
          }
  
@@ -80,7 +80,7 @@ Description: Create and manage groups like on a debian system.
                          g_free (groups);
                          return ACCOUNT_TYPE_ADMINISTRATOR;
                  }
-@@ -1612,7 +1612,7 @@ user_change_account_type_authorized_cb (
+@@ -1630,7 +1630,7 @@ user_change_account_type_authorized_cb (
          gid_t *groups;
          gint ngroups;
          GString *str;
@@ -89,7 +89,7 @@ Description: Create and manage groups like on a debian system.
          struct group *grp;
          gint i;
          gchar *argv[6];
-@@ -1622,24 +1622,24 @@ user_change_account_type_authorized_cb (
+@@ -1640,24 +1640,24 @@ user_change_account_type_authorized_cb (
                           "change account type of user '%s' (%d) to %d",
                           user->user_name, user->uid, account_type);
  

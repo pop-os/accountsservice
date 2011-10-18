@@ -1,0 +1,65 @@
+Description: Save user language settings to ~/.profile.
+Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
+
+---
+ src/user.c |   40 +++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 39 insertions(+), 1 deletion(-)
+
+--- accountsservice.orig/src/user.c
++++ accountsservice/src/user.c
+@@ -49,6 +49,7 @@
+ #include "util.h"
+ 
+ #define ICONDIR LOCALSTATEDIR "/lib/AccountsService/icons"
++#define LANGTOOLSDIR DATADIR "/language-tools"
+ 
+ enum {
+         PROP_0,
+@@ -1056,9 +1057,46 @@ user_change_language_authorized_cb (Daem
+                                     gpointer               data)
+ 
+ {
+-        gchar *language = data;
++        gchar        *language = data;
++        gint          i;
++        gchar        *command[] = { LANGTOOLSDIR "/set-language-helper", user->user_name, language, NULL };
++        const gchar  *allowed_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890._+-@:";
++        gchar        *validated_language;
++        GError       *error = NULL;
+ 
+         if (g_strcmp0 (user->language, language) != 0) {
++
++                /* test for odd characters in arguments */
++                for (i = 1; i <= 2; i++) {
++                        if (strlen (command[i]) != strspn (command[i], allowed_chars)) {
++                                throw_error (context, ERROR_FAILED, "non-permitted character(s) in argument");
++                                return;
++                        }
++                }
++
++                /* set language related environment variables in ~/.profile */
++                if (!g_spawn_sync ( NULL,
++                                    command,
++                                    NULL,
++                                    G_SPAWN_STDERR_TO_DEV_NULL,
++                                    NULL,
++                                    NULL,
++                                    &validated_language,
++                                    NULL,
++                                    NULL,
++                                    &error )) {
++                        throw_error (context, ERROR_FAILED, "running '%s' failed: %s", command[0], error->message);
++                        g_error_free (error);
++                        return;
++                }
++                if (validated_language != NULL && strlen (validated_language) > 1) {
++                        language = g_strndup (validated_language, strspn (validated_language, allowed_chars));
++                        g_free (validated_language);
++                } else {
++                        throw_error (context, ERROR_FAILED, "running '%s' failed: no output", command[0]);
++                        return;
++                }
++
+                 g_free (user->language);
+                 user->language = g_strdup (language);
+ 
