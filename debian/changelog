@@ -1,5 +1,16 @@
-accountsservice (0.6.14-2) UNRELEASED; urgency=low
+accountsservice (0.6.15-1) unstable; urgency=low
 
+  [ Alessio Treglia ]
+  * New upstream release:
+    - fix build on FreeBSD and OpenBSD
+    - only accept regular files as icons
+    - don't track non-graphical sessions
+    - fix wtmp handling
+  * Refresh Debian's patches.
+  * Refresh Ubuntu's patches.
+  * Update debian/copyright to comply with DEP-4 rev-174.
+
+  [ Martin Pitt ]
   * 0002-create-and-manage-groups-like-on-a-ubuntu-system.patch: Add admin
     users to the same groups as Ubiquity, i. e. add "adm", "lpadmin", and
     "sambashare". Patch by Rodrigo Moya. (LP #810907)
@@ -18,8 +29,18 @@ accountsservice (0.6.14-2) UNRELEASED; urgency=low
     ~/.profile file with the corresponding environment variables.
     Patch by Gunnar Hjalmarsson. (Applied for Ubuntu only.)
   * debian/rules: Install language tools, when built.
+  * 0002-create-and-manage-groups-like-on-a-ubuntu-system.patch:
+    - Add admin users to the same groups as Ubiquity, i. e. add "adm",
+      "lpadmin", and "sambashare". Patch by Rodrigo Moya. (LP #810907)
+  * Add 0008-nopasswdlogin-group.patch: When setting a user to have no
+    password, also add them to the 'nopasswdlogin' group. Patch by Mike
+    Terry. (Applied for Ubuntu only.) (LP #815271)
+  * Add Ubuntu patches for writing "SetLanguage" values to ~/.profile.
+  * Add 0007-add-lightdm-support.patch: Support setting/reading LightDM
+    autologin settings. Patch by Mike Terry. Applied to both Debian and Ubuntu
+    builds. (fd.o #40020, LP#798962)
 
- -- Martin Pitt <mpitt@debian.org>  Fri, 09 Sep 2011 13:08:08 +0200
+ -- Alessio Treglia <alessio@debian.org>  Tue, 18 Oct 2011 21:50:35 +0200
 
 accountsservice (0.6.14-1) unstable; urgency=low
 
