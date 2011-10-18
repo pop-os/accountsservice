@@ -3,11 +3,13 @@ Author: Michael Terry <michael.terry@canonical.com>
 Bug: https://bugs.freedesktop.org/show_bug.cgi?id=40020
 Bug-Ubuntu: https://launchpad.net/bugs/798962
 
-diff --git a/src/daemon.c b/src/daemon.c
-index 79915a7..65dcf32 100644
---- a/src/daemon.c
-+++ b/src/daemon.c
-@@ -1258,10 +1258,10 @@ daemon_local_check_auth (Daemon                *daemon,
+---
+ src/daemon.c |  138 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 127 insertions(+), 11 deletions(-)
+
+--- accountsservice.orig/src/daemon.c
++++ accountsservice/src/daemon.c
+@@ -1270,10 +1270,10 @@ daemon_local_check_auth (Daemon
  }
  
  gboolean
@@ -22,7 +24,7 @@ index 79915a7..65dcf32 100644
  {
          GKeyFile *keyfile;
          GError *local_error;
-@@ -1304,23 +1304,84 @@ load_autologin (Daemon      *daemon,
+@@ -1316,23 +1316,84 @@ load_autologin (Daemon      *daemon,
          return TRUE;
  }
  
@@ -114,7 +116,7 @@ index 79915a7..65dcf32 100644
          }
  
          g_key_file_set_string (keyfile, "daemon", "AutomaticLoginEnable", enabled ? "True" : "False");
-@@ -1335,6 +1396,61 @@ save_autologin (Daemon      *daemon,
+@@ -1347,6 +1408,61 @@ save_autologin (Daemon      *daemon,
          return result;
  }
  
