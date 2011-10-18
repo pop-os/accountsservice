@@ -1,11 +1,13 @@
 Description: Save user language settings to ~/.profile.
 Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 
-Index: accountsservice/src/user.c
-===================================================================
---- accountsservice.orig/src/user.c	2011-08-16 07:58:54.655991000 +0200
-+++ accountsservice/src/user.c	2011-08-16 08:07:53.569526881 +0200
-@@ -47,6 +47,7 @@
+---
+ src/user.c |   40 +++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 39 insertions(+), 1 deletion(-)
+
+--- accountsservice.orig/src/user.c
++++ accountsservice/src/user.c
+@@ -49,6 +49,7 @@
  #include "util.h"
  
  #define ICONDIR LOCALSTATEDIR "/lib/AccountsService/icons"
@@ -13,7 +15,7 @@ Index: accountsservice/src/user.c
  
  enum {
          PROP_0,
-@@ -1048,9 +1049,46 @@
+@@ -1056,9 +1057,46 @@ user_change_language_authorized_cb (Daem
                                      gpointer               data)
  
  {

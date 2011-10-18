@@ -1,9 +1,22 @@
 Description: Help files for dealing with language settings.
 Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 
---- accountsservice.orig/configure.ac	2011-07-19 21:48:12 +0200
-+++ accountsservice/configure.ac	2011-08-10 15:08:50 +0200
-@@ -175,6 +175,7 @@
+---
+ configure.ac                       |    1 
+ data/Makefile.am                   |    1 
+ data/langtools/Makefile.am         |   16 ++++++++
+ data/langtools/language-options    |   66 +++++++++++++++++++++++++++++++++
+ data/langtools/language-validate   |   73 +++++++++++++++++++++++++++++++++++++
+ data/langtools/language2locale     |   65 ++++++++++++++++++++++++++++++++
+ data/langtools/main-countries      |   28 ++++++++++++++
+ data/langtools/save-to-profile     |   54 +++++++++++++++++++++++++++
+ data/langtools/set-language-helper |   25 ++++++++++++
+ data/langtools/update-langlist     |   61 ++++++++++++++++++++++++++++++
+ 10 files changed, 390 insertions(+)
+
+--- accountsservice.orig/configure.ac
++++ accountsservice/configure.ac
+@@ -178,6 +178,7 @@ AC_CONFIG_FILES([
  Makefile
  po/Makefile.in
  data/Makefile
@@ -11,9 +24,8 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
  src/Makefile
  src/libaccountsservice/Makefile
  src/libaccountsservice/accountsservice.pc
-
---- accountsservice.orig/data/langtools/language2locale	1970-01-01 01:00:00 +0100
-+++ accountsservice/data/langtools/language2locale	2011-07-25 17:48:30 +0200
+--- /dev/null
++++ accountsservice/data/langtools/language2locale
 @@ -0,0 +1,65 @@
 +#!/bin/sh -e
 +#
@@ -80,9 +92,8 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $locale_name
 +
-
---- accountsservice.orig/data/langtools/language-options	1970-01-01 01:00:00 +0100
-+++ accountsservice/data/langtools/language-options	2011-07-25 17:49:25 +0200
+--- /dev/null
++++ accountsservice/data/langtools/language-options
 @@ -0,0 +1,66 @@
 +#!/usr/bin/perl
 +use strict;
@@ -150,9 +161,8 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +# print the resulting list of language options
 +print join("\n", keys %intersection) || 'en';
 +
-
---- accountsservice.orig/data/langtools/language-validate	1970-01-01 01:00:00 +0100
-+++ accountsservice/data/langtools/language-validate	2011-07-25 17:50:31 +0200
+--- /dev/null
++++ accountsservice/data/langtools/language-validate
 @@ -0,0 +1,73 @@
 +#!/bin/sh -e
 +
@@ -227,9 +237,8 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $validated_language
 +
-
---- accountsservice.orig/data/langtools/main-countries	1970-01-01 01:00:00 +0100
-+++ accountsservice/data/langtools/main-countries	2011-05-17 13:19:55 +0200
+--- /dev/null
++++ accountsservice/data/langtools/main-countries
 @@ -0,0 +1,28 @@
 +# If multiple country codes are present among the available locales for
 +# a language, we may want to map the language code to the language's
@@ -259,9 +268,8 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +ti	ti_ER
 +tr	tr_TR
 +
-
---- accountsservice.orig/data/langtools/Makefile.am	1970-01-01 01:00:00 +0100
-+++ accountsservice/data/langtools/Makefile.am	2011-08-10 15:26:00 +0200
+--- /dev/null
++++ accountsservice/data/langtools/Makefile.am
 @@ -0,0 +1,16 @@
 +langtoolsdir = ${datadir}/language-tools
 +
@@ -279,9 +287,8 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +	$(INSTALL_SCRIPT)  set-language-helper  $(DESTDIR)$(langtoolsdir)/set-language-helper
 +	$(INSTALL_SCRIPT)  update-langlist      $(DESTDIR)$(langtoolsdir)/update-langlist
 +
-
---- accountsservice.orig/data/langtools/save-to-profile	1970-01-01 01:00:00 +0100
-+++ accountsservice/data/langtools/save-to-profile	2011-08-11 13:53:10 +0200
+--- /dev/null
++++ accountsservice/data/langtools/save-to-profile
 @@ -0,0 +1,54 @@
 +#!/bin/sh
 +#
@@ -337,9 +344,8 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +exit 0
 +
-
---- accountsservice.orig/data/langtools/set-language-helper	1970-01-01 01:00:00 +0100
-+++ accountsservice/data/langtools/set-language-helper	2011-08-07 13:19:08 +0200
+--- /dev/null
++++ accountsservice/data/langtools/set-language-helper
 @@ -0,0 +1,25 @@
 +#!/bin/sh -e
 +
@@ -366,9 +372,8 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $validated_language
 +
-
---- accountsservice.orig/data/langtools/update-langlist	1970-01-01 01:00:00 +0100
-+++ accountsservice/data/langtools/update-langlist	2011-08-11 13:53:29 +0200
+--- /dev/null
++++ accountsservice/data/langtools/update-langlist
 @@ -0,0 +1,61 @@
 +#!/bin/sh -e
 +#
@@ -431,12 +436,10 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $renewed_langlist
 +
-
---- accountsservice.orig/data/Makefile.am	2011-07-19 21:48:12 +0200
-+++ accountsservice/data/Makefile.am	2011-08-10 15:10:27 +0200
+--- accountsservice.orig/data/Makefile.am
++++ accountsservice/data/Makefile.am
 @@ -1,3 +1,4 @@
 +SUBDIRS = langtools
  
  dbusifdir   = $(datadir)/dbus-1/interfaces
  dbusif_DATA = \
-
