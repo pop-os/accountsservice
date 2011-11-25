@@ -159,7 +159,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +}
 +
 +# print the resulting list of language options
-+print join("\n", keys %intersection) || 'en';
++print join("\n", sort keys %intersection) || 'en';
 +
 --- /dev/null
 +++ accountsservice/data/langtools/language-validate
