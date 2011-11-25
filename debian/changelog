@@ -4,6 +4,11 @@ accountsservice (0.6.15-2) UNRELEASED; urgency=low
   * 0009-language-tools.patch: Sort the list of language options, for the
     language chooser in LightDM (LP: #868346).
 
+  [ Martin Pitt ]
+  * 0002-create-and-manage-groups-like-on-a-ubuntu-system.patch: Use "sudo"
+    group instead of "admin", for Debian/sudo compatibility. However, keep
+    recognizing "admin" as administrator, too. (LP: #893842)
+
  -- Martin Pitt <mpitt@debian.org>  Thu, 20 Oct 2011 16:45:05 +0200
 
 accountsservice (0.6.15-1) unstable; urgency=low
