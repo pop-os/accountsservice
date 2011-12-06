@@ -66,7 +66,7 @@ Description: query and manipulate user account information - header files
  AccountService library.
 
 Package: gir1.2-accountsservice-1.0
-Section: libs
+Section: introspection
 Architecture: any
 Depends: ${shlibs:Depends},
  ${gir:Depends},
