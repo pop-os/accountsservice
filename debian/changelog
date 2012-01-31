@@ -1,3 +1,20 @@
+accountsservice (0.6.15-3) unstable; urgency=low
+
+  * Move GIR package into the new section "introspection".
+  * debian/patches/0011-add-background-file-support.patch
+    - Add support for a BackgroundFile property, similar to IconFile.
+      Apply on Ubuntu only. (LP: #844081)
+  * Fix file permissions bypass (LP: #904395), applies on Ubuntu only:
+    - debian/patches/0010-set-language.patch:
+      Drop privileges before letting help scripts in
+      /usr/share/language-tools write to $HOME.
+    - debian/patches/0009-language-tools.patch:
+      Drop chown() call in /usr/share/language-tools/save-to-profile.
+      CVE-2011-4406
+  * Refresh patches.
+
+ -- Alessio Treglia <alessio@debian.org>  Tue, 31 Jan 2012 17:41:50 +0100
+
 accountsservice (0.6.15-2) unstable; urgency=low
 
   [ Gunnar Hjalmarsson ]
