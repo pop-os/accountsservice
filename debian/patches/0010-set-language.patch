@@ -2,8 +2,8 @@ Description: Save user language settings to ~/.profile.
 Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 
 ---
- src/user.c |   40 +++++++++++++++++++++++++++++++++++++++-
- 1 file changed, 39 insertions(+), 1 deletion(-)
+ src/user.c |   53 ++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 52 insertions(+), 1 deletion(-)
 
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
@@ -15,7 +15,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
  
  enum {
          PROP_0,
-@@ -1066,9 +1067,46 @@ user_change_language_authorized_cb (Daem
+@@ -1066,9 +1067,59 @@ user_change_language_authorized_cb (Daem
                                      gpointer               data)
  
  {
@@ -24,6 +24,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +        gint          i;
 +        gchar        *command[] = { LANGTOOLSDIR "/set-language-helper", user->user_name, language, NULL };
 +        const gchar  *allowed_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890._+-@:";
++        gboolean      ret;
 +        gchar        *validated_language;
 +        GError       *error = NULL;
  
@@ -38,20 +39,32 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +                }
 +
 +                /* set language related environment variables in ~/.profile */
-+                if (!g_spawn_sync ( NULL,
-+                                    command,
-+                                    NULL,
-+                                    G_SPAWN_STDERR_TO_DEV_NULL,
-+                                    NULL,
-+                                    NULL,
-+                                    &validated_language,
-+                                    NULL,
-+                                    NULL,
-+                                    &error )) {
++                if (setresgid (user->gid, user->gid, -1) != 0) {
++                        throw_error (context, ERROR_FAILED, "setresgid() failed, so language not set");
++                        return;
++                }
++                if (setresuid (user->uid, user->uid, -1) != 0) {
++                        throw_error (context, ERROR_FAILED, "setresuid() failed, so language not set");
++                        return;
++                }
++                ret = g_spawn_sync ( NULL,
++                                     command,
++                                     NULL,
++                                     G_SPAWN_STDERR_TO_DEV_NULL,
++                                     NULL,
++                                     NULL,
++                                     &validated_language,
++                                     NULL,
++                                     NULL,
++                                     &error );
++                setresuid (0, 0, -1);
++                setresgid (0, 0, -1);
++                if (!ret) {
 +                        throw_error (context, ERROR_FAILED, "running '%s' failed: %s", command[0], error->message);
 +                        g_error_free (error);
 +                        return;
 +                }
++
 +                if (validated_language != NULL && strlen (validated_language) > 1) {
 +                        language = g_strndup (validated_language, strspn (validated_language, allowed_chars));
 +                        g_free (validated_language);

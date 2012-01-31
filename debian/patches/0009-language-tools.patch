@@ -14,9 +14,11 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
  data/langtools/update-langlist     |   61 ++++++++++++++++++++++++++++++
  10 files changed, 390 insertions(+)
 
---- accountsservice.orig/configure.ac
-+++ accountsservice/configure.ac
-@@ -178,6 +178,7 @@ AC_CONFIG_FILES([
+Index: accountsservice-0.6.15/configure.ac
+===================================================================
+--- accountsservice-0.6.15.orig/configure.ac	2012-01-31 08:44:05.064545115 -0500
++++ accountsservice-0.6.15/configure.ac	2012-01-31 08:44:12.748545314 -0500
+@@ -178,6 +178,7 @@
  Makefile
  po/Makefile.in
  data/Makefile
@@ -24,8 +26,10 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
  src/Makefile
  src/libaccountsservice/Makefile
  src/libaccountsservice/accountsservice.pc
---- /dev/null
-+++ accountsservice/data/langtools/language2locale
+Index: accountsservice-0.6.15/data/langtools/language2locale
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ accountsservice-0.6.15/data/langtools/language2locale	2012-01-31 08:44:12.748545314 -0500
 @@ -0,0 +1,65 @@
 +#!/bin/sh -e
 +#
@@ -92,8 +96,10 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $locale_name
 +
---- /dev/null
-+++ accountsservice/data/langtools/language-options
+Index: accountsservice-0.6.15/data/langtools/language-options
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ accountsservice-0.6.15/data/langtools/language-options	2012-01-31 08:44:12.748545314 -0500
 @@ -0,0 +1,66 @@
 +#!/usr/bin/perl
 +use strict;
@@ -161,8 +167,10 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +# print the resulting list of language options
 +print join("\n", sort keys %intersection) || 'en';
 +
---- /dev/null
-+++ accountsservice/data/langtools/language-validate
+Index: accountsservice-0.6.15/data/langtools/language-validate
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ accountsservice-0.6.15/data/langtools/language-validate	2012-01-31 08:44:12.748545314 -0500
 @@ -0,0 +1,73 @@
 +#!/bin/sh -e
 +
@@ -237,8 +245,10 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $validated_language
 +
---- /dev/null
-+++ accountsservice/data/langtools/main-countries
+Index: accountsservice-0.6.15/data/langtools/main-countries
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ accountsservice-0.6.15/data/langtools/main-countries	2012-01-31 08:44:12.748545314 -0500
 @@ -0,0 +1,28 @@
 +# If multiple country codes are present among the available locales for
 +# a language, we may want to map the language code to the language's
@@ -268,8 +278,10 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +ti	ti_ER
 +tr	tr_TR
 +
---- /dev/null
-+++ accountsservice/data/langtools/Makefile.am
+Index: accountsservice-0.6.15/data/langtools/Makefile.am
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ accountsservice-0.6.15/data/langtools/Makefile.am	2012-01-31 08:44:12.748545314 -0500
 @@ -0,0 +1,16 @@
 +langtoolsdir = ${datadir}/language-tools
 +
@@ -287,9 +299,11 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +	$(INSTALL_SCRIPT)  set-language-helper  $(DESTDIR)$(langtoolsdir)/set-language-helper
 +	$(INSTALL_SCRIPT)  update-langlist      $(DESTDIR)$(langtoolsdir)/update-langlist
 +
---- /dev/null
-+++ accountsservice/data/langtools/save-to-profile
-@@ -0,0 +1,54 @@
+Index: accountsservice-0.6.15/data/langtools/save-to-profile
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ accountsservice-0.6.15/data/langtools/save-to-profile	2012-01-31 08:44:54.604546384 -0500
+@@ -0,0 +1,51 @@
 +#!/bin/sh
 +#
 +# attempts to update the language settings in the user's ~/.profile config file
@@ -322,10 +336,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +fi
 +
 +# create ~/.profile if it doesn't exist
-+test -f "$homedir/.profile" || {
-+    touch $homedir/.profile
-+    chown $user:$user $homedir/.profile
-+}
++touch $homedir/.profile
 +
 +save_to_profile() {
 +    var=$1; value=$2
@@ -344,8 +355,10 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +exit 0
 +
---- /dev/null
-+++ accountsservice/data/langtools/set-language-helper
+Index: accountsservice-0.6.15/data/langtools/set-language-helper
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ accountsservice-0.6.15/data/langtools/set-language-helper	2012-01-31 08:44:12.748545314 -0500
 @@ -0,0 +1,25 @@
 +#!/bin/sh -e
 +
@@ -372,8 +385,10 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $validated_language
 +
---- /dev/null
-+++ accountsservice/data/langtools/update-langlist
+Index: accountsservice-0.6.15/data/langtools/update-langlist
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ accountsservice-0.6.15/data/langtools/update-langlist	2012-01-31 08:44:12.748545314 -0500
 @@ -0,0 +1,61 @@
 +#!/bin/sh -e
 +#
@@ -436,8 +451,10 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $renewed_langlist
 +
---- accountsservice.orig/data/Makefile.am
-+++ accountsservice/data/Makefile.am
+Index: accountsservice-0.6.15/data/Makefile.am
+===================================================================
+--- accountsservice-0.6.15.orig/data/Makefile.am	2012-01-31 08:44:04.976545113 -0500
++++ accountsservice-0.6.15/data/Makefile.am	2012-01-31 08:44:12.748545314 -0500
 @@ -1,3 +1,4 @@
 +SUBDIRS = langtools
  
