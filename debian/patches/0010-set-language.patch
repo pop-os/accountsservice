@@ -15,7 +15,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
  
  enum {
          PROP_0,
-@@ -1056,9 +1057,46 @@ user_change_language_authorized_cb (Daem
+@@ -1066,9 +1067,46 @@ user_change_language_authorized_cb (Daem
                                      gpointer               data)
  
  {
