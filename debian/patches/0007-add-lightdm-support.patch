@@ -9,7 +9,7 @@ Bug-Ubuntu: https://launchpad.net/bugs/798962
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -1273,10 +1273,10 @@ daemon_local_check_auth (Daemon
+@@ -1270,10 +1270,10 @@ daemon_local_check_auth (Daemon
  }
  
  gboolean
@@ -24,7 +24,7 @@ Bug-Ubuntu: https://launchpad.net/bugs/798962
  {
          GKeyFile *keyfile;
          GError *local_error;
-@@ -1319,23 +1319,84 @@ load_autologin (Daemon      *daemon,
+@@ -1316,23 +1316,84 @@ load_autologin (Daemon      *daemon,
          return TRUE;
  }
  
@@ -116,7 +116,7 @@ Bug-Ubuntu: https://launchpad.net/bugs/798962
          }
  
          g_key_file_set_string (keyfile, "daemon", "AutomaticLoginEnable", enabled ? "True" : "False");
-@@ -1350,6 +1411,61 @@ save_autologin (Daemon      *daemon,
+@@ -1347,6 +1408,61 @@ save_autologin (Daemon      *daemon,
          return result;
  }
  

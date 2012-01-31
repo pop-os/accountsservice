@@ -4,7 +4,7 @@
 
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
-@@ -1748,6 +1748,21 @@ user_change_password_mode_authorized_cb
+@@ -1758,6 +1758,21 @@ user_change_password_mode_authorized_cb
                                  return;
                          }
  
@@ -26,7 +26,7 @@
                          if (mode == PASSWORD_MODE_SET_AT_LOGIN) {
                                  argv[0] = "/usr/bin/chage";
                                  argv[1] = "-d";
-@@ -1795,6 +1810,23 @@ user_change_password_mode_authorized_cb
+@@ -1805,6 +1820,23 @@ user_change_password_mode_authorized_cb
                          g_object_notify (G_OBJECT (user), "locked");
                  }
  
@@ -50,7 +50,7 @@
                  user->password_mode = mode;
  
                  g_object_notify (G_OBJECT (user), "password-mode");
-@@ -1876,6 +1908,20 @@ user_change_password_authorized_cb (Daem
+@@ -1886,6 +1918,20 @@ user_change_password_authorized_cb (Daem
  
          error = NULL;
          if (!spawn_with_login_uid (context, argv, &error)) {
