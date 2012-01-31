@@ -274,7 +274,7 @@
          if (user->icon_file)
                  g_key_file_set_string (keyfile, "User", "Icon", user->icon_file);
  }
-@@ -1416,6 +1439,94 @@ become_user (gpointer data)
+@@ -1429,6 +1452,94 @@ become_user (gpointer data)
  }
  
  static void
