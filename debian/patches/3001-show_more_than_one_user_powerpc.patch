@@ -1,6 +1,7 @@
 Description: Fix string format for long long int.
-Author: Michel Dänzer <daenzer@debian.org>
-Forwarded: Matthias Clasen <mclasen@redhat.com>
+ Based on the work of Michel Dänzer <daenzer@debian.org>
+Origin: upstream, commit:1fbc872fba07b4b9c345b86ed6fe1e
+Bug: https://bugs.freedesktop.org/show_bug.cgi?id=45738
 Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=635168
 ---
  src/user.c |    2 +-
@@ -8,12 +9,12 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=635168
 
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
-@@ -731,7 +731,7 @@ compute_object_path (User *user)
- {
+@@ -732,7 +732,7 @@ compute_object_path (User *user)
          gchar *object_path;
  
--        object_path = g_strdup_printf ("/org/freedesktop/Accounts/User%ld",
-+        object_path = g_strdup_printf ("/org/freedesktop/Accounts/User%lld",
-                                        (gint64) user->uid);
+         object_path = g_strdup_printf ("/org/freedesktop/Accounts/User%ld",
+-                                       (gint64) user->uid);
++                                       (long) user->uid);
  
          return object_path;
+ }
