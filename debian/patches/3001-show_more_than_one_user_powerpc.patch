@@ -1,0 +1,19 @@
+Description: Fix string format for long long int.
+Author: Michel Dänzer <daenzer@debian.org>
+Forwarded: Matthias Clasen <mclasen@redhat.com>
+Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=635168
+---
+ src/user.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- accountsservice.orig/src/user.c
++++ accountsservice/src/user.c
+@@ -731,7 +731,7 @@ compute_object_path (User *user)
+ {
+         gchar *object_path;
+ 
+-        object_path = g_strdup_printf ("/org/freedesktop/Accounts/User%ld",
++        object_path = g_strdup_printf ("/org/freedesktop/Accounts/User%lld",
+                                        (gint64) user->uid);
+ 
+         return object_path;
