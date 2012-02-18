@@ -7,7 +7,7 @@
 
 --- accountsservice.orig/data/org.freedesktop.Accounts.User.xml
 +++ accountsservice/data/org.freedesktop.Accounts.User.xml
-@@ -296,6 +296,41 @@
+@@ -331,6 +331,41 @@
      </doc:doc>
    </method>
  
@@ -49,7 +49,7 @@
    <method name="SetIconFile">
      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
      <arg name="filename" direction="in" type="s">
-@@ -651,6 +686,16 @@
+@@ -696,6 +731,16 @@
          </doc:para>
        </doc:description>
      </doc:doc>
@@ -75,16 +75,16 @@
 +        PROP_BACKGROUND_FILE,
          PROP_ICON_FILE,
          PROP_LANGUAGE,
-         PROP_X_SESSION,
-@@ -86,6 +87,7 @@ struct _ActUser {
+         PROP_FORMATS_LOCALE,
+@@ -87,6 +88,7 @@ struct _ActUser {
          char           *shell;
          char           *email;
          char           *location;
 +        char           *background_file;
          char           *icon_file;
          char           *language;
-         char           *x_session;
-@@ -231,6 +233,9 @@ act_user_get_property (GObject    *objec
+         char           *formats_locale;
+@@ -233,6 +235,9 @@ act_user_get_property (GObject    *objec
          case PROP_LOCATION:
                  g_value_set_string (value, user->location);
                  break;
@@ -94,7 +94,7 @@
          case PROP_ICON_FILE:
                  g_value_set_string (value, user->icon_file);
                  break;
-@@ -357,6 +362,13 @@ act_user_class_init (ActUserClass *class
+@@ -362,6 +367,13 @@ act_user_class_init (ActUserClass *class
                                                             0,
                                                             G_PARAM_READABLE));
          g_object_class_install_property (gobject_class,
@@ -108,7 +108,7 @@
                                           PROP_ICON_FILE,
                                           g_param_spec_string ("icon-file",
                                                                "Icon File",
-@@ -452,6 +464,7 @@ act_user_finalize (GObject *object)
+@@ -464,6 +476,7 @@ act_user_finalize (GObject *object)
  
          g_free (user->user_name);
          g_free (user->real_name);
@@ -116,7 +116,7 @@
          g_free (user->icon_file);
          g_free (user->language);
          g_free (user->object_path);
-@@ -802,6 +815,22 @@ act_user_is_system_account (ActUser *use
+@@ -815,6 +828,22 @@ act_user_is_system_account (ActUser *use
  }
  
  /**
@@ -139,7 +139,7 @@
   * act_user_get_icon_file:
   * @user: a #ActUser
   *
-@@ -1015,6 +1044,15 @@ collect_props (const gchar    *key,
+@@ -1044,6 +1073,15 @@ collect_props (const gchar    *key,
                          user->login_frequency = new_login_frequency;
                          g_object_notify (G_OBJECT (user), "login-frequency");
                  }
@@ -155,7 +155,7 @@
          } else if (strcmp (key, "IconFile") == 0) {
                  const char *new_icon_file;
  
-@@ -1380,6 +1418,37 @@ act_user_set_real_name (ActUser    *user
+@@ -1420,6 +1458,37 @@ act_user_set_user_name (ActUser    *user
                  g_error_free (error);
                  return;
          }
@@ -203,7 +203,7 @@
          PROP_ICON_FILE,
          PROP_LOCKED,
          PROP_AUTOMATIC_LOGIN,
-@@ -101,6 +102,7 @@ struct User {
+@@ -102,6 +103,7 @@ struct User {
          gchar        *x_session;
          gchar        *location;
          guint64       login_frequency;
@@ -211,7 +211,7 @@
          gchar        *icon_file;
          gboolean      locked;
          gboolean      automatic_login;
-@@ -197,6 +199,9 @@ user_get_property (GObject    *object,
+@@ -212,6 +214,9 @@ user_get_property (GObject    *object,
          case PROP_LOCATION:
                  g_value_set_string (value, user->location);
                  break;
@@ -221,7 +221,7 @@
          case PROP_ICON_FILE:
                  if (user->icon_file)
                          g_value_set_string (value, user->icon_file);
-@@ -350,6 +355,13 @@ user_class_init (UserClass *class)
+@@ -372,6 +377,13 @@ user_class_init (UserClass *class)
                                                                0,
                                                                G_PARAM_READWRITE));
          g_object_class_install_property (gobject_class,
@@ -235,7 +235,7 @@
                                           PROP_ICON_FILE,
                                           g_param_spec_string ("icon-file",
                                                                "Icon file",
-@@ -393,6 +405,7 @@ user_init (User *user)
+@@ -415,6 +427,7 @@ user_init (User *user)
          user->account_type = ACCOUNT_TYPE_STANDARD;
          user->home_dir = NULL;
          user->shell = NULL;
@@ -243,7 +243,7 @@
          user->icon_file = NULL;
          user->email = NULL;
          user->language = NULL;
-@@ -417,6 +430,7 @@ user_finalize (GObject *object)
+@@ -440,6 +453,7 @@ user_finalize (GObject *object)
          g_free (user->real_name);
          g_free (user->home_dir);
          g_free (user->shell);
@@ -251,7 +251,7 @@
          g_free (user->icon_file);
          g_free (user->email);
          g_free (user->language);
-@@ -659,6 +673,12 @@ user_local_update_from_keyfile (User
+@@ -689,6 +703,12 @@ user_local_update_from_keyfile (User
                  user->password_hint = s;
          }
  
@@ -264,7 +264,7 @@
          s = g_key_file_get_string (keyfile, "User", "Icon", NULL);
          if (s != NULL) {
                  g_free (user->icon_file);
-@@ -687,6 +707,9 @@ user_local_save_to_keyfile (User     *us
+@@ -720,6 +740,9 @@ user_local_save_to_keyfile (User     *us
          if (user->password_hint)
                  g_key_file_set_string (keyfile, "User", "PasswordHint", user->password_hint);
  
@@ -274,7 +274,7 @@
          if (user->icon_file)
                  g_key_file_set_string (keyfile, "User", "Icon", user->icon_file);
  }
-@@ -1429,6 +1452,94 @@ become_user (gpointer data)
+@@ -1932,6 +1955,94 @@ become_user (gpointer data)
  }
  
  static void
@@ -371,7 +371,7 @@
                                       DBusGMethodInvocation *context,
 --- accountsservice.orig/src/user.h
 +++ accountsservice/src/user.h
-@@ -92,6 +92,9 @@ gboolean       user_set_home_directory (
+@@ -95,6 +95,9 @@ gboolean       user_set_home_directory (
  gboolean       user_set_shell          (User                  *user,
                                          const gchar           *shell,
                                          DBusGMethodInvocation *context);

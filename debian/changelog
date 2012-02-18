@@ -1,3 +1,29 @@
+accountsservice (0.6.15-4) unstable; urgency=low
+
+  * src/user.c: Be more careful when resetting the users icons
+    - When the current icon is in /usr/share, and we reset the icon, we try
+      to delete a nonexisting icon file in /var/lib/AccountsService/icons.
+      Deal with this eventuality.
+  * fix compute_object_path on powerpc (Closes: #635168)
+    - long isn't necessarily 64bit.  On big endian architectures, where it's
+      smaller than 64bit, the compute_object_path function will get computed
+      incorrectly; thanks to Ray Strode and Michel Dänzer.
+  * Apply 2001-icon_reset.patch,3001-show_more_than_one_user_powerpc.patch on
+    Ubuntu too.
+  * Integrate Ubuntu patches and apply them in debian/patches/ubuntu.series
+    (for Ubuntu only):
+    - 0001-formats-locale-property.patch
+    - 0002-create-and-manage-groups-like-on-a-ubuntu-system.patch
+    - 0005-gdm_config_file_path_ubuntu.patch
+    - 0008-nopasswdlogin-group.patch
+    - 0009-language-tools.patch
+    - 0010-set-language.patch
+    - 0011-add-background-file-support.patch
+    - 0012-add-keyboard-layout-support.patch
+    - 0013-add-has-message-support.patch
+
+ -- Alessio Treglia <alessio@debian.org>  Sun, 19 Feb 2012 00:37:07 +0100
+
 accountsservice (0.6.15-3) unstable; urgency=low
 
   * Move GIR package into the new section "introspection".
