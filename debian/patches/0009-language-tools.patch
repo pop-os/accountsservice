@@ -1,24 +1,23 @@
-Description: Help files for dealing with language settings.
+Description: Help files for dealing with language/locale settings.
 Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 
 ---
- configure.ac                       |    1 
- data/Makefile.am                   |    1 
- data/langtools/Makefile.am         |   16 ++++++++
- data/langtools/language-options    |   66 +++++++++++++++++++++++++++++++++
- data/langtools/language-validate   |   73 +++++++++++++++++++++++++++++++++++++
- data/langtools/language2locale     |   65 ++++++++++++++++++++++++++++++++
- data/langtools/main-countries      |   28 ++++++++++++++
- data/langtools/save-to-profile     |   54 +++++++++++++++++++++++++++
- data/langtools/set-language-helper |   25 ++++++++++++
- data/langtools/update-langlist     |   61 ++++++++++++++++++++++++++++++
- 10 files changed, 390 insertions(+)
+ configure.ac                            |    1 
+ data/Makefile.am                        |    1 
+ data/langtools/Makefile.am              |   17 ++++++
+ data/langtools/del-profile-env-settings |   13 +++++
+ data/langtools/language-options         |   66 +++++++++++++++++++++++++++
+ data/langtools/language-validate        |   78 ++++++++++++++++++++++++++++++++
+ data/langtools/language2locale          |   65 ++++++++++++++++++++++++++
+ data/langtools/main-countries           |   28 +++++++++++
+ data/langtools/save-to-pam-env          |   36 ++++++++++++++
+ data/langtools/set-language-helper      |   25 ++++++++++
+ data/langtools/update-langlist          |   48 +++++++++++++++++++
+ 11 files changed, 378 insertions(+)
 
-Index: accountsservice-0.6.15/configure.ac
-===================================================================
---- accountsservice-0.6.15.orig/configure.ac	2012-01-31 08:44:05.064545115 -0500
-+++ accountsservice-0.6.15/configure.ac	2012-01-31 08:44:12.748545314 -0500
-@@ -178,6 +178,7 @@
+--- accountsservice.orig/configure.ac
++++ accountsservice/configure.ac
+@@ -178,6 +178,7 @@ AC_CONFIG_FILES([
  Makefile
  po/Makefile.in
  data/Makefile
@@ -26,10 +25,24 @@ Index: accountsservice-0.6.15/configure.ac
  src/Makefile
  src/libaccountsservice/Makefile
  src/libaccountsservice/accountsservice.pc
-Index: accountsservice-0.6.15/data/langtools/language2locale
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ accountsservice-0.6.15/data/langtools/language2locale	2012-01-31 08:44:12.748545314 -0500
+--- /dev/null
++++ accountsservice/data/langtools/del-profile-env-settings
+@@ -0,0 +1,13 @@
++#!/bin/sh -e
++
++homedir=$1
++
++test -n "$homedir" || exit 1
++
++test -f "$homedir/.profile" && {
++    cd "$homedir"
++    for var in 'LANGUAGE' 'LANG' 'LC_MESSAGES' 'LC_CTYPE' 'LC_COLLATE'; do
++        sed -i "/^export $var=\"[^[:space:]]*\"$/d" .profile
++    done
++}
++
+--- /dev/null
++++ accountsservice/data/langtools/language2locale
 @@ -0,0 +1,65 @@
 +#!/bin/sh -e
 +#
@@ -39,7 +52,7 @@ Index: accountsservice-0.6.15/data/langtools/language2locale
 +lang=$1
 +locale_name=
 +
-+test -n "$lang" || exit 0
++test -n "$lang" || exit 1
 +
 +langtoolsdir=/usr/share/language-tools
 +
@@ -96,10 +109,8 @@ Index: accountsservice-0.6.15/data/langtools/language2locale
 +
 +echo $locale_name
 +
-Index: accountsservice-0.6.15/data/langtools/language-options
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ accountsservice-0.6.15/data/langtools/language-options	2012-01-31 08:44:12.748545314 -0500
+--- /dev/null
++++ accountsservice/data/langtools/language-options
 @@ -0,0 +1,66 @@
 +#!/usr/bin/perl
 +use strict;
@@ -167,19 +178,22 @@ Index: accountsservice-0.6.15/data/langtools/language-options
 +# print the resulting list of language options
 +print join("\n", sort keys %intersection) || 'en';
 +
-Index: accountsservice-0.6.15/data/langtools/language-validate
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ accountsservice-0.6.15/data/langtools/language-validate	2012-01-31 08:44:12.748545314 -0500
-@@ -0,0 +1,73 @@
+--- /dev/null
++++ accountsservice/data/langtools/language-validate
+@@ -0,0 +1,78 @@
 +#!/bin/sh -e
 +
 +lang=$1
 +validated_language=
 +
-+test -n "$lang" || exit 0
++test -n "$lang" || exit 1
 +
 +langtoolsdir=/usr/share/language-tools
++
++#
++# discard possible fallback languages
++#
++lang=${lang%%:*}
 +
 +#
 +# remove possible encoding part
@@ -245,10 +259,8 @@ Index: accountsservice-0.6.15/data/langtools/language-validate
 +
 +echo $validated_language
 +
-Index: accountsservice-0.6.15/data/langtools/main-countries
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ accountsservice-0.6.15/data/langtools/main-countries	2012-01-31 08:44:12.748545314 -0500
+--- /dev/null
++++ accountsservice/data/langtools/main-countries
 @@ -0,0 +1,28 @@
 +# If multiple country codes are present among the available locales for
 +# a language, we may want to map the language code to the language's
@@ -278,11 +290,9 @@ Index: accountsservice-0.6.15/data/langtools/main-countries
 +ti	ti_ER
 +tr	tr_TR
 +
-Index: accountsservice-0.6.15/data/langtools/Makefile.am
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ accountsservice-0.6.15/data/langtools/Makefile.am	2012-01-31 08:44:12.748545314 -0500
-@@ -0,0 +1,16 @@
+--- /dev/null
++++ accountsservice/data/langtools/Makefile.am
+@@ -0,0 +1,17 @@
 +langtoolsdir = ${datadir}/language-tools
 +
 +install-data-hook:
@@ -291,105 +301,85 @@ Index: accountsservice-0.6.15/data/langtools/Makefile.am
 +		chmod 755 $(DESTDIR)$(langtoolsdir); \
 +	fi
 +
-+	$(INSTALL_SCRIPT)  language-options     $(DESTDIR)$(langtoolsdir)/language-options
-+	$(INSTALL_SCRIPT)  language-validate    $(DESTDIR)$(langtoolsdir)/language-validate
-+	$(INSTALL_SCRIPT)  language2locale      $(DESTDIR)$(langtoolsdir)/language2locale
-+	$(INSTALL_DATA)    main-countries       $(DESTDIR)$(langtoolsdir)/main-countries
-+	$(INSTALL_SCRIPT)  save-to-profile      $(DESTDIR)$(langtoolsdir)/save-to-profile
-+	$(INSTALL_SCRIPT)  set-language-helper  $(DESTDIR)$(langtoolsdir)/set-language-helper
-+	$(INSTALL_SCRIPT)  update-langlist      $(DESTDIR)$(langtoolsdir)/update-langlist
++	$(INSTALL_SCRIPT)  del-profile-env-settings  $(DESTDIR)$(langtoolsdir)/del-profile-env-settings
++	$(INSTALL_SCRIPT)  language-options          $(DESTDIR)$(langtoolsdir)/language-options
++	$(INSTALL_SCRIPT)  language-validate         $(DESTDIR)$(langtoolsdir)/language-validate
++	$(INSTALL_SCRIPT)  language2locale           $(DESTDIR)$(langtoolsdir)/language2locale
++	$(INSTALL_DATA)    main-countries            $(DESTDIR)$(langtoolsdir)/main-countries
++	$(INSTALL_SCRIPT)  save-to-pam-env           $(DESTDIR)$(langtoolsdir)/save-to-pam-env
++	$(INSTALL_SCRIPT)  set-language-helper       $(DESTDIR)$(langtoolsdir)/set-language-helper
++	$(INSTALL_SCRIPT)  update-langlist           $(DESTDIR)$(langtoolsdir)/update-langlist
 +
-Index: accountsservice-0.6.15/data/langtools/save-to-profile
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ accountsservice-0.6.15/data/langtools/save-to-profile	2012-01-31 08:44:54.604546384 -0500
-@@ -0,0 +1,51 @@
-+#!/bin/sh
+--- /dev/null
++++ accountsservice/data/langtools/save-to-pam-env
+@@ -0,0 +1,36 @@
++#!/bin/sh -e
 +#
-+# attempts to update the language settings in the user's ~/.profile config file
++# updates the ~/.pam_environment config file
 +
-+user=$1
-+language_list=$2
-+locale_name=$3
++homedir=$1
++locale_name=$2
++language_list=$3
 +
-+test -n "$user" || exit 0
++[ -n "$homedir" -a -n "$locale_name" ] || exit 1
 +
-+# look up the user's home directory first
-+while read line; do
-+    [ "${line%%:*}" = $user ] && break
-+done < '/etc/passwd'
-+if [ -n "$line" ]; then
-+    OLDIFS=$IFS
-+    IFS=':'
-+    i=1
-+    for homedir in $line; do
-+        if [ $i -ne 6 ]; then
-+            i=$(( $i + 1 ))
-+            continue
-+        fi
-+        break
-+    done
-+    IFS=$OLDIFS
-+fi
-+if [ "$( echo $homedir )" = '' -o ! -d "$homedir" ]; then
-+    exit 0
-+fi
++# create ~/.pam_environment if it doesn't exist
++touch "$homedir/.pam_environment" || exit 1
 +
-+# create ~/.profile if it doesn't exist
-+touch $homedir/.profile
-+
-+save_to_profile() {
++save_to_pam_env() {
 +    var=$1; value=$2
-+    if [ "$( grep "^[[:space:]]*export $var=" $homedir/.profile )" ]; then
-+        sed -r -i "s/^[[:space:]]*(export $var=).*/\1\"$value\"/" $homedir/.profile
++    if [ "$( grep "^$var=" .pam_environment )" ]; then
++        sed -r -i "s/^($var=).*/\1$value/" .pam_environment
 +    else
-+        echo "export $var=\"$value\"" >> $homedir/.profile
++        echo "$var=$value" >> .pam_environment
 +    fi
 +}
-+test -n "$language_list" && save_to_profile 'LANGUAGE' $language_list
-+test -n "$locale_name" && {
-+    save_to_profile 'LC_MESSAGES' $locale_name
-+    save_to_profile 'LC_CTYPE'    $locale_name
-+    save_to_profile 'LC_COLLATE'  $locale_name
-+}
++
++cd "$homedir"
++if [ -n "$language_list" ]; then
++    save_to_pam_env 'LANGUAGE' $language_list
++    save_to_pam_env 'LANG' $locale_name
++else
++    for var in 'LC_NUMERIC' 'LC_TIME' 'LC_MONETARY' 'LC_PAPER' 'LC_NAME' \
++               'LC_ADDRESS' 'LC_TELEPHONE' 'LC_MEASUREMENT'; do
++        save_to_pam_env $var $locale_name
++    done
++    echo $locale_name
++fi
 +
 +exit 0
 +
-Index: accountsservice-0.6.15/data/langtools/set-language-helper
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ accountsservice-0.6.15/data/langtools/set-language-helper	2012-01-31 08:44:12.748545314 -0500
+--- /dev/null
++++ accountsservice/data/langtools/set-language-helper
 @@ -0,0 +1,25 @@
 +#!/bin/sh -e
 +
-+user=$1
++homedir=$1
 +language=$2
 +validated_language=
 +
-+[ -n "$user" -a -n "$language" ] || exit 0
++[ -n "$language" -a -n "$homedir" ] || exit 1
 +
 +langtoolsdir=/usr/share/language-tools
 +
++validated_language=$( $langtoolsdir/language-validate $language )
++
 +if [ $language = "${language%:*}" ]; then
-+    validated_language=$( $langtoolsdir/language-validate $language )
-+    renewed_langlist=$( $langtoolsdir/update-langlist $validated_language $user )
++    renewed_langlist=$( $langtoolsdir/update-langlist $validated_language "$homedir" )
 +else
 +    # $language contains a priority list
-+    validated_language=$( $langtoolsdir/language-validate ${language%%:*} )
 +    renewed_langlist=$validated_language:${language#*:}
 +fi
 +
 +locale_name=$( $langtoolsdir/language2locale $validated_language )
 +
-+( $langtoolsdir/save-to-profile $user $renewed_langlist $locale_name )
++( $langtoolsdir/save-to-pam-env "$homedir" $locale_name $renewed_langlist ) || exit 1
 +
 +echo $validated_language
 +
-Index: accountsservice-0.6.15/data/langtools/update-langlist
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ accountsservice-0.6.15/data/langtools/update-langlist	2012-01-31 08:44:12.748545314 -0500
-@@ -0,0 +1,61 @@
+--- /dev/null
++++ accountsservice/data/langtools/update-langlist
+@@ -0,0 +1,48 @@
 +#!/bin/sh -e
 +#
 +# update-langlist maintains the LANGUAGE priority list. It does so in
@@ -397,32 +387,19 @@ Index: accountsservice-0.6.15/data/langtools/update-langlist
 +# language which provides full control.
 +
 +first_language=$1
-+user=$2
++homedir=$2
 +renewed_langlist=
 +
-+[ -n "$first_language" -a -n "$user" ] || exit 0
++[ -n "$first_language" -a -n "$homedir" ] || exit 1
 +
 +get_old_langlist() {
-+    while read line; do
-+        [ "${line%%:*}" = $user ] && break
-+    done < /etc/passwd
-+    if [ -n "$line" ]; then
-+        OLDIFS=$IFS
-+        IFS=':'
-+        i=1
-+        for homedir in $line; do
-+            if [ $i -ne 6 ]; then
-+                i=$(( $i + 1 ))
-+                continue
++    if [ -r "$homedir/.pam_environment" ]; then
++        while read line; do
++            if [ "${line%=*}" = 'LANGUAGE' ]; then
++                old_langlist=${line#*=}
++                break
 +            fi
-+            break
-+        done
-+        IFS=$OLDIFS
-+    fi
-+
-+    if [ -r "$homedir/.profile" ]; then
-+        old_langlist=$( grep "^[[:space:]]*export LANGUAGE=" \
-+                        $homedir/.profile | cut -d '"' -f 2 )
++        done < $homedir/.pam_environment
 +    fi
 +}
 +
@@ -451,10 +428,8 @@ Index: accountsservice-0.6.15/data/langtools/update-langlist
 +
 +echo $renewed_langlist
 +
-Index: accountsservice-0.6.15/data/Makefile.am
-===================================================================
---- accountsservice-0.6.15.orig/data/Makefile.am	2012-01-31 08:44:04.976545113 -0500
-+++ accountsservice-0.6.15/data/Makefile.am	2012-01-31 08:44:12.748545314 -0500
+--- accountsservice.orig/data/Makefile.am
++++ accountsservice/data/Makefile.am
 @@ -1,3 +1,4 @@
 +SUBDIRS = langtools
  

@@ -1,0 +1,394 @@
+Description: Addition of FormatsLocale property and SetFormatsLocale method.
+Forwarded: https://bugs.freedesktop.org/42857
+Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
+Last-Update: 2011-11-12
+
+---
+ data/org.freedesktop.Accounts.User.xml |   45 ++++++++++++++++
+ src/libaccountsservice/act-user.c      |   71 ++++++++++++++++++++++++++
+ src/libaccountsservice/act-user.h      |    3 +
+ src/user.c                             |   88 +++++++++++++++++++++++++++++++++
+ src/user.h                             |    3 +
+ 5 files changed, 210 insertions(+)
+
+--- accountsservice.orig/data/org.freedesktop.Accounts.User.xml
++++ accountsservice/data/org.freedesktop.Accounts.User.xml
+@@ -150,6 +150,41 @@
+     </doc:doc>
+   </method>
+ 
++  <method name="SetFormatsLocale">
++    <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
++    <arg name="formats_locale" direction="in" type="s">
++      <doc:doc>
++        <doc:summary>
++          The new regional formats, as a locale specification like "de_DE.UTF-8".
++        </doc:summary>
++      </doc:doc>
++    </arg>
++    <doc:doc>
++      <doc:description>
++        <doc:para>
++          Sets the users regional formats.
++        </doc:para>
++      </doc:description>
++      <doc:permission>
++        The caller needs one of the following PolicyKit authorizations:
++        <doc:list>
++          <doc:item>
++            <doc:term>org.freedesktop.accounts.change-own-user-data</doc:term>
++            <doc:definition>To change his own language</doc:definition>
++          </doc:item>
++          <doc:item>
++            <doc:term>org.freedesktop.accounts.user-administration</doc:term>
++            <doc:definition>To change the language of another user</doc:definition>
++          </doc:item>
++        </doc:list>
++      </doc:permission>
++      <doc:errors>
++        <doc:error name="org.freedesktop.Accounts.Error.PermissionDenied">if the caller lacks the appropriate PolicyKit authorization</doc:error>
++        <doc:error name="org.freedesktop.Accounts.Error.Failed">if the operation failed</doc:error>
++      </doc:errors>
++    </doc:doc>
++  </method>
++
+   <method name="SetXSession">
+     <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
+     <annotation name="org.freedesktop.DBus.GLib.CSymbol" value="user_set_x_session"/>
+@@ -621,6 +656,16 @@
+         </doc:para>
+       </doc:description>
+     </doc:doc>
++  </property>
++
++  <property name="FormatsLocale" type="s" access="read">
++    <doc:doc>
++      <doc:description>
++        <doc:para>
++          The users regional formats, as a locale specification like "de_DE.UTF-8".
++        </doc:para>
++      </doc:description>
++    </doc:doc>
+   </property>
+ 
+   <property name="XSession" type="s" access="read">
+--- accountsservice.orig/src/libaccountsservice/act-user.c
++++ accountsservice/src/libaccountsservice/act-user.c
+@@ -59,6 +59,7 @@ enum {
+         PROP_LOGIN_FREQUENCY,
+         PROP_ICON_FILE,
+         PROP_LANGUAGE,
++        PROP_FORMATS_LOCALE,
+         PROP_X_SESSION,
+         PROP_IS_LOADED
+ };
+@@ -88,6 +89,7 @@ struct _ActUser {
+         char           *location;
+         char           *icon_file;
+         char           *language;
++        char           *formats_locale;
+         char           *x_session;
+         GList          *sessions;
+         int             login_frequency;
+@@ -237,6 +239,9 @@ act_user_get_property (GObject    *objec
+         case PROP_LANGUAGE:
+                 g_value_set_string (value, user->language);
+                 break;
++        case PROP_FORMATS_LOCALE:
++                g_value_set_string (value, user->formats_locale);
++                break;
+         case PROP_X_SESSION:
+                 g_value_set_string (value, user->x_session);
+                 break;
+@@ -371,6 +376,13 @@ act_user_class_init (ActUserClass *class
+                                                               NULL,
+                                                               G_PARAM_READABLE));
+         g_object_class_install_property (gobject_class,
++                                         PROP_FORMATS_LOCALE,
++                                         g_param_spec_string ("formats_locale",
++                                                              "Regional Formats",
++                                                              "User's regional formats.",
++                                                              NULL,
++                                                              G_PARAM_READABLE));
++        g_object_class_install_property (gobject_class,
+                                          PROP_X_SESSION,
+                                          g_param_spec_string ("x-session",
+                                                               "X session",
+@@ -461,6 +473,7 @@ act_user_finalize (GObject *object)
+         g_free (user->email);
+         g_free (user->location);
+         g_free (user->language);
++        g_free (user->formats_locale);
+ 
+         if (user->accounts_proxy != NULL) {
+                 g_object_unref (user->accounts_proxy);
+@@ -834,6 +847,22 @@ act_user_get_language (ActUser *user)
+ }
+ 
+ /**
++ * act_user_get_formats_locale:
++ * @user: a #ActUser
++ *
++ * Returns the path to the configured formats locale of @user.
++ *
++ * Returns: (transfer none): a path to an icon
++ */
++const char *
++act_user_get_formats_locale (ActUser *user)
++{
++        g_return_val_if_fail (ACT_IS_USER (user), NULL);
++
++        return user->formats_locale;
++}
++
++/**
+  * act_user_get_x_session:
+  * @user: a #ActUser
+  *
+@@ -1033,6 +1062,17 @@ collect_props (const gchar    *key,
+                         user->language = g_value_dup_string (value);
+                         g_object_notify (G_OBJECT (user), "language");
+                 }
++
++        } else if (strcmp (key, "FormatsLocale") == 0) {
++                const char *new_formats_locale;
++
++                new_formats_locale = g_value_get_string (value);
++                if (g_strcmp0 (user->formats_locale, new_formats_locale) != 0) {
++                        g_free (user->formats_locale);
++                        user->formats_locale = g_value_dup_string (value);
++                        g_object_notify (G_OBJECT (user), "formats_locale");
++                }
++
+         } else if (strcmp (key, "XSession") == 0) {
+                 const char *new_x_session;
+ 
+@@ -1255,6 +1295,37 @@ act_user_set_language (ActUser    *user,
+                 g_error_free (error);
+                 return;
+         }
++}
++
++/**
++ * act_user_set_formats_locale:
++ * @user: the user object to alter.
++ * @formats_locale: a locale (e.g. en_US.utf8)
++ *
++ * Assigns a new formats locale for @user.
++ *
++ * Note this function is synchronous and ignores errors.
++ **/
++void
++act_user_set_formats_locale (ActUser    *user,
++                             const char *formats_locale)
++{
++        GError *error = NULL;
++
++        g_return_if_fail (ACT_IS_USER (user));
++        g_return_if_fail (formats_locale != NULL);
++        g_return_if_fail (DBUS_IS_G_PROXY (user->accounts_proxy));
++
++        if (!dbus_g_proxy_call (user->accounts_proxy,
++                                "SetFormatsLocale",
++                                &error,
++                                G_TYPE_STRING, formats_locale,
++                                G_TYPE_INVALID,
++                                G_TYPE_INVALID)) {
++                g_warning ("SetFormatsLocale call failed: %s", error->message);
++                g_error_free (error);
++                return;
++        }
+ }
+ 
+ /**
+--- accountsservice.orig/src/libaccountsservice/act-user.h
++++ accountsservice/src/libaccountsservice/act-user.h
+@@ -71,6 +71,7 @@ gboolean       act_user_get_automatic_lo
+ gboolean       act_user_is_system_account         (ActUser   *user);
+ const char    *act_user_get_icon_file             (ActUser   *user);
+ const char    *act_user_get_language              (ActUser   *user);
++const char    *act_user_get_formats_locale        (ActUser   *user);
+ const char    *act_user_get_x_session             (ActUser   *user);
+ const char    *act_user_get_primary_session_id    (ActUser   *user);
+ 
+@@ -82,6 +83,8 @@ void           act_user_set_email
+                                                    const char *email);
+ void           act_user_set_language              (ActUser    *user,
+                                                    const char *language);
++void           act_user_set_formats_locale        (ActUser    *user,
++                                                   const char *formats_locale);
+ void           act_user_set_x_session             (ActUser    *user,
+                                                    const char *x_session);
+ void           act_user_set_location              (ActUser    *user,
+--- accountsservice.orig/src/user.c
++++ accountsservice/src/user.c
+@@ -60,6 +60,7 @@ enum {
+         PROP_ACCOUNT_TYPE,
+         PROP_EMAIL,
+         PROP_LANGUAGE,
++        PROP_FORMATS_LOCALE,
+         PROP_X_SESSION,
+         PROP_LOCATION,
+         PROP_PASSWORD_MODE,
+@@ -97,6 +98,7 @@ struct User {
+         gchar        *shell;
+         gchar        *email;
+         gchar        *language;
++        gchar        *formats_locale;
+         gchar        *x_session;
+         gchar        *location;
+         guint64       login_frequency;
+@@ -130,6 +132,9 @@ user_set_property (GObject      *object,
+         case PROP_LANGUAGE:
+                 user->language = g_value_dup_string (value);
+                 break;
++        case PROP_FORMATS_LOCALE:
++                user->formats_locale = g_value_dup_string (value);
++                break;
+         case PROP_X_SESSION:
+                 user->x_session = g_value_dup_string (value);
+                 break;
+@@ -190,6 +195,9 @@ user_get_property (GObject    *object,
+         case PROP_LANGUAGE:
+                 g_value_set_string (value, user->language);
+                 break;
++        case PROP_FORMATS_LOCALE:
++                g_value_set_string (value, user->formats_locale);
++                break;
+         case PROP_X_SESSION:
+                 g_value_set_string (value, user->x_session);
+                 break;
+@@ -326,6 +334,13 @@ user_class_init (UserClass *class)
+                                                               NULL,
+                                                               G_PARAM_READABLE));
+         g_object_class_install_property (gobject_class,
++                                         PROP_FORMATS_LOCALE,
++                                         g_param_spec_string ("formats_locale",
++                                                              "Regional Formats",
++                                                              "The regional formats for this user.",
++                                                              NULL,
++                                                              G_PARAM_READABLE));
++        g_object_class_install_property (gobject_class,
+                                          PROP_X_SESSION,
+                                          g_param_spec_string ("x-session",
+                                                               "X Session",
+@@ -395,6 +410,7 @@ user_init (User *user)
+         user->icon_file = NULL;
+         user->email = NULL;
+         user->language = NULL;
++        user->formats_locale = NULL;
+         user->x_session = NULL;
+         user->location = NULL;
+         user->password_mode = PASSWORD_MODE_REGULAR;
+@@ -419,6 +435,7 @@ user_finalize (GObject *object)
+         g_free (user->icon_file);
+         g_free (user->email);
+         g_free (user->language);
++        g_free (user->formats_locale);
+         g_free (user->x_session);
+         g_free (user->location);
+         g_free (user->password_hint);
+@@ -624,6 +641,12 @@ user_local_update_from_keyfile (User
+                 user->language = s;
+         }
+ 
++        s = g_key_file_get_string (keyfile, "User", "FormatsLocale", NULL);
++        if (s != NULL) {
++                g_free (user->formats_locale);
++                user->formats_locale = s;
++        }
++
+         s = g_key_file_get_string (keyfile, "User", "XSession", NULL);
+         if (s != NULL) {
+                 g_free (user->x_session);
+@@ -667,6 +690,9 @@ user_local_save_to_keyfile (User     *us
+         if (user->language)
+                 g_key_file_set_string (keyfile, "User", "Language", user->language);
+ 
++        if (user->formats_locale)
++                g_key_file_set_string (keyfile, "User", "FormatsLocale", user->formats_locale);
++
+         if (user->x_session)
+                 g_key_file_set_string (keyfile, "User", "XSession", user->x_session);
+ 
+@@ -1112,6 +1138,68 @@ user_set_language (User
+ 
+         return TRUE;
+ }
++
++static void
++user_change_formats_locale_authorized_cb (Daemon                *daemon,
++                                          User                  *user,
++                                          DBusGMethodInvocation *context,
++                                          gpointer               data)
++
++{
++        gchar *formats_locale = data;
++
++        if (g_strcmp0 (user->formats_locale, formats_locale) != 0) {
++                g_free (user->formats_locale);
++                user->formats_locale = g_strdup (formats_locale);
++
++                save_extra_data (user);
++
++                g_signal_emit (user, signals[CHANGED], 0);
++
++                g_object_notify (G_OBJECT (user), "formats_locale");
++        }
++
++        dbus_g_method_return (context);
++}
++
++gboolean
++user_set_formats_locale (User                  *user,
++                         const gchar           *formats_locale,
++                         DBusGMethodInvocation *context)
++{
++        gchar *sender;
++        DBusConnection *connection;
++        DBusError dbus_error;
++        uid_t uid;
++        const gchar *action_id;
++
++        connection = dbus_g_connection_get_connection (user->system_bus_connection);
++        sender = dbus_g_method_get_sender (context);
++        dbus_error_init (&dbus_error);
++        uid = dbus_bus_get_unix_user (connection, sender, &dbus_error);
++        if (dbus_error_is_set (&dbus_error)) {
++                throw_error (context, ERROR_FAILED, dbus_error.message);
++                dbus_error_free (&dbus_error);
++
++                return TRUE;
++        }
++
++        if (user->uid == uid)
++                action_id = "org.freedesktop.accounts.change-own-user-data";
++        else
++                action_id = "org.freedesktop.accounts.user-administration";
++
++        daemon_local_check_auth (user->daemon,
++                                 user,
++                                 action_id,
++                                 TRUE,
++                                 user_change_formats_locale_authorized_cb,
++                                 context,
++                                 g_strdup (formats_locale),
++                                 (GDestroyNotify) g_free);
++
++        return TRUE;
++}
+ 
+ static void
+ user_change_x_session_authorized_cb (Daemon                *daemon,
+--- accountsservice.orig/src/user.h
++++ accountsservice/src/user.h
+@@ -80,6 +80,9 @@ gboolean       user_set_email          (
+ gboolean       user_set_language       (User                  *user,
+                                         const gchar           *language,
+                                         DBusGMethodInvocation *context);
++gboolean       user_set_formats_locale (User                  *user,
++                                        const gchar           *formats_locale,
++                                        DBusGMethodInvocation *context);
+ gboolean       user_set_x_session      (User                  *user,
+                                         const gchar           *x_session,
+                                         DBusGMethodInvocation *context);
