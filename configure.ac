@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.15])
+AC_INIT([AccountsService],[0.6.16])
 AM_INIT_AUTOMAKE(no-dist-gzip dist-xz tar-ustar foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -27,21 +27,21 @@ AC_SUBST(LT_AGE)
 
 PKG_CHECK_MODULES(GLIB, glib-2.0)
 PKG_CHECK_MODULES(GIO, gio-2.0 gio-unix-2.0)
-PKG_CHECK_MODULES(DBUS_GLIB, dbus-glib-1)
 PKG_CHECK_MODULES(POLKIT, polkit-gobject-1)
 
 AM_MAINTAINER_MODE([enable])
 
 # client library dependencies
-LIBACCOUNTSSERVICE_LIBS="$GLIB_LIBS $DBUS_GLIB_LIBS"
+LIBACCOUNTSSERVICE_LIBS="$GLIB_LIBS $GIO_LIBS"
 AC_SUBST(LIBACCOUNTSSERVICE_LIBS)
-LIBACCOUNTSSERVICE_CFLAGS="$GLIB_CFLAGS $DBUS_GLIB_CFLAGS"
+LIBACCOUNTSSERVICE_CFLAGS="$GLIB_CFLAGS $GIO_CFLAGS"
 AC_SUBST(LIBACCOUNTSSERVICE_CFLAGS)
 
 GOBJECT_INTROSPECTION_CHECK([0.9.12])
-LIBACCOUNTSSERVICE_GIR_INCLUDES="GLib-2.0 GObject-2.0 DBusGLib-1.0"
+LIBACCOUNTSSERVICE_GIR_INCLUDES="GLib-2.0 GObject-2.0"
 AC_SUBST(LIBACCOUNTSSERVICE_GIR_INCLUDES)
 
+VAPIGEN_CHECK
 
 AC_ARG_ENABLE(more-warnings,
               AS_HELP_STRING([--enable-more-warnings],
@@ -161,10 +161,22 @@ AC_PATH_PROG([XSLTPROC], [xsltproc])
 
 # systemd
 
+PKG_CHECK_MODULES(SYSTEMD, [libsystemd-login libsystemd-daemon],
+                  [have_systemd=yes], [have_systemd=no])
+AC_SUBST(SYSTEMD_CFLAGS)
+AC_SUBST(SYSTEMD_LIBS)
+
+LIBACCOUNTSSERVICE_LIBS="$LIBACCOUNTSSERVICE_LIBS $SYSTEMD_LIBS"
+LIBACCOUNTSSERVICE_CFLAGS="$LIBACCOUNTSSERVICE_CFLAGS $SYSTEMD_CFLAGS"
+
+if test "x$have_systemd" != "no" ; then
+        AC_DEFINE(WITH_SYSTEMD, 1, [Define to enable systemd support])
+fi
+
 AC_ARG_WITH([systemdsystemunitdir],
         AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files]),
         [],
-        [with_systemdsystemunitdir=yes])
+        [with_systemdsystemunitdir=$have_systemd])
 if test "x$with_systemdsystemunitdir" = "xyes"; then
     with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
 fi
