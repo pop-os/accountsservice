@@ -13,6 +13,9 @@ accountsservice (0.6.17-1) UNRELEASED; urgency=low
     - ppc32 fixes
     - use infinite timeout for ListCachedUsers calls
     - Translation updates
+  * Refresh patches.
+  * Remove 2001-icon_reset.patch, applied upstream.
+  * Remove 3001-show_more_than_one_user_powerpc.patch, applied upstream.
   * Refresh systemd's build-deps, don't pass --with-systemdsystemunitdir
     to configure anymore.
   * Drop build-dependency on libdbus-glib-1-dev.
@@ -20,7 +23,7 @@ accountsservice (0.6.17-1) UNRELEASED; urgency=low
   * Update debian/watch.
   * Bump Standards.
 
- -- Alessio Treglia <alessio@debian.org>  Wed, 04 Apr 2012 22:08:06 +0200
+ -- Alessio Treglia <alessio@debian.org>  Wed, 04 Apr 2012 22:20:08 +0200
 
 accountsservice (0.6.15-4) unstable; urgency=low
 
