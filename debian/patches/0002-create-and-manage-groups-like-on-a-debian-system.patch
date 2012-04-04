@@ -127,7 +127,7 @@ Description: Create and manage groups like on a debian system.
  }
 +
 +void
-+add_user_to_group (DBusGMethodInvocation *context,
++add_user_to_group (GDBusMethodInvocation *context,
 +                  const char *user_name,
 +                  const char *group_name)
 +{
@@ -148,7 +148,7 @@ Description: Create and manage groups like on a debian system.
 +}
 +
 +void
-+remove_user_from_group (DBusGMethodInvocation *context,
++remove_user_from_group (GDBusMethodInvocation *context,
 +                        const char *user_name,
 +                        const char *group_name)
 +{
@@ -173,11 +173,11 @@ Description: Create and manage groups like on a debian system.
                        gid_t         group,
                        gid_t       **groups);
  
-+void add_user_to_group (DBusGMethodInvocation *context,
++void add_user_to_group (GDBusMethodInvocation *context,
 +                        const char *user_name,
 +                        const char *group_name);
 +
-+void remove_user_from_group (DBusGMethodInvocation *context,
++void remove_user_from_group (GDBusMethodInvocation *context,
 +                             const char *user_name,
 +                             const char *group_name);
 +
