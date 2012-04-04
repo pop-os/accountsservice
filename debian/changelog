@@ -1,3 +1,27 @@
+accountsservice (0.6.17-1) UNRELEASED; urgency=low
+
+  * Imported Upstream version 0.6.17:
+    - Fix user filtering which was broken in 0.6.16.
+    - Fix double free in user code.
+  * Imported Upstream version 0.6.16:
+    - Don't filter out users below UID_MIN in login.defs
+    - Filter out users with invalid shells
+    - build fixes for srcdir != builddir
+    - Port to GDBus
+    - Add systemd support
+    - vala support and introspection fixes
+    - ppc32 fixes
+    - use infinite timeout for ListCachedUsers calls
+    - Translation updates
+  * Refresh systemd's build-deps, don't pass --with-systemdsystemunitdir
+    to configure anymore.
+  * Drop build-dependency on libdbus-glib-1-dev.
+  * Refresh debian/copyright.
+  * Update debian/watch.
+  * Bump Standards.
+
+ -- Alessio Treglia <alessio@debian.org>  Wed, 04 Apr 2012 22:08:06 +0200
+
 accountsservice (0.6.15-4) unstable; urgency=low
 
   * src/user.c: Be more careful when resetting the users icons
