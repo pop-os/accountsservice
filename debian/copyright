@@ -1,4 +1,4 @@
-Format: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=174
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: AccountsService
 Upstream-Contact: Matthias Clasen <mclasen@redhat.com>
 Source: http://cgit.freedesktop.org/accountsservice/
@@ -8,11 +8,13 @@ Copyright: 2009-2010 Red Hat, Inc
 License: GPL-3+
 
 Files: src/user.c
+ src/libaccountsservice/act-user.*
+ src/libaccountsservice/act-user.manager.*
  doc/dbus/spec-to-docbook.xsl
 Copyright:
+ 2009-2010 Red Hat, Inc
  2007-2008 William Jon McCann <mccann@jhu.edu>
  2004-2005 James M. Cape <jcape@ignore-your.tv>
- 2009-2010 Red Hat, Inc
 License: GPL-2+
 
 Files: debian/*
@@ -29,11 +31,12 @@ License: GPL-3+
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
-Comment: You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- .
+Comment:
  On Debian systems the full text of the GNU General Public
  License can be found in the `/usr/share/common-licenses/GPL-3' file.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 License: GPL-2+
  This program is free software; you can redistribute it and/or modify
@@ -45,8 +48,9 @@ License: GPL-2+
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
-Comment: You should have received a copy of the GNU General Public License
- along with this program.  If not, see <http://www.gnu.org/licenses/>.
- .
+Comment:
  On Debian systems the full text of the GNU General Public
  License can be found in the `/usr/share/common-licenses/GPL-2' file.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
