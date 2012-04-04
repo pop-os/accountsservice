@@ -16,7 +16,7 @@ Build-Depends:
  libsystemd-daemon-dev,
  libsystemd-login-dev,
  xmlto
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 Homepage: http://cgit.freedesktop.org/accountsservice/
 Vcs-Git: git://git.debian.org/collab-maint/accountsservice.git
 Vcs-Browser: http://git.debian.org/?p=collab-maint/accountsservice.git
