@@ -66,7 +66,7 @@ Bug-Ubuntu: https://launchpad.net/bugs/798962
 +                gboolean    *enabled,
                  GError     **error)
  {
-+        DBusGProxy *proxy;
++        GDBusProxy *proxy;
 +
 +        /* First, determine whether we should load GDM or LightDM values by
 +           checking if GDM is running. */
