@@ -1,5 +1,9 @@
-accountsservice (0.6.17-1) UNRELEASED; urgency=low
+accountsservice (0.6.18-1) UNRELEASED; urgency=low
 
+  * Imported Upstream version 0.6.18:
+    - Fix systemd configure check
+    - Add a few more common system accounts to the blacklist
+    - Fix some issues in systemd session handling
   * Imported Upstream version 0.6.17:
     - Fix user filtering which was broken in 0.6.16.
     - Fix double free in user code.
@@ -23,7 +27,7 @@ accountsservice (0.6.17-1) UNRELEASED; urgency=low
   * Update debian/watch.
   * Bump Standards.
 
- -- Alessio Treglia <alessio@debian.org>  Wed, 04 Apr 2012 22:24:21 +0200
+ -- Alessio Treglia <alessio@debian.org>  Mon, 30 Apr 2012 12:37:32 +0200
 
 accountsservice (0.6.15-4) unstable; urgency=low
 
