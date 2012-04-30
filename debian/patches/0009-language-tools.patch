@@ -17,7 +17,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 
 --- accountsservice.orig/configure.ac
 +++ accountsservice/configure.ac
-@@ -178,6 +178,7 @@ AC_CONFIG_FILES([
+@@ -190,6 +190,7 @@ AC_CONFIG_FILES([
  Makefile
  po/Makefile.in
  data/Makefile
