@@ -58,7 +58,6 @@ Section: libdevel
 Architecture: any
 Depends:
  libaccountsservice0 (= ${binary:Version}),
- libdbus-glib-1-dev,
  libgirepository1.0-dev (>= 0.9.12),
  libglib2.0-dev (>= 2.25.11),
  libpolkit-gobject-1-dev,
