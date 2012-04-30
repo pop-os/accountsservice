@@ -11,7 +11,7 @@ Description: Create and manage groups like on a debian system.
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -918,22 +918,8 @@ daemon_create_user_authorized_cb (Daemon
+@@ -922,22 +922,8 @@ daemon_create_user_authorized_cb (Daemon
          argv[1] = "-m";
          argv[2] = "-c";
          argv[3] = cd->real_name;
@@ -36,7 +36,7 @@ Description: Create and manage groups like on a debian system.
  
          error = NULL;
          if (!spawn_with_login_uid (context, argv, &error)) {
-@@ -942,6 +928,10 @@ daemon_create_user_authorized_cb (Daemon
+@@ -946,6 +932,10 @@ daemon_create_user_authorized_cb (Daemon
                  return;
          }
  
