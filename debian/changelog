@@ -1,5 +1,6 @@
 accountsservice (0.6.18-1) experimental; urgency=low
 
+  * Upload to experimental due to the big amount of changes.
   * Imported Upstream version 0.6.18:
     - Fix systemd configure check
     - Add a few more common system accounts to the blacklist
@@ -17,16 +18,21 @@ accountsservice (0.6.18-1) experimental; urgency=low
     - ppc32 fixes
     - use infinite timeout for ListCachedUsers calls
     - Translation updates
-  * Refresh patches, Ubuntu's patches need some work anyway.
+  * Migrate 0007-add-lightdm-support.patch to GDBus:
+    - More testing would be appreciated.
   * Remove 2001-icon_reset.patch, applied upstream.
   * Remove 3001-show_more_than_one_user_powerpc.patch, applied upstream.
+  * Remove obsolete patches:
+    - 0003-getpwnam_null_crash.patch
+    - 0004-history-filter-sessions.patch
   * Refresh systemd's build-deps.
   * Drop {,build-}dependency on libdbus-glib-1-dev.
+  * Refresh symbols.
   * Refresh debian/copyright.
   * Update debian/watch.
   * Bump Standards.
 
- -- Alessio Treglia <alessio@debian.org>  Mon, 30 Apr 2012 13:09:39 +0200
+ -- Alessio Treglia <alessio@debian.org>  Mon, 30 Apr 2012 13:19:46 +0200
 
 accountsservice (0.6.15-4) unstable; urgency=low
 
