@@ -2,10 +2,11 @@ Description: Support setting/reading LightDM autologin setings
 Author: Michael Terry <michael.terry@canonical.com>
 Bug: https://bugs.freedesktop.org/show_bug.cgi?id=40020
 Bug-Ubuntu: https://launchpad.net/bugs/798962
-
+Reviewed-by: Alessio Treglia <alessio@debian.org>
+Last-Update: 2012-04-30
 ---
- src/daemon.c |  138 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-----
- 1 file changed, 127 insertions(+), 11 deletions(-)
+ src/daemon.c |  143 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 132 insertions(+), 11 deletions(-)
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
@@ -24,7 +25,7 @@ Bug-Ubuntu: https://launchpad.net/bugs/798962
  {
          GKeyFile *keyfile;
          GError *local_error;
-@@ -1199,23 +1199,84 @@ load_autologin (Daemon      *daemon,
+@@ -1199,23 +1199,89 @@ load_autologin (Daemon      *daemon,
          return TRUE;
  }
  
@@ -70,11 +71,16 @@ Bug-Ubuntu: https://launchpad.net/bugs/798962
 +
 +        /* First, determine whether we should load GDM or LightDM values by
 +           checking if GDM is running. */
-+        proxy = dbus_g_proxy_new_for_name_owner (daemon->priv->bus_connection,
-+                                                 "org.gnome.DisplayManager",
-+                                                 "/org/gnome/DisplayManager/Manager",
-+                                                 "org.gnome.DisplayManager.Manager",
-+                                                 NULL);
++        proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SYSTEM,
++                                               G_DBUS_PROXY_FLAGS_DO_NOT_LOAD_PROPERTIES|
++                                               G_DBUS_PROXY_FLAGS_DO_NOT_CONNECT_SIGNALS|
++                                               G_DBUS_PROXY_FLAGS_DO_NOT_AUTO_START,
++                                               NULL,
++                                               "org.gnome.DisplayManager",
++                                               "/org/gnome/DisplayManager/Manager",
++                                               "org.gnome.DisplayManager.Manager",
++                                               NULL,  /* GCancellable */
++                                               NULL); /* GError */
 +
 +        if (proxy != NULL) {
 +                g_object_unref (proxy);
@@ -116,7 +122,7 @@ Bug-Ubuntu: https://launchpad.net/bugs/798962
          }
  
          g_key_file_set_string (keyfile, "daemon", "AutomaticLoginEnable", enabled ? "True" : "False");
-@@ -1230,6 +1291,61 @@ save_autologin (Daemon      *daemon,
+@@ -1230,6 +1296,61 @@ save_autologin (Daemon      *daemon,
          return result;
  }
  
