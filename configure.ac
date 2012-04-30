@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.17])
+AC_INIT([AccountsService],[0.6.18])
 AM_INIT_AUTOMAKE(no-dist-gzip dist-xz tar-ustar foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -169,7 +169,7 @@ AC_SUBST(SYSTEMD_LIBS)
 LIBACCOUNTSSERVICE_LIBS="$LIBACCOUNTSSERVICE_LIBS $SYSTEMD_LIBS"
 LIBACCOUNTSSERVICE_CFLAGS="$LIBACCOUNTSSERVICE_CFLAGS $SYSTEMD_CFLAGS"
 
-if test "x$have_systemd" != "no" ; then
+if test "x$have_systemd" != "xno" ; then
         AC_DEFINE(WITH_SYSTEMD, 1, [Define to enable systemd support])
 fi
 

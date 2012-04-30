@@ -1242,16 +1242,39 @@ on_get_x11_display_finished (GObject      *object,
 static void
 _get_x11_display_for_new_systemd_session (ActUserManagerNewSession *new_session)
 {
+        char *session_type;
         char *x11_display;
         int   res;
+
+        res = sd_session_get_type (new_session->id,
+                                   &session_type);
+
+        if (res < 0) {
+                g_debug ("ActUserManager: Failed to get the type of session '%s': %s",
+                         new_session->id,
+                         strerror (-res));
+                unload_new_session (new_session);
+                return;
+        }
+
+        if (g_strcmp0 (session_type, "x11") != 0) {
+                g_debug ("ActUserManager: ignoring %s session '%s' since it's not graphical: %s",
+                         session_type,
+                         new_session->id,
+                         strerror (-res));
+                free (session_type);
+                unload_new_session (new_session);
+                return;
+        }
+        free (session_type);
 
         res = sd_session_get_display (new_session->id,
                                       &x11_display);
 
         if (res < 0) {
-                g_debug ("ActUserManager: Failed to get the x11 display of session '%s': %s",
-                         new_session->id,
-                         strerror (-res));
+                g_warning ("ActUserManager: Failed to get the x11 display of session '%s': %s",
+                           new_session->id,
+                           strerror (-res));
                 unload_new_session (new_session);
                 return;
         }
@@ -1594,11 +1617,13 @@ reload_systemd_sessions (ActUserManager *manager)
         _remove_stale_systemd_sessions (manager, systemd_sessions);
         g_hash_table_unref (systemd_sessions);
 
-        for (i = 0; sessions[i]; i ++) {
-                free (sessions[i]);
-        }
+        if (sessions != NULL) {
+                for (i = 0; sessions[i]; i ++) {
+                        free (sessions[i]);
+                }
 
-        free (sessions);
+                free (sessions);
+        }
 }
 
 #endif
@@ -2116,6 +2141,7 @@ load_seat_incrementally (ActUserManager *manager)
                 get_seat_proxy (manager);
                 break;
         case ACT_USER_MANAGER_SEAT_STATE_LOADED:
+                g_debug ("ActUserManager: Seat loading sequence complete");
                 break;
         default:
                 g_assert_not_reached ();
@@ -2125,7 +2151,6 @@ load_seat_incrementally (ActUserManager *manager)
                 load_sessions (manager);
         }
 
-        g_debug ("ActUserManager: Seat loading sequence complete, so trying to set loaded property");
         maybe_set_is_loaded (manager);
 
         return FALSE;
