@@ -1,3 +1,9 @@
+accountsservice (0.6.18-2) unstable; urgency=low
+
+  * Upload to unstable.
+
+ -- Alessio Treglia <alessio@debian.org>  Tue, 15 May 2012 07:48:08 +0200
+
 accountsservice (0.6.18-1) experimental; urgency=low
 
   * Upload to experimental due to the big amount of changes.
