@@ -1,3 +1,14 @@
+accountsservice (0.6.18-3) unstable; urgency=low
+
+  * Revert upstream commit 552a0c856a6e3a7c2e6450ab80e79f4204062281
+    and then fix a regression introduced since 0.6.16:
+    - Filter out users which have UIDs lower than UID_MIN specified
+      in etc/login.defs instead of checking if they have
+      /usr/sbin/nologin as login shell. (Closes: #673095)
+    Thanks to Michael Biebl for the report.
+
+ -- Alessio Treglia <alessio@debian.org>  Wed, 16 May 2012 09:52:58 +0200
+
 accountsservice (0.6.18-2) unstable; urgency=low
 
   * Upload to unstable.
