@@ -1,0 +1,193 @@
+Description: Filter out users which have an UID lower than UID_MIN specified in
+ /etc/login.defs
+Author: Alessio Treglia <alessio@debian.org>
+Forwarded: no
+Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
+---
+ src/daemon.c |   99 ++++++++++++++++++++++++++++++++++++++++++-----------------
+ src/daemon.h |    2 -
+ src/user.c   |    2 -
+ 3 files changed, 73 insertions(+), 30 deletions(-)
+
+--- accountsservice.orig/src/daemon.c
++++ accountsservice/src/daemon.c
+@@ -51,6 +51,11 @@
+ #define PATH_NOLOGIN "/sbin/nologin"
+ #define PATH_FALSE "/bin/false"
+ #define PATH_GDM_CUSTOM "/etc/gdm3/daemon.conf"
++#define PATH_LOGIN_DEFS "/etc/login.defs"
++
++#ifndef FALLBACK_MINIMAL_UID
++#define FALLBACK_MINIMAL_UID 500
++#endif
+ 
+ #define USERDIR LOCALSTATEDIR "/lib/AccountsService/users"
+ 
+@@ -93,6 +98,7 @@ struct DaemonPrivate {
+ 
+         GHashTable *users;
+         GHashTable *exclusions;
++        uid_t minimal_uid;
+ 
+         User *autologin;
+ 
+@@ -158,33 +164,16 @@ error_get_type (void)
+ }
+ 
+ gboolean
+-daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gchar *shell)
++daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, uid_t uid)
+ {
+-        char *basename, *nologin_basename, *false_basename;
+-        int ret;
+-
+-        if (shell == NULL) {
+-                return FALSE;
++        if (uid < daemon->priv->minimal_uid) {
++                return TRUE;
++        }
++        if (g_hash_table_lookup (daemon->priv->exclusions, username)) {
++                return TRUE;
+         }
+ 
+-        ret = FALSE;
+-        basename = g_path_get_basename (shell);
+-        nologin_basename = g_path_get_basename (PATH_NOLOGIN);
+-        false_basename = g_path_get_basename (PATH_FALSE);
+-
+-        if (g_strcmp0 (basename, nologin_basename) == 0) {
+-                ret = TRUE;
+-        } else if (g_strcmp0 (basename, false_basename) == 0) {
+-                ret = TRUE;
+-        } else if (g_hash_table_lookup (daemon->priv->exclusions, username)) {
+-                ret = TRUE;
+-        }
+-
+-        g_free (basename);
+-        g_free (nologin_basename);
+-        g_free (false_basename);
+-
+-        return ret;
++        return FALSE;
+ }
+ 
+ static void
+@@ -215,7 +204,7 @@ reload_wtmp_history (Daemon *daemon)
+ 
+                 if (daemon_local_user_is_excluded (daemon,
+                                                    wtmp_entry->ut_user,
+-                                                   NULL)) {
++                                                   daemon->priv->minimal_uid)) {
+                         g_debug ("excluding user '%s'", wtmp_entry->ut_user);
+                         continue;
+                 }
+@@ -311,8 +300,8 @@ reload_passwd (Daemon *daemon)
+ #else
+         while ((pwent = getpwent ()) != NULL) {
+ #endif
+-                /* Skip system users... */
+-                if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_shell)) {
++                /* Skip users below MINIMAL_UID...... */
++                if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_uid)) {
+                         g_debug ("skipping user: %s", pwent->pw_name);
+                         continue;
+                 }
+@@ -525,6 +514,59 @@ on_gdm_monitor_changed (GFileMonitor
+         queue_reload_autologin (daemon);
+ }
+ 
++static uid_t
++get_minimal_uid (void)
++{
++        GError *error;
++        char *contents;
++        gboolean contents_loaded;
++        const char *uid_min_string, *start_of_uid_string;
++        char *end;
++        uid_t uid = FALLBACK_MINIMAL_UID;
++        gint64 uid_as_number;
++
++        error = NULL;
++        contents = NULL;
++        contents_loaded = g_file_get_contents (PATH_LOGIN_DEFS, &contents, NULL, &error);
++        if (!contents_loaded) {
++                g_debug ("unable to read " PATH_LOGIN_DEFS ": %s", error->message);
++                g_error_free (error);
++                goto out;
++        }
++
++        uid_min_string = strstr (contents, "UID_MIN");
++
++        if (uid_min_string == NULL ||
++            (uid_min_string != contents && uid_min_string[-1] != '\n')) {
++                g_debug (PATH_LOGIN_DEFS " does not have a UID_MIN field");
++                goto out;
++        }
++
++        start_of_uid_string = uid_min_string + strlen ("UID_MIN");
++
++        if (start_of_uid_string == '\0') {
++                g_debug (PATH_LOGIN_DEFS " contains UID_MIN key with no value");
++                goto out;
++        }
++
++
++        uid_as_number = g_ascii_strtoll (start_of_uid_string, &end, 10);
++        if (!g_ascii_isspace (*end) && *end != '\0') {
++                g_debug (PATH_LOGIN_DEFS " contains non-numerical value for UID_MIN");
++                goto out;
++        }
++
++        if (uid_as_number < 0 || ((uid_t) uid_as_number) != uid_as_number) {
++                g_debug (PATH_LOGIN_DEFS " contains out-of-range value for UID_MIN");
++                goto out;
++        }
++
++        uid = (uid_t) uid_as_number;
++out:
++        g_free (contents);
++        return uid;
++}
++
+ static void
+ daemon_init (Daemon *daemon)
+ {
+@@ -534,6 +576,7 @@ daemon_init (Daemon *daemon)
+ 
+         daemon->priv = DAEMON_GET_PRIVATE (daemon);
+ 
++        daemon->priv->minimal_uid = get_minimal_uid ();
+         daemon->priv->exclusions = g_hash_table_new_full (g_str_hash,
+                                                           g_str_equal,
+                                                           g_free,
+@@ -840,7 +883,7 @@ finish_list_cached_users (gpointer user_
+         g_hash_table_iter_init (&iter, data->daemon->priv->users);
+         while (g_hash_table_iter_next (&iter, (gpointer *)&name, (gpointer *)&user)) {
+                 uid = user_local_get_uid (user);
+-                if (!daemon_local_user_is_excluded (data->daemon, name, NULL)) {
++                if (!daemon_local_user_is_excluded (data->daemon, name, uid)) {
+                         g_debug ("user %s %ld not excluded\n", name, (long) uid);
+                         g_ptr_array_add (object_paths, (gpointer) user_local_get_object_path (user));
+                 }
+--- accountsservice.orig/src/daemon.h
++++ accountsservice/src/daemon.h
+@@ -77,7 +77,7 @@ User *daemon_local_find_user_by_name (Da
+                                       const gchar           *name);
+ gboolean daemon_local_user_is_excluded (Daemon              *daemon,
+                                         const gchar         *name,
+-                                        const gchar         *shell);
++                                        uid_t                uid);
+ 
+ typedef void (*AuthorizedCallback)   (Daemon                *daemon,
+                                       User                  *user,
+--- accountsservice.orig/src/user.c
++++ accountsservice/src/user.c
+@@ -283,7 +283,7 @@ user_local_update_from_pwent (User
+ 
+         user->system_account = daemon_local_user_is_excluded (user->daemon,
+                                                               user->user_name,
+-                                                              pwent->pw_shell);
++                                                              pwent->pw_uid);
+ 
+         g_object_thaw_notify (G_OBJECT (user));
+ 
