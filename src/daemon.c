@@ -79,6 +79,7 @@ static const char *default_excludes[] = {
         "ftp",
         "games",
         "man",
+        "at",
         NULL
 };
 
@@ -163,8 +164,8 @@ daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gcha
         char *basename, *nologin_basename, *false_basename;
         int ret;
 
-        if (shell == NULL) {
-                return FALSE;
+        if (shell == NULL || shell[0] == '\0') {
+                return TRUE;
         }
 
         ret = FALSE;
@@ -994,7 +995,7 @@ daemon_delete_user_authorized_cb (Daemon                *daemon,
         GError *error;
         gchar *filename;
         struct passwd *pwent;
-        const gchar *argv[5];
+        const gchar *argv[6];
 
         pwent = getpwuid (ud->uid);
 
@@ -1008,10 +1009,11 @@ daemon_delete_user_authorized_cb (Daemon                *daemon,
 
         argv[0] = "/usr/sbin/userdel";
         if (ud->remove_files) {
-                argv[1] = "-r";
-                argv[2] = "--";
-                argv[3] = pwent->pw_name;
-                argv[4] = NULL;
+                argv[1] = "-f";
+                argv[2] = "-r";
+                argv[3] = "--";
+                argv[4] = pwent->pw_name;
+                argv[5] = NULL;
         }
         else {
                 argv[1] = "--";
