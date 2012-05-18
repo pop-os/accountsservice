@@ -9,7 +9,7 @@ Bug: https://bugs.freedesktop.org/show_bug.cgi?id=49993
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -50,7 +50,7 @@
+@@ -49,7 +49,7 @@
  #define PATH_SHADOW "/etc/shadow"
  #define PATH_NOLOGIN "/sbin/nologin"
  #define PATH_FALSE "/bin/false"
@@ -18,7 +18,7 @@ Bug: https://bugs.freedesktop.org/show_bug.cgi?id=49993
  
  #define USERDIR LOCALSTATEDIR "/lib/AccountsService/users"
  
-@@ -428,7 +428,7 @@ reload_autologin_timeout (Daemon *daemon
+@@ -445,7 +445,7 @@ reload_autologin_timeout (Daemon *daemon
          daemon->priv->autologin_id = 0;
  
          if (!load_autologin (daemon, &name, &enabled, &error)) {
