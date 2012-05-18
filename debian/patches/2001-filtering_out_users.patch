@@ -4,14 +4,14 @@ Author: Alessio Treglia <alessio@debian.org>
 Forwarded: no
 Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
 ---
- src/daemon.c |   99 ++++++++++++++++++++++++++++++++++++++++++-----------------
+ src/daemon.c |  111 ++++++++++++++++++++++++++++++++++++-----------------------
  src/daemon.h |    2 -
  src/user.c   |    2 -
- 3 files changed, 73 insertions(+), 30 deletions(-)
+ 3 files changed, 70 insertions(+), 45 deletions(-)
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -51,6 +51,11 @@
+@@ -50,6 +50,11 @@
  #define PATH_NOLOGIN "/sbin/nologin"
  #define PATH_FALSE "/bin/false"
  #define PATH_GDM_CUSTOM "/etc/gdm3/daemon.conf"
@@ -31,48 +31,62 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
  
          User *autologin;
  
-@@ -158,33 +164,16 @@ error_get_type (void)
+@@ -158,50 +164,17 @@ error_get_type (void)
  }
  
  gboolean
 -daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gchar *shell)
 +daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, uid_t uid)
  {
--        char *basename, *nologin_basename, *false_basename;
 -        int ret;
 -
--        if (shell == NULL) {
--                return FALSE;
-+        if (uid < daemon->priv->minimal_uid) {
-+                return TRUE;
-+        }
-+        if (g_hash_table_lookup (daemon->priv->exclusions, username)) {
-+                return TRUE;
+         if (g_hash_table_lookup (daemon->priv->exclusions, username)) {
+                 return TRUE;
          }
  
 -        ret = FALSE;
--        basename = g_path_get_basename (shell);
--        nologin_basename = g_path_get_basename (PATH_NOLOGIN);
--        false_basename = g_path_get_basename (PATH_FALSE);
 -
--        if (g_strcmp0 (basename, nologin_basename) == 0) {
--                ret = TRUE;
--        } else if (g_strcmp0 (basename, false_basename) == 0) {
--                ret = TRUE;
--        } else if (g_hash_table_lookup (daemon->priv->exclusions, username)) {
--                ret = TRUE;
--        }
+-        if (shell != NULL) {
+-                char *basename, *nologin_basename, *false_basename;
 -
--        g_free (basename);
--        g_free (nologin_basename);
--        g_free (false_basename);
+-#ifdef HAVE_GETUSERSHELL
+-                char *valid_shell;
 -
+-                ret = TRUE;
+-                setusershell ();
+-                while ((valid_shell = getusershell ()) != NULL) {
+-                        if (g_strcmp0 (shell, valid_shell) != 0)
+-                                continue;
+-                        ret = FALSE;
+-                }
+-                endusershell ();
+-#endif
+-
+-                basename = g_path_get_basename (shell);
+-                nologin_basename = g_path_get_basename (PATH_NOLOGIN);
+-                false_basename = g_path_get_basename (PATH_FALSE);
+-
+-                if (shell[0] == '\0') {
+-                        ret = TRUE;
+-                } else if (g_strcmp0 (basename, nologin_basename) == 0) {
+-                        ret = TRUE;
+-                } else if (g_strcmp0 (basename, false_basename) == 0) {
+-                        ret = TRUE;
+-                }
+-
+-                g_free (basename);
+-                g_free (nologin_basename);
+-                g_free (false_basename);
++        if (uid < daemon->priv->minimal_uid) {
++                return TRUE;
+         }
+ 
 -        return ret;
 +        return FALSE;
  }
  
  static void
-@@ -215,7 +204,7 @@ reload_wtmp_history (Daemon *daemon)
+@@ -232,7 +205,7 @@ reload_wtmp_history (Daemon *daemon)
  
                  if (daemon_local_user_is_excluded (daemon,
                                                     wtmp_entry->ut_user,
@@ -81,7 +95,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
                          g_debug ("excluding user '%s'", wtmp_entry->ut_user);
                          continue;
                  }
-@@ -311,8 +300,8 @@ reload_passwd (Daemon *daemon)
+@@ -328,8 +301,8 @@ reload_passwd (Daemon *daemon)
  #else
          while ((pwent = getpwent ()) != NULL) {
  #endif
@@ -92,7 +106,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
                          g_debug ("skipping user: %s", pwent->pw_name);
                          continue;
                  }
-@@ -525,6 +514,59 @@ on_gdm_monitor_changed (GFileMonitor
+@@ -542,6 +515,59 @@ on_gdm_monitor_changed (GFileMonitor
          queue_reload_autologin (daemon);
  }
  
@@ -152,7 +166,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
  static void
  daemon_init (Daemon *daemon)
  {
-@@ -534,6 +576,7 @@ daemon_init (Daemon *daemon)
+@@ -551,6 +577,7 @@ daemon_init (Daemon *daemon)
  
          daemon->priv = DAEMON_GET_PRIVATE (daemon);
  
@@ -160,11 +174,19 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
          daemon->priv->exclusions = g_hash_table_new_full (g_str_hash,
                                                            g_str_equal,
                                                            g_free,
-@@ -840,7 +883,7 @@ finish_list_cached_users (gpointer user_
+@@ -851,15 +878,13 @@ finish_list_cached_users (gpointer user_
+         const gchar *name;
+         User *user;
+         uid_t uid;
+-        const gchar *shell;
+ 
+         object_paths = g_ptr_array_new ();
+ 
          g_hash_table_iter_init (&iter, data->daemon->priv->users);
          while (g_hash_table_iter_next (&iter, (gpointer *)&name, (gpointer *)&user)) {
                  uid = user_local_get_uid (user);
--                if (!daemon_local_user_is_excluded (data->daemon, name, NULL)) {
+-                shell = user_local_get_shell (user);
+-                if (!daemon_local_user_is_excluded (data->daemon, name, shell)) {
 +                if (!daemon_local_user_is_excluded (data->daemon, name, uid)) {
                          g_debug ("user %s %ld not excluded\n", name, (long) uid);
                          g_ptr_array_add (object_paths, (gpointer) user_local_get_object_path (user));
