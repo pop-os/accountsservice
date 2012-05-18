@@ -162,7 +162,7 @@ Last-Update: 2011-11-12
          } else if (strcmp (key, "XSession") == 0) {
                  const char *new_x_session;
  
-@@ -1269,6 +1309,37 @@ act_user_set_language (ActUser    *user,
+@@ -1270,6 +1310,37 @@ act_user_set_language (ActUser    *user,
                  g_error_free (error);
                  return;
          }
@@ -237,7 +237,7 @@ Last-Update: 2011-11-12
          gchar        *x_session;
          gchar        *location;
          guint64       login_frequency;
-@@ -1703,6 +1705,7 @@ user_finalize (GObject *object)
+@@ -1709,6 +1711,7 @@ user_finalize (GObject *object)
          g_free (user->default_icon_file);
          g_free (user->email);
          g_free (user->language);
@@ -245,7 +245,7 @@ Last-Update: 2011-11-12
          g_free (user->x_session);
          g_free (user->location);
          g_free (user->password_hint);
-@@ -1726,6 +1729,9 @@ user_set_property (GObject      *object,
+@@ -1732,6 +1735,9 @@ user_set_property (GObject      *object,
          case PROP_LANGUAGE:
                  user->language = g_value_dup_string (value);
                  break;
@@ -255,7 +255,7 @@ Last-Update: 2011-11-12
          case PROP_X_SESSION:
                  user->x_session = g_value_dup_string (value);
                  break;
-@@ -1786,6 +1792,9 @@ user_get_property (GObject    *object,
+@@ -1792,6 +1798,9 @@ user_get_property (GObject    *object,
          case PROP_LANGUAGE:
                  g_value_set_string (value, user->language);
                  break;
@@ -265,7 +265,7 @@ Last-Update: 2011-11-12
          case PROP_X_SESSION:
                  g_value_set_string (value, user->x_session);
                  break;
-@@ -1884,6 +1893,7 @@ user_init (User *user)
+@@ -1890,6 +1899,7 @@ user_init (User *user)
          user->default_icon_file = NULL;
          user->email = NULL;
          user->language = NULL;
