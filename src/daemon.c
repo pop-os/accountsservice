@@ -30,7 +30,6 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <errno.h>
-#include <unistd.h>
 #include <sys/types.h>
 #ifdef HAVE_UTMPX_H
 #include <utmpx.h>
@@ -161,29 +160,46 @@ error_get_type (void)
 gboolean
 daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gchar *shell)
 {
-        char *basename, *nologin_basename, *false_basename;
         int ret;
 
-        if (shell != NULL && shell[0] == '\0') {
+        if (g_hash_table_lookup (daemon->priv->exclusions, username)) {
                 return TRUE;
         }
 
         ret = FALSE;
-        basename = g_path_get_basename (shell);
-        nologin_basename = g_path_get_basename (PATH_NOLOGIN);
-        false_basename = g_path_get_basename (PATH_FALSE);
 
-        if (g_strcmp0 (basename, nologin_basename) == 0) {
+        if (shell != NULL) {
+                char *basename, *nologin_basename, *false_basename;
+
+#ifdef HAVE_GETUSERSHELL
+                char *valid_shell;
+
                 ret = TRUE;
-        } else if (g_strcmp0 (basename, false_basename) == 0) {
-                ret = TRUE;
-        } else if (g_hash_table_lookup (daemon->priv->exclusions, username)) {
-                ret = TRUE;
+                setusershell ();
+                while ((valid_shell = getusershell ()) != NULL) {
+                        if (g_strcmp0 (shell, valid_shell) != 0)
+                                continue;
+                        ret = FALSE;
+                }
+                endusershell ();
+#endif
+
+                basename = g_path_get_basename (shell);
+                nologin_basename = g_path_get_basename (PATH_NOLOGIN);
+                false_basename = g_path_get_basename (PATH_FALSE);
+
+                if (shell[0] == '\0') {
+                        ret = TRUE;
+                } else if (g_strcmp0 (basename, nologin_basename) == 0) {
+                        ret = TRUE;
+                } else if (g_strcmp0 (basename, false_basename) == 0) {
+                        ret = TRUE;
+                }
+
+                g_free (basename);
+                g_free (nologin_basename);
+                g_free (false_basename);
         }
-
-        g_free (basename);
-        g_free (nologin_basename);
-        g_free (false_basename);
 
         return ret;
 }
@@ -835,13 +851,15 @@ finish_list_cached_users (gpointer user_data)
         const gchar *name;
         User *user;
         uid_t uid;
+        const gchar *shell;
 
         object_paths = g_ptr_array_new ();
 
         g_hash_table_iter_init (&iter, data->daemon->priv->users);
         while (g_hash_table_iter_next (&iter, (gpointer *)&name, (gpointer *)&user)) {
                 uid = user_local_get_uid (user);
-                if (!daemon_local_user_is_excluded (data->daemon, name, NULL)) {
+                shell = user_local_get_shell (user);
+                if (!daemon_local_user_is_excluded (data->daemon, name, shell)) {
                         g_debug ("user %s %ld not excluded\n", name, (long) uid);
                         g_ptr_array_add (object_paths, (gpointer) user_local_get_object_path (user));
                 }
