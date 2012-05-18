@@ -8,7 +8,7 @@ Forwarded: no
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -918,12 +918,13 @@ daemon_create_user_authorized_cb (Daemon
+@@ -937,12 +937,13 @@ daemon_create_user_authorized_cb (Daemon
  
          sys_log (context, "create user '%s'", cd->user_name);
  
