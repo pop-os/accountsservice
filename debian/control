@@ -90,3 +90,19 @@ Description: GObject introspection data for AccountService
  .
  This package provides the introspection data for the
  AccountService library.
+
+Package: libaccountsservice-dbg
+Section: debug
+Priority: extra
+Architecture: any
+Depends:
+ libaccountsservice0 (= ${binary:Version}),
+ ${misc:Depends}
+Description: query and manipulate user account information - debug
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This package provides the debugging symbols for the
+ AccountService library.
