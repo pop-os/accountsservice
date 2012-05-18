@@ -1,3 +1,11 @@
+accountsservice (0.6.21-1) unstable; urgency=low
+
+  * New upstream release.
+  * Refresh patches.
+  * Add libaccountsservice-dbg package.
+
+ -- Alessio Treglia <alessio@debian.org>  Fri, 18 May 2012 17:23:55 +0200
+
 accountsservice (0.6.18-3) unstable; urgency=low
 
   * Revert upstream commit 552a0c856a6e3a7c2e6450ab80e79f4204062281
