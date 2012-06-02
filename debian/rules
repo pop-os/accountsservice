@@ -12,8 +12,7 @@ override_dh_shlibdeps:
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
-		--enable-static=no \
-		--with-systemdsystemunitdir=/lib/systemd/system
+		--enable-static=no
 
 # Disabled to avoid FTBFS
 override_dh_auto_test:

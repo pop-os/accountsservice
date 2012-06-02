@@ -13,8 +13,6 @@ Build-Depends:
  libgirepository1.0-dev (>= 0.9.12),
  libglib2.0-dev (>= 2.25.11),
  libpolkit-gobject-1-dev,
- libsystemd-daemon-dev,
- libsystemd-login-dev,
  xmlto
 Standards-Version: 3.9.3
 Homepage: http://cgit.freedesktop.org/accountsservice/
