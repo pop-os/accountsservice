@@ -1,3 +1,11 @@
+accountsservice (0.6.21-2) unstable; urgency=low
+
+  * Disable systemd support:
+    - Let accountsservice build on non-Linux (Closes: #674433)
+    - Attempt to solve #673185
+
+ -- Alessio Treglia <alessio@debian.org>  Sat, 02 Jun 2012 22:59:49 +0200
+
 accountsservice (0.6.21-1) unstable; urgency=low
 
   * New upstream release.
