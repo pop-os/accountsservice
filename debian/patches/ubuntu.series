@@ -10,3 +10,4 @@
 0012-add-keyboard-layout-support.patch
 0013-add-has-message-support.patch
 1001-buildsystem.patch
+2002-disable_systemd.patch
