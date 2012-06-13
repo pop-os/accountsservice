@@ -5,3 +5,4 @@
 1001-buildsystem.patch
 2001-filtering_out_users.patch
 2002-disable_systemd.patch
+9001-manage_pending_ck_calls_with_cancellable.patch
