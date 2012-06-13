@@ -1,3 +1,10 @@
+accountsservice (0.6.21-4) unstable; urgency=low
+
+  * Manage pending consolekit calls with GtkCancellable to fix SIGSEGV
+    in libaccountsservice. (Closes: #673185)
+
+ -- Alessio Treglia <alessio@debian.org>  Wed, 13 Jun 2012 09:02:33 +0200
+
 accountsservice (0.6.21-3) unstable; urgency=low
 
   * Strip SystemdService out of org.freedesktop.Accounts.service
