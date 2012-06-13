@@ -1,3 +1,86 @@
+accountsservice (0.6.21-4) unstable; urgency=low
+
+  * Manage pending consolekit calls with GtkCancellable to fix SIGSEGV
+    in libaccountsservice. (Closes: #673185)
+
+ -- Alessio Treglia <alessio@debian.org>  Wed, 13 Jun 2012 09:02:33 +0200
+
+accountsservice (0.6.21-3) unstable; urgency=low
+
+  * Strip SystemdService out of org.freedesktop.Accounts.service
+    service file. (Closes: #675925)
+
+ -- Alessio Treglia <alessio@debian.org>  Thu, 07 Jun 2012 15:09:19 +0200
+
+accountsservice (0.6.21-2) unstable; urgency=low
+
+  * Disable systemd support:
+    - Let accountsservice build on non-Linux (Closes: #674433)
+    - Attempt to solve #673185
+
+ -- Alessio Treglia <alessio@debian.org>  Sat, 02 Jun 2012 22:59:49 +0200
+
+accountsservice (0.6.21-1) unstable; urgency=low
+
+  * New upstream release.
+  * Refresh patches.
+  * Add libaccountsservice-dbg package.
+
+ -- Alessio Treglia <alessio@debian.org>  Fri, 18 May 2012 17:23:55 +0200
+
+accountsservice (0.6.18-3) unstable; urgency=low
+
+  * Revert upstream commit 552a0c856a6e3a7c2e6450ab80e79f4204062281
+    and then fix a regression introduced since 0.6.16:
+    - Filter out users which have UIDs lower than UID_MIN specified
+      in etc/login.defs instead of checking if they have
+      /usr/sbin/nologin as login shell. (Closes: #673095)
+    Thanks to Michael Biebl for the report.
+
+ -- Alessio Treglia <alessio@debian.org>  Wed, 16 May 2012 09:52:58 +0200
+
+accountsservice (0.6.18-2) unstable; urgency=low
+
+  * Upload to unstable.
+
+ -- Alessio Treglia <alessio@debian.org>  Tue, 15 May 2012 07:48:08 +0200
+
+accountsservice (0.6.18-1) experimental; urgency=low
+
+  * Upload to experimental due to the big amount of changes.
+  * Imported Upstream version 0.6.18:
+    - Fix systemd configure check
+    - Add a few more common system accounts to the blacklist
+    - Fix some issues in systemd session handling
+  * Imported Upstream version 0.6.17:
+    - Fix user filtering which was broken in 0.6.16.
+    - Fix double free in user code.
+  * Imported Upstream version 0.6.16:
+    - Don't filter out users below UID_MIN in login.defs
+    - Filter out users with invalid shells
+    - build fixes for srcdir != builddir
+    - Port to GDBus
+    - Add systemd support
+    - vala support and introspection fixes
+    - ppc32 fixes
+    - use infinite timeout for ListCachedUsers calls
+    - Translation updates
+  * Migrate 0007-add-lightdm-support.patch to GDBus:
+    - More testing would be appreciated.
+  * Remove 2001-icon_reset.patch, applied upstream.
+  * Remove 3001-show_more_than_one_user_powerpc.patch, applied upstream.
+  * Remove obsolete patches:
+    - 0003-getpwnam_null_crash.patch
+    - 0004-history-filter-sessions.patch
+  * Refresh systemd's build-deps.
+  * Drop {,build-}dependency on libdbus-glib-1-dev.
+  * Refresh symbols.
+  * Refresh debian/copyright.
+  * Update debian/watch.
+  * Bump Standards.
+
+ -- Alessio Treglia <alessio@debian.org>  Mon, 30 Apr 2012 13:19:46 +0200
+
 accountsservice (0.6.15-4) unstable; urgency=low
 
   * src/user.c: Be more careful when resetting the users icons

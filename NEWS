@@ -1,3 +1,65 @@
+Changes in 0.6.21
+=================
+
+* Detect old versions of systemd and fall back to ConsoleKit
+
+* Exclude users without a valid shell
+
+* Fix log spew
+
+Changes in 0.6.20
+=================
+
+* Fix user listing which broke in previous release
+
+Changes in 0.6.19
+=================
+
+* Fix spurious warnings in logs
+
+* Make userdel succeed even if user is already logged in
+
+* Exclude users with no shell
+
+* Exclude "at" user
+
+Changes in 0.6.18
+=================
+
+* Fix systemd configure check
+
+* Add a few more common system accounts to the blacklist
+
+* Fix some issues in systemd session handling
+
+Changes in 0.6.17
+=================
+
+* Fix user filtering which was broken in 0.6.16
+
+* Fix double free in user code
+
+Changes in 0.6.16
+=================
+
+* Don't filter out users below UID_MIN in login.defs
+
+* Filter out users with invalid shells
+
+* build fixes for srcdir != builddir
+
+* Port to GDBus
+
+* Add systemd support
+
+* vala support and introspection fixes
+
+* ppc32 fixes
+
+* use infinite timeout for ListCachedUsers calls
+
+* translation updates
+
 Changes in 0.6.15
 =================
 

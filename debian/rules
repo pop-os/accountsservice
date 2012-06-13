@@ -12,8 +12,7 @@ override_dh_shlibdeps:
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
-		--enable-static=no \
-		--with-systemdsystemunitdir=/lib/systemd/system
+		--enable-static=no
 
 # Disabled to avoid FTBFS
 override_dh_auto_test:
@@ -27,3 +26,7 @@ override_dh_install:
 	if [ -d debian/tmp/usr/share/language-tools ]; then \
 	    cp -r debian/tmp/usr/share/language-tools debian/accountsservice/usr/share/; \
 	fi
+
+override_dh_strip:
+	dh_strip -plibaccountsservice0 --dbg-package=libaccountsservice-dbg
+	dh_strip --remaining-packages
