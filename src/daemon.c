@@ -51,8 +51,6 @@
 #define PATH_FALSE "/bin/false"
 #define PATH_GDM_CUSTOM "/etc/gdm/custom.conf"
 
-#define USERDIR LOCALSTATEDIR "/lib/AccountsService/users"
-
 static const char *default_excludes[] = {
         "bin",
         "root",
@@ -105,6 +103,8 @@ struct DaemonPrivate {
 
         PolkitAuthority *authority;
 };
+
+typedef struct passwd * (* EntryGeneratorFunc) (GHashTable *, gpointer *);
 
 static void daemon_accounts_accounts_iface_init (AccountsAccountsIface *iface);
 
@@ -204,36 +204,43 @@ daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gcha
         return ret;
 }
 
-static void
-reload_wtmp_history (Daemon *daemon)
-{
 #ifdef HAVE_UTMPX_H
-        struct utmpx *wtmp_entry;
+static struct passwd *
+entry_generator_wtmp (GHashTable *users,
+                      gpointer   *state)
+{
         GHashTable *login_frequency_hash;
+        struct utmpx *wtmp_entry;
         GHashTableIter iter;
         gpointer key, value;
+        struct passwd *pwent;
 
+        if (*state == NULL) {
+                /* First iteration */
 #ifdef UTXDB_LOG
-        if (setutxdb (UTXDB_LOG, NULL) != 0)
-                return;
+                if (setutxdb (UTXDB_LOG, NULL) != 0) {
+                        return NULL;
+                }
 #else
-        utmpxname (_PATH_WTMPX);
-        setutxent ();
+                utmpxname (_PATH_WTMPX);
+                setutxent ();
 #endif
+                *state = g_hash_table_new (g_str_hash, g_str_equal);
+        }
 
-        login_frequency_hash = g_hash_table_new_full (g_str_hash, g_str_equal, NULL, NULL);
-
+        /* Every iteration */
+        login_frequency_hash = *state;
         while ((wtmp_entry = getutxent ())) {
-                if (wtmp_entry->ut_type != USER_PROCESS)
+                if (wtmp_entry->ut_type != USER_PROCESS) {
                         continue;
+                }
 
-                if (wtmp_entry->ut_user[0] == 0)
+                if (wtmp_entry->ut_user[0] == 0) {
                         continue;
+                }
 
-                if (daemon_local_user_is_excluded (daemon,
-                                                   wtmp_entry->ut_user,
-                                                   NULL)) {
-                        g_debug ("excluding user '%s'", wtmp_entry->ut_user);
+                pwent = getpwnam (wtmp_entry->ut_user);
+                if (pwent == NULL) {
                         continue;
                 }
 
@@ -253,18 +260,19 @@ reload_wtmp_history (Daemon *daemon)
                                              GUINT_TO_POINTER (frequency));
                 }
 
+                return pwent;
         }
+
+        /* Last iteration */
         endutxent ();
 
         g_hash_table_iter_init (&iter, login_frequency_hash);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
                 User *user;
-                char *username = (char *) key;
                 guint64 frequency = (guint64) GPOINTER_TO_UINT (value);
 
-                user = daemon_local_find_user_by_name (daemon, username);
+                user = g_hash_table_lookup (users, key);
                 if (user == NULL) {
-                        g_debug ("unable to lookup user '%s'", username);
                         continue;
                 }
 
@@ -273,61 +281,125 @@ reload_wtmp_history (Daemon *daemon)
 
         g_hash_table_foreach (login_frequency_hash, (GHFunc) g_free, NULL);
         g_hash_table_unref (login_frequency_hash);
+        *state = NULL;
+        return NULL;
+}
 #endif /* HAVE_UTMPX_H */
-}
 
-static void
-listify_hash_values_hfunc (gpointer key,
-                           gpointer value,
-                           gpointer user_data)
-{
-        GSList **list = user_data;
-
-        *list = g_slist_prepend (*list, value);
-}
-
-static gint
-compare_user_name (gconstpointer a, gconstpointer b)
-{
-        User *user = (User *)a;
-        const gchar *name = b;
-
-        return g_strcmp0 (user_local_get_user_name (user), name);
-}
-
-static void
-reload_passwd (Daemon *daemon)
+static struct passwd *
+entry_generator_fgetpwent (GHashTable *users,
+                           gpointer   *state)
 {
         struct passwd *pwent;
-        GSList *old_users;
-        GSList *new_users;
-        GSList *list;
-#ifdef HAVE_FGETPWENT
         FILE *fp;
-#endif
+
+        /* First iteration */
+        if (*state == NULL) {
+                *state = fp = fopen (PATH_PASSWD, "r");
+                if (fp == NULL) {
+                        g_warning ("Unable to open %s: %s", PATH_PASSWD, g_strerror (errno));
+                        return NULL;
+                }
+        }
+
+        /* Every iteration */
+        fp = *state;
+        pwent = fgetpwent (fp);
+        if (pwent != NULL) {
+                return pwent;
+        }
+
+        /* Last iteration */
+        fclose (fp);
+        *state = NULL;
+        return NULL;
+}
+
+static struct passwd *
+entry_generator_cachedir (GHashTable *users,
+                          gpointer   *state)
+{
+        struct passwd *pwent;
+        const gchar *name;
+        GError *error = NULL;
+        gchar *filename;
+        gboolean regular;
+        GHashTableIter iter;
+        GKeyFile *key_file;
+        User *user;
+        GDir *dir;
+
+        /* First iteration */
+        if (*state == NULL) {
+                *state = dir = g_dir_open (USERDIR, 0, &error);
+                if (error != NULL) {
+                        if (!g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
+                                g_warning ("couldn't list user cache directory: %s", USERDIR);
+                        g_error_free (error);
+                        return NULL;
+                }
+        }
+
+        /* Every iteration */
+
+        /*
+         * Use names of files of regular type to lookup information
+         * about each user. Loop until we find something valid.
+         */
+        dir = *state;
+        while (TRUE) {
+                name = g_dir_read_name (dir);
+                if (name == NULL)
+                        break;
+
+                /* Only load files in this directory */
+                filename = g_build_filename (USERDIR, name, NULL);
+                regular = g_file_test (filename, G_FILE_TEST_IS_REGULAR);
+                g_free (filename);
+
+                if (regular) {
+                        pwent = getpwnam (name);
+                        if (pwent == NULL)
+                                g_debug ("user '%s' in cache dir but not presen on system", name);
+                        else
+                                return pwent;
+                }
+        }
+
+        /* Last iteration */
+        g_dir_close (dir);
+
+        /* Update all the users from the files in the cache dir */
+        g_hash_table_iter_init (&iter, users);
+        while (g_hash_table_iter_next (&iter, (gpointer *)&name, (gpointer *)&user)) {
+                filename = g_build_filename (USERDIR, name, NULL);
+                key_file = g_key_file_new ();
+                if (g_key_file_load_from_file (key_file, filename, 0, NULL))
+                        user_update_from_keyfile (user, key_file);
+                g_key_file_free (key_file);
+                g_free (filename);
+        }
+
+        *state = NULL;
+        return NULL;
+}
+
+static void
+load_entries (Daemon             *daemon,
+              GHashTable         *users,
+              EntryGeneratorFunc  entry_generator)
+{
+        gpointer generator_state = NULL;
+        struct passwd *pwent;
         User *user = NULL;
 
-        old_users = NULL;
-        new_users = NULL;
+        g_assert (entry_generator != NULL);
 
-#ifdef HAVE_FGETPWENT
-        errno = 0;
-        fp = fopen (PATH_PASSWD, "r");
-        if (fp == NULL) {
-                g_warning ("Unable to open %s: %s", PATH_PASSWD, g_strerror (errno));
-                goto out;
-        }
-#else
-        setpwent();
-#endif
-        g_hash_table_foreach (daemon->priv->users, listify_hash_values_hfunc, &old_users);
-        g_slist_foreach (old_users, (GFunc) g_object_ref, NULL);
+        for (;;) {
+                pwent = entry_generator (users, &generator_state);
+                if (pwent == NULL)
+                        break;
 
-#ifdef HAVE_FGETPWENT
-        while ((pwent = fgetpwent (fp)) != NULL) {
-#else
-        while ((pwent = getpwent ()) != NULL) {
-#endif
                 /* Skip system users... */
                 if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_shell)) {
                         g_debug ("skipping user: %s", pwent->pw_name);
@@ -335,89 +407,103 @@ reload_passwd (Daemon *daemon)
                 }
 
                 /* ignore duplicate entries */
-                if (g_slist_find_custom (new_users, pwent->pw_name, compare_user_name)) {
+                if (g_hash_table_lookup (users, pwent->pw_name)) {
                         continue;
                 }
 
                 user = g_hash_table_lookup (daemon->priv->users, pwent->pw_name);
                 if (user == NULL) {
-                        user = user_local_new (daemon, pwent->pw_uid);
+                        user = user_new (daemon, pwent->pw_uid);
                 } else {
                         g_object_ref (user);
                 }
 
                 /* freeze & update users not already in the new list */
                 g_object_freeze_notify (G_OBJECT (user));
-                user_local_update_from_pwent (user, pwent);
+                user_update_from_pwent (user, pwent);
 
-                new_users = g_slist_prepend (new_users, user);
+                g_hash_table_insert (users, g_strdup (user_get_user_name (user)), user);
+                g_debug ("loaded user: %s", user_get_user_name (user));
         }
 
-        /* Go through and handle removed users */
-        for (list = old_users; list; list = list->next) {
-                user = list->data;
-                if (! g_slist_find (new_users, user)) {
-                        accounts_accounts_emit_user_deleted (ACCOUNTS_ACCOUNTS (daemon), user_local_get_object_path (user));
-                        user_local_unregister (user);
-                        g_hash_table_remove (daemon->priv->users,
-                                             user_local_get_user_name (user));
-                }
-        }
-
-        /* Go through and handle added users or update display names */
-        for (list = new_users; list; list = list->next) {
-                user = list->data;
-                if (!g_slist_find (old_users, user)) {
-                       user_local_register (user);
-                       g_hash_table_insert (daemon->priv->users,
-                                            g_strdup (user_local_get_user_name (user)),
-                                            g_object_ref (user));
-
-                        accounts_accounts_emit_user_added (ACCOUNTS_ACCOUNTS (daemon), user_local_get_object_path (user));
-                }
-        }
-
-#ifdef HAVE_FGETPWENT
- out:
-        /* Cleanup */
-
-        fclose (fp);
-#endif
-
-        g_slist_foreach (new_users, (GFunc) g_object_thaw_notify, NULL);
-        g_slist_foreach (new_users, (GFunc) g_object_unref, NULL);
-        g_slist_free (new_users);
-
-        g_slist_foreach (old_users, (GFunc) g_object_unref, NULL);
-        g_slist_free (old_users);
+        /* Generator should have cleaned up */
+        g_assert (generator_state == NULL);
 }
 
-static void
-reload_data (Daemon *daemon)
+static GHashTable *
+create_users_hash_table (void)
 {
-        GHashTableIter iter;
-        const gchar *name;
-        User *user;
-        GKeyFile *key_file;
-        gchar *filename;
-
-        g_hash_table_iter_init (&iter, daemon->priv->users);
-        while (g_hash_table_iter_next (&iter, (gpointer *)&name, (gpointer *)&user)) {
-                filename = g_build_filename (USERDIR, name, NULL);
-                key_file = g_key_file_new ();
-                if (g_key_file_load_from_file (key_file, filename, 0, NULL))
-                        user_local_update_from_keyfile (user, key_file);
-                g_key_file_free (key_file);
-                g_free (filename);
-        }
+        return g_hash_table_new_full (g_str_hash,
+                                      g_str_equal,
+                                      g_free,
+                                      g_object_unref);
 }
 
 static void
 reload_users (Daemon *daemon)
 {
-        reload_passwd (daemon);
-        reload_wtmp_history (daemon);
-        reload_data (daemon);
+        GHashTable *users;
+        GHashTable *old_users;
+        GHashTable *local;
+        GHashTableIter iter;
+        gpointer name;
+        User *user;
+
+        /* Track the users that we saw during our (re)load */
+        users = create_users_hash_table ();
+
+        /*
+         * NOTE: As we load data from all the sources, notifies are
+         * frozen in load_entries() and then thawed as we process
+         * them below.
+         */
+
+        /* Load the local users into our hash table */
+        load_entries (daemon, users, entry_generator_fgetpwent);
+        local = g_hash_table_new (g_str_hash, g_str_equal);
+        g_hash_table_iter_init (&iter, users);
+        while (g_hash_table_iter_next (&iter, &name, NULL))
+                g_hash_table_add (local, name);
+
+        /* Now add/update users from other sources, possibly non-local */
+#ifdef HAVE_UTMPX_H
+        load_entries (daemon, users, entry_generator_wtmp);
+#endif
+        load_entries (daemon, users, entry_generator_cachedir);
+
+        /* Mark which users are local, which are not */
+        g_hash_table_iter_init (&iter, users);
+        while (g_hash_table_iter_next (&iter, &name, (gpointer *)&user))
+                user_update_local_account_property (user, g_hash_table_lookup (local, name) != NULL);
+
+        g_hash_table_destroy (local);
+
+        /* Swap out the users */
+        old_users = daemon->priv->users;
+        daemon->priv->users = users;
+
+        /* Remove all the old users */
+        g_hash_table_iter_init (&iter, old_users);
+        while (g_hash_table_iter_next (&iter, &name, (gpointer *)&user)) {
+                if (!g_hash_table_lookup (users, name)) {
+                        user_unregister (user);
+                        accounts_accounts_emit_user_deleted (ACCOUNTS_ACCOUNTS (daemon),
+                                                             user_get_object_path (user));
+                }
+        }
+
+        /* Register all the new users */
+        g_hash_table_iter_init (&iter, users);
+        while (g_hash_table_iter_next (&iter, &name, (gpointer *)&user)) {
+                if (!g_hash_table_lookup (old_users, name)) {
+                        user_register (user);
+                        accounts_accounts_emit_user_added (ACCOUNTS_ACCOUNTS (daemon),
+                                                           user_get_object_path (user));
+                }
+                g_object_thaw_notify (G_OBJECT (user));
+        }
+
+        g_hash_table_destroy (old_users);
 }
 
 static gboolean
@@ -562,10 +648,8 @@ daemon_init (Daemon *daemon)
                                      GUINT_TO_POINTER (TRUE));
         }
 
-        daemon->priv->users = g_hash_table_new_full (g_str_hash,
-                                                     g_str_equal,
-                                                     g_free,
-                                                     (GDestroyNotify) g_object_unref);
+        daemon->priv->users = create_users_hash_table ();
+
         file = g_file_new_for_path (PATH_PASSWD);
         daemon->priv->passwd_monitor = g_file_monitor_file (file,
                                                             G_FILE_MONITOR_NONE,
@@ -720,15 +804,15 @@ add_new_user_for_pwent (Daemon        *daemon,
 {
         User *user;
 
-        user = user_local_new (daemon, pwent->pw_uid);
-        user_local_update_from_pwent (user, pwent);
-        user_local_register (user);
+        user = user_new (daemon, pwent->pw_uid);
+        user_update_from_pwent (user, pwent);
+        user_register (user);
 
         g_hash_table_insert (daemon->priv->users,
-                             g_strdup (user_local_get_user_name (user)),
+                             g_strdup (user_get_user_name (user)),
                              user);
 
-        accounts_accounts_emit_user_added (ACCOUNTS_ACCOUNTS (daemon), user_local_get_object_path (user));
+        accounts_accounts_emit_user_added (ACCOUNTS_ACCOUNTS (daemon), user_get_object_path (user));
 
         return user;
 }
@@ -786,7 +870,7 @@ daemon_find_user_by_id (AccountsAccounts      *accounts,
         user = daemon_local_find_user_by_id (daemon, uid);
 
         if (user) {
-                accounts_accounts_complete_find_user_by_id (NULL, context, user_local_get_object_path (user));
+                accounts_accounts_complete_find_user_by_id (NULL, context, user_get_object_path (user));
         }
         else {
                 throw_error (context, ERROR_FAILED, "Failed to look up user with uid %d.", (int)uid);
@@ -806,7 +890,7 @@ daemon_find_user_by_name (AccountsAccounts      *accounts,
         user = daemon_local_find_user_by_name (daemon, name);
 
         if (user) {
-                accounts_accounts_complete_find_user_by_name (NULL, context, user_local_get_object_path (user));
+                accounts_accounts_complete_find_user_by_name (NULL, context, user_get_object_path (user));
         }
         else {
                 throw_error (context, ERROR_FAILED, "Failed to look up user with name %s.", name);
@@ -857,12 +941,21 @@ finish_list_cached_users (gpointer user_data)
 
         g_hash_table_iter_init (&iter, data->daemon->priv->users);
         while (g_hash_table_iter_next (&iter, (gpointer *)&name, (gpointer *)&user)) {
-                uid = user_local_get_uid (user);
-                shell = user_local_get_shell (user);
-                if (!daemon_local_user_is_excluded (data->daemon, name, shell)) {
-                        g_debug ("user %s %ld not excluded\n", name, (long) uid);
-                        g_ptr_array_add (object_paths, (gpointer) user_local_get_object_path (user));
+                uid = user_get_uid (user);
+                shell = user_get_shell (user);
+
+                if (user_get_system_account (user)) {
+                        g_debug ("user %s %ld is system account, so excluded\n", name, (long) uid);
+                        continue;
                 }
+
+                if (daemon_local_user_is_excluded (data->daemon, name, shell)) {
+                        g_debug ("user %s %ld excluded\n", name, (long) uid);
+                        continue;
+                }
+
+                g_debug ("user %s %ld not excluded\n", name, (long) uid);
+                g_ptr_array_add (object_paths, (gpointer) user_get_object_path (user));
         }
         g_ptr_array_add (object_paths, NULL);
 
@@ -966,8 +1059,9 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
         }
 
         user = daemon_local_find_user_by_name (daemon, cd->user_name);
+        user_update_local_account_property (user, TRUE);
 
-        accounts_accounts_complete_create_user (NULL, context, user_local_get_object_path (user));
+        accounts_accounts_complete_create_user (NULL, context, user_get_object_path (user));
 }
 
 static gboolean
@@ -993,6 +1087,129 @@ daemon_create_user (AccountsAccounts      *accounts,
                                  context,
                                  data,
                                  (GDestroyNotify)create_data_free);
+
+        return TRUE;
+}
+
+static void
+daemon_cache_user_authorized_cb (Daemon                *daemon,
+                                 User                  *dummy,
+                                 GDBusMethodInvocation *context,
+                                 gpointer               data)
+{
+        const gchar *user_name = data;
+        GError      *error = NULL;
+        gchar       *filename;
+        gchar       *comment;
+        User        *user;
+
+        sys_log (context, "cache user '%s'", user_name);
+
+        user = daemon_local_find_user_by_name (daemon, user_name);
+        if (user == NULL) {
+                throw_error (context, ERROR_USER_DOES_NOT_EXIST,
+                             "No user with the name %s found", user_name);
+                return;
+        }
+
+        /* Always use the canonical user name looked up */
+        user_name = user_get_user_name (user);
+
+        filename = g_build_filename (USERDIR, user_name, NULL);
+        if (!g_file_test (filename, G_FILE_TEST_EXISTS)) {
+                comment = g_strdup_printf ("# Cached file for %s\n\n", user_name);
+                g_file_set_contents (filename, comment, -1, &error);
+                g_free (comment);
+
+                if (error != NULL) {
+                        g_warning ("Couldn't write user cache file: %s: %s",
+                                   filename, error->message);
+                        g_error_free (error);
+                }
+        }
+
+        g_free (filename);
+
+        accounts_accounts_complete_cache_user (NULL, context, user_get_object_path (user));
+}
+
+static gboolean
+daemon_cache_user (AccountsAccounts      *accounts,
+                   GDBusMethodInvocation *context,
+                   const gchar           *user_name)
+{
+        Daemon *daemon = (Daemon*)accounts;
+
+        /* Can't have a slash in the user name */
+        if (strchr (user_name, '/') != NULL) {
+                g_dbus_method_invocation_return_error (context, G_DBUS_ERROR,
+                                                       G_DBUS_ERROR_INVALID_ARGS,
+                                                       "Invalid user name: %s", user_name);
+                return TRUE;
+        }
+
+        daemon_local_check_auth (daemon,
+                                 NULL,
+                                 "org.freedesktop.accounts.user-administration",
+                                 TRUE,
+                                 daemon_cache_user_authorized_cb,
+                                 context,
+                                 g_strdup (user_name),
+                                 g_free);
+
+        return TRUE;
+}
+
+static void
+daemon_uncache_user_authorized_cb (Daemon                *daemon,
+                                   User                  *dummy,
+                                   GDBusMethodInvocation *context,
+                                   gpointer               data)
+{
+        const gchar *user_name = data;
+        gchar       *filename;
+        User        *user;
+
+        sys_log (context, "uncache user '%s'", user_name);
+
+        user = daemon_local_find_user_by_name (daemon, user_name);
+        if (user == NULL) {
+                throw_error (context, ERROR_USER_DOES_NOT_EXIST,
+                             "No user with the name %s found", user_name);
+                return;
+        }
+
+        /* Always use the canonical user name looked up */
+        user_name = user_get_user_name (user);
+
+        filename = g_build_filename (USERDIR, user_name, NULL);
+        g_remove (filename);
+        g_free (filename);
+
+        filename = g_build_filename (ICONDIR, user_name, NULL);
+        g_remove (filename);
+        g_free (filename);
+
+        accounts_accounts_complete_uncache_user (NULL, context);
+
+        queue_reload_users (daemon);
+}
+
+static gboolean
+daemon_uncache_user (AccountsAccounts      *accounts,
+                     GDBusMethodInvocation *context,
+                     const gchar           *user_name)
+{
+        Daemon *daemon = (Daemon*)accounts;
+
+        daemon_local_check_auth (daemon,
+                                 NULL,
+                                 "org.freedesktop.accounts.user-administration",
+                                 TRUE,
+                                 daemon_uncache_user_authorized_cb,
+                                 context,
+                                 g_strdup (user_name),
+                                 g_free);
 
         return TRUE;
 }
@@ -1025,6 +1242,14 @@ daemon_delete_user_authorized_cb (Daemon                *daemon,
 
         sys_log (context, "delete user '%s' (%d)", pwent->pw_name, ud->uid);
 
+        filename = g_build_filename (USERDIR, pwent->pw_name, NULL);
+        g_remove (filename);
+        g_free (filename);
+
+        filename = g_build_filename (ICONDIR, pwent->pw_name, NULL);
+        g_remove (filename);
+        g_free (filename);
+
         argv[0] = "/usr/sbin/userdel";
         if (ud->remove_files) {
                 argv[1] = "-f";
@@ -1045,11 +1270,6 @@ daemon_delete_user_authorized_cb (Daemon                *daemon,
                 g_error_free (error);
                 return;
         }
-
-        filename = g_build_filename (USERDIR, pwent->pw_name, NULL);
-        g_remove (filename);
-
-        g_free (filename);
 
         accounts_accounts_complete_delete_user (NULL, context);
 }
@@ -1277,7 +1497,7 @@ daemon_local_set_automatic_login (Daemon    *daemon,
                 return TRUE;
         }
 
-        if (!save_autologin (daemon, user_local_get_user_name (user), enabled, error)) {
+        if (!save_autologin (daemon, user_get_user_name (user), enabled, error)) {
                 return FALSE;
         }
 
@@ -1357,4 +1577,6 @@ daemon_accounts_accounts_iface_init (AccountsAccountsIface *iface)
         iface->handle_find_user_by_name = daemon_find_user_by_name;
         iface->handle_list_cached_users = daemon_list_cached_users;
         iface->get_daemon_version = daemon_get_daemon_version;
+        iface->handle_cache_user = daemon_cache_user;
+        iface->handle_uncache_user = daemon_uncache_user;
 }
