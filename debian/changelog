@@ -1,3 +1,25 @@
+accountsservice (0.6.24-1) experimental; urgency=low
+
+  * New upstream release:
+    - add User.Local property for identifying local users
+    - Fix up some debug output
+    - add new CacheUser and UncacheUser apis
+    - uncache user before deleting user
+    - Correct CVE-2012-2737, local file disclosure
+    - small memory leak fix
+    - exclude system accounts from ListCachedUsers
+    - make has-multiple-users properly only check non-system users
+    - remove icon when deleting user
+    - Revert usage of getpwent() as fallback for fgetpwent
+    - support consolekit call cancellation to prevent crashes caused
+      by shortlived sessions
+  * Refresh patches, removed those applied upstream:
+    - 9001-manage_pending_ck_calls_with_cancellable.patch
+    - 9002-memory_leak_actuser.c
+    - 9003-CVE-2012-2737.patch
+
+ -- Alessio Treglia <alessio@debian.org>  Fri, 07 Sep 2012 18:53:51 +0200
+
 accountsservice (0.6.21-6) unstable; urgency=high
 
   * CVE-2012-2737: Add patch to prevent race condition with UID
