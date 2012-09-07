@@ -1,4 +1,7 @@
 libaccountsservice.so.0 libaccountsservice0 #MINVER#
+ accounts_accounts_call_cache_user@Base 0.6.24
+ accounts_accounts_call_cache_user_finish@Base 0.6.24
+ accounts_accounts_call_cache_user_sync@Base 0.6.24
  accounts_accounts_call_create_user@Base 0.6.18
  accounts_accounts_call_create_user_finish@Base 0.6.18
  accounts_accounts_call_create_user_sync@Base 0.6.18
