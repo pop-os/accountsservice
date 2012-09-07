@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.21])
+AC_INIT([AccountsService],[0.6.24])
 AM_INIT_AUTOMAKE(no-dist-gzip dist-xz tar-ustar foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -11,11 +11,11 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",
 # to make
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([no])])
 
+AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
 PKG_PROG_PKG_CONFIG
 AM_GLIB_GNU_GETTEXT
 IT_PROG_INTLTOOL([0.40.0])
-AC_USE_SYSTEM_EXTENSIONS
 
 LT_INIT
 LT_CURRENT=0
@@ -62,7 +62,7 @@ if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
    -Wwrite-strings -Wnested-externs -Wpointer-arith \
    -Wswitch-enum -Wstrict-aliasing=2 -Winit-self -Wunsafe-loop-optimizations \
    -Wno-missing-field-initializers -Wno-unused-parameter \
-   -Wcast-align -Wsign-compare -Wp,-D_FORTIFY_SOURCE=2"
+   -Wcast-align -Wsign-compare"
 elif test "$GCC" = "yes"; then
   AC_MSG_RESULT(no)
   MAYBE_WARN="-Wall -Wno-sign-compare -Wno-deprecated-declarations"
@@ -81,7 +81,9 @@ AC_DEFUN([ACCOUNTSSERVICE_CC_TRY_FLAG], [
   accountsservice_save_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $1"
 
-  AC_COMPILE_IFELSE([ ], [accountsservice_cc_flag=yes], [accountsservice_cc_flag=no])
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
+                    [accountsservice_cc_flag=yes],
+                    [accountsservice_cc_flag=no])
   CFLAGS="$accountsservice_save_CFLAGS"
 
   if test "x$accountsservice_cc_flag" = "xyes"; then
@@ -118,10 +120,25 @@ AC_CACHE_CHECK([for supported warning flags], accountsservice_cv_warn_cflags, [
 ])
 
 WARN_CFLAGS="$accountsservice_cv_warn_cflags"
+
+if test "$GCC" = "yes" -a "$set_more_warnings" != "no"; then
+  # Only add this when optimizing is enabled (default)
+  AC_MSG_CHECKING([whether optimization is enabled])
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#if __OPTIMIZE__ == 0
+                                       #error No optimization
+                                       #endif
+                                     ]], [[]])],
+                    [has_optimization=yes],
+                    [has_optimization=no])
+  if test $has_optimization = yes; then
+    WARN_CFLAGS="$WARN_CFLAGS -Wp,-D_FORTIFY_SOURCE=2"
+  fi
+  AC_MSG_RESULT($has_optimization)
+fi
+
 AC_SUBST(WARN_CFLAGS)
 
 AC_CHECK_HEADERS([shadow.h utmpx.h])
-AC_CHECK_FUNCS([fgetpwent])
 
 dnl ---------------------------------------------------------------------------
 dnl - DocBook Documentation
