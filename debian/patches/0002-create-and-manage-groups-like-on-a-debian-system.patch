@@ -11,7 +11,7 @@ Description: Create and manage groups like on a debian system.
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -941,22 +941,8 @@ daemon_create_user_authorized_cb (Daemon
+@@ -1034,22 +1034,8 @@ daemon_create_user_authorized_cb (Daemon
          argv[1] = "-m";
          argv[2] = "-c";
          argv[3] = cd->real_name;
@@ -36,7 +36,7 @@ Description: Create and manage groups like on a debian system.
  
          error = NULL;
          if (!spawn_with_login_uid (context, argv, &error)) {
-@@ -965,6 +951,10 @@ daemon_create_user_authorized_cb (Daemon
+@@ -1058,6 +1044,10 @@ daemon_create_user_authorized_cb (Daemon
                  return;
          }
  
@@ -45,8 +45,8 @@ Description: Create and manage groups like on a debian system.
 +        }
 +
          user = daemon_local_find_user_by_name (daemon, cd->user_name);
+         user_update_local_account_property (user, TRUE);
  
-         accounts_accounts_complete_create_user (NULL, context, user_local_get_object_path (user));
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
 @@ -111,7 +111,7 @@ static gint
@@ -80,7 +80,7 @@ Description: Create and manage groups like on a debian system.
                          g_free (groups);
                          return ACCOUNT_TYPE_ADMINISTRATOR;
                  }
-@@ -1248,7 +1248,7 @@ user_change_account_type_authorized_cb (
+@@ -1277,7 +1277,7 @@ user_change_account_type_authorized_cb (
          gid_t *groups;
          gint ngroups;
          GString *str;
@@ -89,7 +89,7 @@ Description: Create and manage groups like on a debian system.
          struct group *grp;
          gint i;
          const gchar *argv[6];
-@@ -1258,24 +1258,24 @@ user_change_account_type_authorized_cb (
+@@ -1287,24 +1287,24 @@ user_change_account_type_authorized_cb (
                           "change account type of user '%s' (%d) to %d",
                           user->user_name, user->uid, account_type);
  
@@ -121,7 +121,7 @@ Description: Create and manage groups like on a debian system.
                  default:
 --- accountsservice.orig/src/util.c
 +++ accountsservice/src/util.c
-@@ -270,3 +270,45 @@ get_caller_uid (GDBusMethodInvocation *c
+@@ -302,3 +302,45 @@ get_caller_uid (GDBusMethodInvocation *c
  
          return TRUE;
  }

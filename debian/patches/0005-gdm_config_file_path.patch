@@ -16,9 +16,9 @@ Bug: https://bugs.freedesktop.org/show_bug.cgi?id=49993
 -#define PATH_GDM_CUSTOM "/etc/gdm/custom.conf"
 +#define PATH_GDM_CUSTOM "/etc/gdm3/daemon.conf"
  
- #define USERDIR LOCALSTATEDIR "/lib/AccountsService/users"
- 
-@@ -445,7 +445,7 @@ reload_autologin_timeout (Daemon *daemon
+ static const char *default_excludes[] = {
+         "bin",
+@@ -531,7 +531,7 @@ reload_autologin_timeout (Daemon *daemon
          daemon->priv->autologin_id = 0;
  
          if (!load_autologin (daemon, &name, &enabled, &error)) {
