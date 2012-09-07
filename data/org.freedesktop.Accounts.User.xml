@@ -729,6 +729,16 @@
     </doc:doc>
   </property>
 
+  <property name="LocalAccount" type="b" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Whether the user is a local account or not.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
   <signal name="Changed">
     <doc:doc>
       <doc:description>

@@ -49,23 +49,26 @@ typedef enum {
 
 /* local methods */
 
-GType        user_get_type                  (void) G_GNUC_CONST;
-User        *user_local_new                 (Daemon        *daemon,
+GType          user_get_type                (void) G_GNUC_CONST;
+User *         user_new                     (Daemon        *daemon,
                                              uid_t          uid);
 
-void         user_local_update_from_pwent   (User          *user,
+void           user_update_from_pwent       (User          *user,
                                              struct passwd *pwent);
-void         user_local_update_from_keyfile (User          *user,
+void           user_update_from_keyfile     (User          *user,
                                              GKeyFile      *keyfile);
+void           user_update_local_account_property (User          *user,
+                                                   gboolean       local);
 
-void         user_local_register            (User          *user);
-void         user_local_unregister          (User          *user);
+void           user_register                (User          *user);
+void           user_unregister              (User          *user);
 
-const gchar *user_local_get_user_name       (User          *user);
-const gchar *user_local_get_user_name       (User          *user);
-const gchar *user_local_get_object_path     (User          *user);
-uid_t        user_local_get_uid             (User          *user);
-const gchar *user_local_get_shell           (User          *user);
+const gchar *  user_get_user_name           (User          *user);
+gboolean       user_get_system_account      (User          *user);
+gboolean       user_get_local_account       (User          *user);
+const gchar *  user_get_object_path         (User          *user);
+uid_t          user_get_uid                 (User          *user);
+const gchar *  user_get_shell               (User          *user);
 
 G_END_DECLS
 
