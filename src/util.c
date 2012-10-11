@@ -37,7 +37,7 @@
 static gchar *
 get_cmdline_of_pid (GPid pid)
 {
-  gchar *ret;
+  gchar *ret = NULL;
   gchar *filename;
   gchar *contents;
   gsize contents_len;
@@ -51,7 +51,7 @@ get_cmdline_of_pid (GPid pid)
                             &contents_len,
                             &error))
     {
-      g_warning ("Error openeing `%s': %s",
+      g_warning ("Error opening `%s': %s",
                  filename,
                  error->message);
       g_error_free (error);
