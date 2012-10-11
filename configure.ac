@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.24])
+AC_INIT([AccountsService],[0.6.29])
 AM_INIT_AUTOMAKE(no-dist-gzip dist-xz tar-ustar foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -9,7 +9,7 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",
 # Support silent build rules, requires at least automake-1.11. Enable
 # by either passing --enable-silent-rules to configure or passing V=0
 # to make
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([no])])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
@@ -141,6 +141,16 @@ AC_SUBST(WARN_CFLAGS)
 AC_CHECK_HEADERS([shadow.h utmpx.h])
 
 dnl ---------------------------------------------------------------------------
+dnl - gtk-doc Documentation
+dnl ---------------------------------------------------------------------------
+
+m4_ifdef([GTK_DOC_CHECK], [
+GTK_DOC_CHECK([1.15], [--flavour no-tmpl])
+],[
+AM_CONDITIONAL([ENABLE_GTK_DOC],[false])
+])
+
+dnl ---------------------------------------------------------------------------
 dnl - DocBook Documentation
 dnl ---------------------------------------------------------------------------
 
@@ -184,7 +194,7 @@ AC_ARG_ENABLE([systemd],
               [enable_systemd=auto])
 
 if test x$enable_systemd != xno; then
-   PKG_CHECK_MODULES(SYSTEMD, [libsystemd-login >= 43 libsystemd-daemon],
+   PKG_CHECK_MODULES(SYSTEMD, [libsystemd-login >= 186 libsystemd-daemon],
 			                     [have_systemd=yes], [have_systemd=no])
 else
    have_systemd=no
@@ -241,6 +251,7 @@ src/libaccountsservice/accountsservice.pc
 doc/Makefile
 doc/dbus/Makefile
 doc/dbus/AccountsService.xml
+doc/libaccountsservice/Makefile
 ])
 AC_OUTPUT
 

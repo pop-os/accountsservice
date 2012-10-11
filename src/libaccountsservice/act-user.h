@@ -66,6 +66,8 @@ const char    *act_user_get_location              (ActUser   *user);
 guint          act_user_get_num_sessions          (ActUser   *user);
 gboolean       act_user_is_logged_in              (ActUser   *user);
 int            act_user_get_login_frequency       (ActUser   *user);
+gint64         act_user_get_login_time            (ActUser   *user);
+const GVariant*act_user_get_login_history         (ActUser   *user);
 gboolean       act_user_get_locked                (ActUser   *user);
 gboolean       act_user_get_automatic_login       (ActUser   *user);
 gboolean       act_user_is_system_account         (ActUser   *user);

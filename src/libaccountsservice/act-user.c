@@ -33,6 +33,14 @@
 #include "act-user-private.h"
 #include "accounts-user-generated.h"
 
+/**
+ * SECTION:act-user
+ * @title: ActUser
+ * @short_description: information about a user account
+ *
+ * An ActUser object represents a user account on the system.
+ */
+
 #define ACT_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST ((klass), ACT_TYPE_USER, ActUserClass))
 #define ACT_IS_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), ACT_TYPE_USER))
 #define ACT_USER_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS ((object), ACT_TYPE_USER, ActUserClass))
@@ -57,6 +65,8 @@ enum {
         PROP_SYSTEM_ACCOUNT,
         PROP_LOCAL_ACCOUNT,
         PROP_LOGIN_FREQUENCY,
+        PROP_LOGIN_TIME,
+        PROP_LOGIN_HISTORY,
         PROP_ICON_FILE,
         PROP_LANGUAGE,
         PROP_X_SESSION,
@@ -91,6 +101,8 @@ struct _ActUser {
         char           *x_session;
         GList          *sessions;
         int             login_frequency;
+        gint64          login_time;
+        GVariant       *login_history;
 
         ActUserAccountType  account_type;
         ActUserPasswordMode password_mode;
@@ -205,6 +217,12 @@ act_user_get_property (GObject    *object,
                 break;
         case PROP_LOGIN_FREQUENCY:
                 g_value_set_int (value, user->login_frequency);
+                break;
+        case PROP_LOGIN_TIME:
+                g_value_set_int64 (value, user->login_time);
+                break;
+        case PROP_LOGIN_HISTORY:
+                g_value_set_variant (value, user->login_history);
                 break;
         case PROP_SHELL:
                 g_value_set_string (value, user->shell);
@@ -343,6 +361,23 @@ act_user_class_init (ActUserClass *class)
                                                            0,
                                                            G_PARAM_READABLE));
         g_object_class_install_property (gobject_class,
+                                         PROP_LOGIN_TIME,
+                                         g_param_spec_int64 ("login-time",
+                                                             "Login time",
+                                                             "The last login time for this user.",
+                                                             0,
+                                                             G_MAXINT64,
+                                                             0,
+                                                             G_PARAM_READABLE));
+        g_object_class_install_property (gobject_class,
+                                         PROP_LOGIN_HISTORY,
+                                         g_param_spec_variant ("login-history",
+                                                               "Login history",
+                                                               "The login history for this user.",
+                                                               G_VARIANT_TYPE ("a(xxa{sv})"),
+                                                               NULL,
+                                                               G_PARAM_READABLE));
+        g_object_class_install_property (gobject_class,
                                          PROP_ICON_FILE,
                                          g_param_spec_string ("icon-file",
                                                               "Icon File",
@@ -426,9 +461,11 @@ act_user_init (ActUser *user)
 {
         GError *error = NULL;
 
+        user->local_account = TRUE;
         user->user_name = NULL;
         user->real_name = NULL;
         user->sessions = NULL;
+        user->login_history = NULL;
 
         user->connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
         if (user->connection == NULL) {
@@ -454,6 +491,8 @@ act_user_finalize (GObject *object)
         g_free (user->shell);
         g_free (user->email);
         g_free (user->location);
+        if (user->login_history)
+          g_variant_unref (user->login_history);
 
         if (user->accounts_proxy != NULL) {
                 g_object_unref (user->accounts_proxy);
@@ -674,6 +713,37 @@ act_user_get_login_frequency (ActUser *user)
         g_return_val_if_fail (ACT_IS_USER (user), 0);
 
         return user->login_frequency;
+}
+
+/**
+ * act_user_get_login_time:
+ * @user: a #ActUser
+ *
+ * Returns the last login time for @user.
+ *
+ * Returns: (transfer none): the login time
+ */
+gint64
+act_user_get_login_time (ActUser *user) {
+        g_return_val_if_fail (ACT_IS_USER (user), 0);
+
+        return user->login_time;
+}
+
+/**
+ * act_user_get_login_history:
+ * @user: a #ActUser
+ *
+ * Returns the login history for @user.
+ *
+ * Returns: (transfer none): a pointer to GVariant of type "a(xxa{sv})"
+ * which must not be modified or freed, or %NULL.
+ */
+const GVariant *
+act_user_get_login_history (ActUser *user) {
+        g_return_val_if_fail (ACT_IS_USER (user), NULL);
+
+        return user->login_history;
 }
 
 int
@@ -1035,6 +1105,23 @@ collect_props (const gchar *key,
                 if ((int) user->login_frequency != (int) new_login_frequency) {
                         user->login_frequency = new_login_frequency;
                         g_object_notify (G_OBJECT (user), "login-frequency");
+                }
+        } else if (strcmp (key, "LoginTime") == 0) {
+                gint64 new_login_time = g_variant_get_int64 (value);
+
+                if (user->login_time != new_login_time) {
+                        user->login_time = new_login_time;
+                        g_object_notify (G_OBJECT (user), "login-time");
+                }
+        } else if (strcmp (key, "LoginHistory") == 0) {
+                GVariant *new_login_history = value;
+
+                if (user->login_history == NULL ||
+                    !g_variant_compare (user->login_history, new_login_history)) {
+                        if (user->login_history)
+                          g_variant_unref (user->login_history);
+                        user->login_history = g_variant_ref (new_login_history);
+                        g_object_notify (G_OBJECT (user), "login-history");
                 }
         } else if (strcmp (key, "IconFile") == 0) {
                 const char *new_icon_file;

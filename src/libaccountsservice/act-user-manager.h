@@ -22,6 +22,7 @@
 #define __ACT_USER_MANAGER_H__
 
 #include <glib-object.h>
+#include <gio/gio.h>
 
 #include "act-user.h"
 
@@ -60,8 +61,11 @@ struct ActUserManagerClass
 
 typedef enum ActUserManagerError
 {
-        ACT_USER_MANAGER_ERROR_GENERAL,
-        ACT_USER_MANAGER_ERROR_KEY_NOT_FOUND
+        ACT_USER_MANAGER_ERROR_FAILED,
+        ACT_USER_MANAGER_ERROR_USER_EXISTS,
+        ACT_USER_MANAGER_ERROR_USER_DOES_NOT_EXIST,
+        ACT_USER_MANAGER_ERROR_PERMISSION_DENIED,
+        ACT_USER_MANAGER_ERROR_NOT_SUPPORTED
 } ActUserManagerError;
 
 #define ACT_USER_MANAGER_ERROR act_user_manager_error_quark ()
@@ -87,10 +91,29 @@ ActUser *           act_user_manager_create_user           (ActUserManager     *
                                                             const char         *fullname,
                                                             ActUserAccountType  accounttype,
                                                             GError             **error);
+void                act_user_manager_create_user_async     (ActUserManager     *manager,
+                                                            const gchar        *username,
+                                                            const gchar        *fullname,
+                                                            ActUserAccountType  accounttype,
+                                                            GCancellable       *cancellable,
+                                                            GAsyncReadyCallback callback,
+                                                            gpointer            user_data);
+ActUser *           act_user_manager_create_user_finish    (ActUserManager     *manager,
+                                                            GAsyncResult       *result,
+                                                            GError            **error);
 
 ActUser *           act_user_manager_cache_user            (ActUserManager     *manager,
                                                             const char         *username,
                                                             GError            **error);
+void                act_user_manager_cache_user_async      (ActUserManager     *manager,
+                                                            const gchar        *username,
+                                                            GCancellable       *cancellable,
+                                                            GAsyncReadyCallback callback,
+                                                            gpointer            user_data);
+ActUser *           act_user_manager_cache_user_finish     (ActUserManager     *manager,
+                                                            GAsyncResult       *result,
+                                                            GError            **error);
+
 gboolean            act_user_manager_uncache_user          (ActUserManager     *manager,
                                                             const char         *username,
                                                             GError            **error);
@@ -99,7 +122,15 @@ gboolean            act_user_manager_delete_user           (ActUserManager     *
                                                             ActUser            *user,
                                                             gboolean            remove_files,
                                                             GError             **error);
-
+void                act_user_manager_delete_user_async     (ActUserManager     *manager,
+                                                            ActUser            *user,
+                                                            gboolean            remove_files,
+                                                            GCancellable       *cancellable,
+                                                            GAsyncReadyCallback callback,
+                                                            gpointer            user_data);
+gboolean            act_user_manager_delete_user_finish    (ActUserManager     *manager,
+                                                            GAsyncResult       *result,
+                                                            GError            **error);
 
 G_END_DECLS
 
