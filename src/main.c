@@ -26,6 +26,8 @@
 #include <locale.h>
 #include <libintl.h>
 #include <syslog.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #include <glib.h>
 #include <glib/gi18n.h>
@@ -36,24 +38,56 @@
 
 static GMainLoop *loop;
 
+static gboolean
+ensure_directory (const char  *path,
+                  GError     **error)
+{
+        if (g_mkdir_with_parents (path, 0775) < 0) {
+                g_set_error (error,
+                             G_FILE_ERROR,
+                             g_file_error_from_errno (errno),
+                             "Failed to create directory %s: %m",
+                             path);
+                return FALSE;
+        }
+        return TRUE;
+}
+
 static void
 on_bus_acquired (GDBusConnection  *connection,
                  const gchar      *name,
                  gpointer          user_data)
 {
         Daemon *daemon;
+        GError *local_error = NULL;
+        GError **error = &local_error;
+
+        if (!ensure_directory (ICONDIR, error)) {
+                goto out;
+        }
+
+        if (!ensure_directory (USERDIR, error)) {
+                goto out;
+        }
 
         daemon = daemon_new ();
-
         if (daemon == NULL) {
-                g_main_loop_quit (loop);
-                return;
+                g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
+                             "Failed to initialize daemon");
+                goto out;
         }
 
         openlog ("accounts-daemon", LOG_PID, LOG_DAEMON);
         syslog (LOG_INFO, "started daemon version %s", VERSION);
         closelog ();
         openlog ("accounts-daemon", 0, LOG_AUTHPRIV);
+
+ out:
+        if (local_error != NULL) {
+                g_printerr ("%s\n", local_error->message);
+                g_clear_error (&local_error);
+                g_main_loop_quit (loop);
+        }
 }
 
 static void
