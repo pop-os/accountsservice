@@ -1,3 +1,15 @@
+accountsservice (0.6.25-1) experimental; urgency=low
+
+  * New upstream release:
+    - Uninitialized variable fix
+    - Typo fix
+    - Create data dirs just-in-time
+    - Ignore closing sessions for is_logged_in test
+    - Disable NULL user for delete_user call
+    - Translation updates
+
+ -- Alessio Treglia <alessio@debian.org>  Thu, 11 Oct 2012 16:10:45 +0100
+
 accountsservice (0.6.24-1) experimental; urgency=low
 
   * New upstream release:
