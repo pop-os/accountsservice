@@ -1,3 +1,12 @@
+accountsservice (0.6.21-6+smcv1) UNRELEASED; urgency=low
+
+  * Local package
+  * Don't free ActUserManagerNewSession objects until any pending asynchronous
+    calls to set up the new session have completed or finished being
+    cancelled (Closes: #688413, #683092)
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 02 Nov 2012 08:19:33 +0000
+
 accountsservice (0.6.21-6) unstable; urgency=high
 
   * CVE-2012-2737: Add patch to prevent race condition with UID
