@@ -1,27 +1,22 @@
-From be4354093b0c3ba75bfd75c8775f3e91d97da3cc Mon Sep 17 00:00:00 2001
 From: Simon McVittie <smcv@debian.org>
-Date: Fri, 2 Nov 2012 08:15:27 +0000
-Subject: [PATCH] ActUserManagerNewSession: do not free if there are pending
- async calls
-
-While the ActUserManagerNewSession is the user_data for an asynchronous
-call, it is not safe to free the struct: when the async call completes,
-it will dereference the struct.
-
-In GIO, cancellation happens asynchronously, so using a GCancellable is
-not enough to prevent this: the cancelled async call still won't complete
-until we get back to the main loop.
-
+Description: ActUserManagerNewSession: do not free if there are pending
+ async calls.
+ .
+ While the ActUserManagerNewSession is the user_data for an asynchronous
+ call, it is not safe to free the struct: when the async call completes,
+ it will dereference the struct.
+ .
+ In GIO, cancellation happens asynchronously, so using a GCancellable is
+ not enough to prevent this: the cancelled async call still won't complete
+ until we get back to the main loop.
 Bug: https://bugs.freedesktop.org/show_bug.cgi?id=50112
 Bug-Debian: http://bugs.debian.org/681826
 ---
- src/libaccountsservice/act-user-manager.c |   35 +++++++++++++++++++++++++----
+ src/libaccountsservice/act-user-manager.c |   35 ++++++++++++++++++++++++++----
  1 file changed, 31 insertions(+), 4 deletions(-)
 
-diff --git a/src/libaccountsservice/act-user-manager.c b/src/libaccountsservice/act-user-manager.c
-index 6ca9678..e6a53bb 100644
---- a/src/libaccountsservice/act-user-manager.c
-+++ b/src/libaccountsservice/act-user-manager.c
+--- accountsservice.orig/src/libaccountsservice/act-user-manager.c
++++ accountsservice/src/libaccountsservice/act-user-manager.c
 @@ -107,6 +107,7 @@ typedef struct
          GCancellable                    *cancellable;
          uid_t                            uid;
@@ -30,7 +25,7 @@ index 6ca9678..e6a53bb 100644
  } ActUserManagerNewSession;
  
  typedef enum {
-@@ -961,6 +962,11 @@ unload_new_session (ActUserManagerNewSession *new_session)
+@@ -961,6 +962,11 @@ unload_new_session (ActUserManagerNewSes
  {
          ActUserManager *manager;
  
@@ -42,7 +37,7 @@ index 6ca9678..e6a53bb 100644
          manager = new_session->manager;
  
          if (new_session->cancellable != NULL &&
-@@ -970,16 +976,29 @@ unload_new_session (ActUserManagerNewSession *new_session)
+@@ -970,16 +976,29 @@ unload_new_session (ActUserManagerNewSes
                  new_session->cancellable = NULL;
          }
  
@@ -76,7 +71,7 @@ index 6ca9678..e6a53bb 100644
  
          g_slice_free (ActUserManagerNewSession, new_session);
  }
-@@ -1025,7 +1044,10 @@ on_get_unix_user_finished (GObject      *object,
+@@ -1025,7 +1044,10 @@ on_get_unix_user_finished (GObject
          GError            *error = NULL;
          guint              uid;
  
@@ -87,7 +82,7 @@ index 6ca9678..e6a53bb 100644
                  return;
          }
  
-@@ -1087,6 +1109,7 @@ get_uid_for_new_session (ActUserManagerNewSession *new_session)
+@@ -1087,6 +1109,7 @@ get_uid_for_new_session (ActUserManagerN
  
          g_assert (new_session->proxy != NULL);
  
@@ -95,7 +90,7 @@ index 6ca9678..e6a53bb 100644
          console_kit_session_call_get_unix_user (new_session->proxy,
                                                  new_session->cancellable,
                                                  on_get_unix_user_finished,
-@@ -1228,7 +1251,10 @@ on_get_x11_display_finished (GObject      *object,
+@@ -1228,7 +1251,10 @@ on_get_x11_display_finished (GObject
          GError            *error = NULL;
          char              *x11_display;
  
@@ -106,7 +101,7 @@ index 6ca9678..e6a53bb 100644
                  return;
          }
  
-@@ -1318,6 +1344,7 @@ get_x11_display_for_new_session (ActUserManagerNewSession *new_session)
+@@ -1318,6 +1344,7 @@ get_x11_display_for_new_session (ActUser
  
          g_assert (new_session->proxy != NULL);
  
@@ -114,6 +109,3 @@ index 6ca9678..e6a53bb 100644
          console_kit_session_call_get_x11_display (new_session->proxy,
                                                    new_session->cancellable,
                                                    on_get_x11_display_finished,
--- 
-1.7.10.4
-
