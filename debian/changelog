@@ -1,11 +1,11 @@
-accountsservice (0.6.21-6+smcv1) UNRELEASED; urgency=low
+accountsservice (0.6.21-7) unstable; urgency=low
 
-  * Local package
-  * Don't free ActUserManagerNewSession objects until any pending asynchronous
-    calls to set up the new session have completed or finished being
-    cancelled (Closes: #688413, #683092)
+  [ Simon McVittie ]
+  * Don't free ActUserManagerNewSession objects until any pending
+    asynchronous calls to set up the new session have completed or
+    finished being cancelled (Closes: #688413, #683092)
 
- -- Simon McVittie <smcv@debian.org>  Fri, 02 Nov 2012 08:19:33 +0000
+ -- Alessio Treglia <alessio@debian.org>  Sat, 03 Nov 2012 11:16:15 +0000
 
 accountsservice (0.6.21-6) unstable; urgency=high
 
