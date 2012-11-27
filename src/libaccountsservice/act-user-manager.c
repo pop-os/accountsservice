@@ -210,15 +210,26 @@ static gpointer user_manager_object = NULL;
 
 G_DEFINE_TYPE (ActUserManager, act_user_manager, G_TYPE_OBJECT)
 
+static const GDBusErrorEntry error_entries[] = {
+        { ACT_USER_MANAGER_ERROR_FAILED,              "org.freedesktop.Accounts.Error.Failed" },
+        { ACT_USER_MANAGER_ERROR_USER_EXISTS,         "org.freedesktop.Accounts.Error.UserExists" },
+        { ACT_USER_MANAGER_ERROR_USER_DOES_NOT_EXIST, "org.freedesktop.Accounts.Error.UserDoesNotExist" },
+        { ACT_USER_MANAGER_ERROR_PERMISSION_DENIED,   "org.freedesktop.Accounts.Error.PermissionDenied" },
+        { ACT_USER_MANAGER_ERROR_NOT_SUPPORTED,       "org.freedesktop.Accounts.Error.NotSupported" }
+};
+
 GQuark
 act_user_manager_error_quark (void)
 {
-        static GQuark ret = 0;
+        static volatile gsize ret = 0;
         if (ret == 0) {
-                ret = g_quark_from_static_string ("act_user_manager_error");
+                g_dbus_error_register_error_domain ("act_user_manager_error",
+                                                    &ret,
+                                                    error_entries,
+                                                    G_N_ELEMENTS (error_entries));
         }
 
-        return ret;
+        return (GQuark) ret;
 }
 
 static gboolean
@@ -2445,6 +2456,8 @@ act_user_manager_init (ActUserManager *manager)
 
         manager->priv = ACT_USER_MANAGER_GET_PRIVATE (manager);
 
+        act_user_manager_error_quark (); /* register dbus errors */
+
         /* sessions */
         manager->priv->sessions = g_hash_table_new_full (g_str_hash,
                                                          g_str_equal,
@@ -2774,6 +2787,7 @@ act_user_manager_create_user_finish (ActUserManager  *manager,
         ActUser *user = NULL;
         gchar *path;
         GSimpleAsyncResult *res;
+        GError *remote_error = NULL;
 
         g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_create_user_async), FALSE);
 
@@ -2782,9 +2796,14 @@ act_user_manager_create_user_finish (ActUserManager  *manager,
         g_assert (inner_result);
 
         if (accounts_accounts_call_create_user_finish (manager->priv->accounts_proxy,
-                                                       &path, inner_result, error)) {
+                                                       &path, inner_result, &remote_error)) {
                 user = add_new_user_for_object_path (path, manager);
                 g_free (path);
+        }
+
+        if (remote_error) {
+                g_dbus_error_strip_remote_error (remote_error);
+                g_propagate_error (error, remote_error);
         }
 
         return user;
@@ -2900,6 +2919,7 @@ act_user_manager_cache_user_finish (ActUserManager  *manager,
         ActUser *user = NULL;
         gchar *path;
         GSimpleAsyncResult *res;
+        GError *remote_error = NULL;
 
         g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_cache_user_async), FALSE);
 
@@ -2908,9 +2928,14 @@ act_user_manager_cache_user_finish (ActUserManager  *manager,
         g_assert (inner_result);
 
         if (accounts_accounts_call_cache_user_finish (manager->priv->accounts_proxy,
-                                                      &path, inner_result, error)) {
+                                                      &path, inner_result, &remote_error)) {
                 user = add_new_user_for_object_path (path, manager);
                 g_free (path);
+        }
+
+        if (remote_error) {
+                g_dbus_error_strip_remote_error (remote_error);
+                g_propagate_error (error, remote_error);
         }
 
         return user;
@@ -3061,6 +3086,7 @@ act_user_manager_delete_user_finish (ActUserManager  *manager,
         GAsyncResult *inner_result;
         gboolean success;
         GSimpleAsyncResult *res;
+        GError *remote_error = NULL;
 
         g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_delete_user_async), FALSE);
         res = G_SIMPLE_ASYNC_RESULT (result);
@@ -3068,7 +3094,11 @@ act_user_manager_delete_user_finish (ActUserManager  *manager,
         g_assert (inner_result);
 
         success = accounts_accounts_call_delete_user_finish (manager->priv->accounts_proxy,
-                                                             inner_result, error);
+                                                             inner_result, &remote_error);
+        if (remote_error) {
+                g_dbus_error_strip_remote_error (remote_error);
+                g_propagate_error (error, remote_error);
+        }
 
         return success;
 }
