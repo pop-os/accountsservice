@@ -53,6 +53,18 @@
 #include "ck-seat-generated.h"
 #include "ck-session-generated.h"
 
+/**
+ * SECTION:act-user-manager
+ * @title: ActUserManager
+ * @short_description: manages ActUser objects
+ *
+ * ActUserManager is a manager object that gives access to user
+ * creation, deletion, enumeration, etc.
+ *
+ * There is typically a singleton ActUserManager object, which
+ * can be obtained by act_user_manager_get_default().
+ */
+
 #define ACT_USER_MANAGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), ACT_TYPE_USER_MANAGER, ActUserManagerPrivate))
 
 #define CK_NAME      "org.freedesktop.ConsoleKit"
@@ -86,6 +98,7 @@ typedef struct
 #ifdef WITH_SYSTEMD
         sd_login_monitor            *session_monitor;
         GInputStream                *session_monitor_stream;
+        guint                        session_monitor_source_id;
 #endif
 } ActUserManagerSeat;
 
@@ -1744,7 +1757,7 @@ _monitor_for_systemd_session_changes (ActUserManager *manager)
                                on_session_monitor_event,
                                manager,
                                NULL);
-        g_source_attach (source, NULL);
+        manager->priv->seat.session_monitor_source_id = g_source_attach (source, NULL);
         g_source_unref (source);
 }
 #endif
@@ -2572,11 +2585,15 @@ act_user_manager_finalize (GObject *object)
 
 #ifdef WITH_SYSTEMD
         if (manager->priv->seat.session_monitor != NULL) {
-                g_object_unref (manager->priv->seat.session_monitor);
+                sd_login_monitor_unref (manager->priv->seat.session_monitor);
         }
 
         if (manager->priv->seat.session_monitor_stream != NULL) {
                 g_object_unref (manager->priv->seat.session_monitor_stream);
+        }
+
+        if (manager->priv->seat.session_monitor_source_id != 0) {
+                g_source_remove (manager->priv->seat.session_monitor_source_id);
         }
 #endif
 
@@ -2671,6 +2688,108 @@ act_user_manager_create_user (ActUserManager      *manager,
         return user;
 }
 
+static void
+act_user_manager_async_complete_handler (GObject      *source,
+                                         GAsyncResult *result,
+                                         gpointer      user_data)
+{
+  GSimpleAsyncResult *res = user_data;
+
+  g_simple_async_result_set_op_res_gpointer (res, g_object_ref (result), g_object_unref);
+  g_simple_async_result_complete (res);
+  g_object_unref (res);
+}
+
+/**
+ * act_user_manager_create_user_async:
+ * @manager: a #ActUserManager
+ * @username: a unix user name
+ * @fullname: a unix GECOS value
+ * @accounttype: a #ActUserAccountType
+ * @cancellable: (allow-none): optional #GCancellable object,
+ *     %NULL to ignore
+ * @callback: (scope async): a #GAsyncReadyCallback to call
+ *     when the request is satisfied
+ * @user_data (closure): the data to pass to @callback
+ *
+ * Asynchronously creates a user account on the system.
+ *
+ * For more details, see act_user_manager_create_user(), which
+ * is the synchronous version of this call.
+ *
+ * Since: 0.6.27
+ */
+void
+act_user_manager_create_user_async (ActUserManager      *manager,
+                                    const char          *username,
+                                    const char          *fullname,
+                                    ActUserAccountType   accounttype,
+                                    GCancellable        *cancellable,
+                                    GAsyncReadyCallback  callback,
+                                    gpointer             user_data)
+{
+        GSimpleAsyncResult *res;
+
+        g_return_if_fail (ACT_IS_USER_MANAGER (manager));
+        g_return_if_fail (manager->priv->accounts_proxy != NULL);
+
+        g_debug ("ActUserManager: Creating user (async) '%s', '%s', %d",
+                 username, fullname, accounttype);
+
+        g_assert (manager->priv->accounts_proxy != NULL);
+
+        res = g_simple_async_result_new (G_OBJECT (manager),
+                                         callback, user_data,
+                                         act_user_manager_create_user_async);
+        g_simple_async_result_set_check_cancellable (res, cancellable);
+
+        accounts_accounts_call_create_user (manager->priv->accounts_proxy,
+                                            username,
+                                            fullname,
+                                            accounttype,
+                                            cancellable,
+                                            act_user_manager_async_complete_handler, res);
+}
+
+/**
+ * act_user_manager_create_user_finish:
+ * @manager: a #ActUserManager
+ * @result: a #GAsyncResult
+ * @error: a #GError
+ *
+ * Finishes an asynchronous user creation.
+ *
+ * See act_user_manager_create_user_async().
+ *
+ * Returns: (transfer full): user object
+ *
+ * Since: 0.6.27
+ */
+ActUser *
+act_user_manager_create_user_finish (ActUserManager  *manager,
+                                     GAsyncResult    *result,
+                                     GError         **error)
+{
+        GAsyncResult *inner_result;
+        ActUser *user = NULL;
+        gchar *path;
+        GSimpleAsyncResult *res;
+
+        g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_create_user_async), FALSE);
+
+        res = G_SIMPLE_ASYNC_RESULT (result);
+        inner_result = g_simple_async_result_get_op_res_gpointer (res);
+        g_assert (inner_result);
+
+        if (accounts_accounts_call_create_user_finish (manager->priv->accounts_proxy,
+                                                       &path, inner_result, error)) {
+                user = add_new_user_for_object_path (path, manager);
+                g_free (path);
+        }
+
+        return user;
+}
+
 /**
  * act_user_manager_cache_user:
  * @manager: a #ActUserManager
@@ -2714,6 +2833,90 @@ act_user_manager_cache_user (ActUserManager     *manager,
         return user;
 }
 
+
+/**
+ * act_user_manager_cache_user_async:
+ * @manager: a #ActUserManager
+ * @username: a unix user name
+ * @accounttype: a #ActUserAccountType
+ * @cancellable: (allow-none): optional #GCancellable object,
+ *     %NULL to ignore
+ * @callback: (scope async): a #GAsyncReadyCallback to call
+ *     when the request is satisfied
+ * @user_data (closure): the data to pass to @callback
+ *
+ * Asynchronously caches a user account so it shows up via
+ * act_user_manager_list_users().
+ *
+ * For more details, see act_user_manager_cache_user(), which
+ * is the synchronous version of this call.
+ *
+ * Since: 0.6.27
+ */
+void
+act_user_manager_cache_user_async (ActUserManager      *manager,
+                                   const char          *username,
+                                   GCancellable        *cancellable,
+                                   GAsyncReadyCallback  callback,
+                                   gpointer             user_data)
+{
+        GSimpleAsyncResult *res;
+
+        g_return_if_fail (ACT_IS_USER_MANAGER (manager));
+        g_return_if_fail (manager->priv->accounts_proxy != NULL);
+
+        g_debug ("ActUserManager: Caching user (async) '%s'", username);
+
+        res = g_simple_async_result_new (G_OBJECT (manager),
+                                         callback, user_data,
+                                         act_user_manager_cache_user_async);
+        g_simple_async_result_set_check_cancellable (res, cancellable);
+
+        accounts_accounts_call_cache_user (manager->priv->accounts_proxy,
+                                           username,
+                                           cancellable,
+                                           act_user_manager_async_complete_handler, res);
+}
+
+/**
+ * act_user_manager_cache_user_finish:
+ * @manager: a #ActUserManager
+ * @result: a #GAsyncResult
+ * @error: a #GError
+ *
+ * Finishes an asynchronous user caching.
+ *
+ * See act_user_manager_cache_user_async().
+ *
+ * Returns: (transfer full): user object
+ *
+ * Since: 0.6.27
+ */
+ActUser *
+act_user_manager_cache_user_finish (ActUserManager  *manager,
+                                    GAsyncResult    *result,
+                                    GError         **error)
+{
+        GAsyncResult *inner_result;
+        ActUser *user = NULL;
+        gchar *path;
+        GSimpleAsyncResult *res;
+
+        g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_cache_user_async), FALSE);
+
+        res = G_SIMPLE_ASYNC_RESULT (result);
+        inner_result = g_simple_async_result_get_op_res_gpointer (res);
+        g_assert (inner_result);
+
+        if (accounts_accounts_call_cache_user_finish (manager->priv->accounts_proxy,
+                                                      &path, inner_result, error)) {
+                user = add_new_user_for_object_path (path, manager);
+                g_free (path);
+        }
+
+        return user;
+}
+
 /**
  * act_user_manager_uncache_user:
  * @manager: a #ActUserManager
@@ -2753,6 +2956,17 @@ act_user_manager_uncache_user (ActUserManager     *manager,
         return TRUE;
 }
 
+/**
+ * act_user_manager_delete_user:
+ * @manager: a #ActUserManager
+ * @user: an #ActUser object
+ * @remove_files: %TRUE to delete the users home directory
+ * @error: a #GError
+ *
+ * Deletes a user account on the system.
+ *
+ * Returns: %TRUE if the user account was successfully deleted
+ */
 gboolean
 act_user_manager_delete_user (ActUserManager  *manager,
                               ActUser         *user,
@@ -2781,3 +2995,81 @@ act_user_manager_delete_user (ActUserManager  *manager,
         return res;
 }
 
+/**
+ * act_user_manager_delete_user_async:
+ * @manager: a #ActUserManager
+ * @user: a #ActUser object
+ * @remove_files: %TRUE to delete the users home directory
+ * @cancellable: (allow-none): optional #GCancellable object,
+ *     %NULL to ignore
+ * @callback: (scope async): a #GAsyncReadyCallback to call
+ *     when the request is satisfied
+ * @user_data (closure): the data to pass to @callback
+ *
+ * Asynchronously deletes a user account from the system.
+ *
+ * For more details, see act_user_manager_delete_user(), which
+ * is the synchronous version of this call.
+ *
+ * Since: 0.6.27
+ */
+void
+act_user_manager_delete_user_async (ActUserManager      *manager,
+                                    ActUser             *user,
+                                    gboolean             remove_files,
+                                    GCancellable        *cancellable,
+                                    GAsyncReadyCallback  callback,
+                                    gpointer             user_data)
+{
+        GSimpleAsyncResult *res;
+
+        g_return_if_fail (ACT_IS_USER_MANAGER (manager));
+        g_return_if_fail (ACT_IS_USER (user));
+        g_return_if_fail (manager->priv->accounts_proxy != NULL);
+
+        res = g_simple_async_result_new (G_OBJECT (manager),
+                                         callback, user_data,
+                                         act_user_manager_delete_user_async);
+        g_simple_async_result_set_check_cancellable (res, cancellable);
+
+        g_debug ("ActUserManager: Deleting (async) user '%s' (uid %ld)", act_user_get_user_name (user), (long) act_user_get_uid (user));
+
+        accounts_accounts_call_delete_user (manager->priv->accounts_proxy,
+                                            act_user_get_uid (user), remove_files,
+                                            cancellable,
+                                            act_user_manager_async_complete_handler, res);
+}
+
+/**
+ * act_user_manager_delete_user_finish:
+ * @manager: a #ActUserManager
+ * @result: a #GAsyncResult
+ * @error: a #GError
+ *
+ * Finishes an asynchronous user account deletion.
+ *
+ * See act_user_manager_delete_user_async().
+ *
+ * Returns: %TRUE if the user account was successfully deleted
+ *
+ * Since: 0.6.27
+ */
+gboolean
+act_user_manager_delete_user_finish (ActUserManager  *manager,
+                                     GAsyncResult    *result,
+                                     GError         **error)
+{
+        GAsyncResult *inner_result;
+        gboolean success;
+        GSimpleAsyncResult *res;
+
+        g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_delete_user_async), FALSE);
+        res = G_SIMPLE_ASYNC_RESULT (res);
+        inner_result = g_simple_async_result_get_op_res_gpointer (res);
+        g_assert (inner_result);
+
+        success = accounts_accounts_call_delete_user_finish (manager->priv->accounts_proxy,
+                                                             inner_result, error);
+
+        return success;
+}

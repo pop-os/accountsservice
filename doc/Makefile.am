@@ -1,1 +1,1 @@
-SUBDIRS = dbus
+SUBDIRS = dbus libaccountsservice
