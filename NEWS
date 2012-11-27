@@ -1,3 +1,12 @@
+Changes in 0.6.26
+=================
+
+* Require libsystemd-login 186
+* Protect against deleting root user
+* Add LoginTime and LoginHistory properties
+* fix crash consolekit code
+* fix has_multiple_user property after removing user
+
 Changes in 0.6.25
 =================
 
