@@ -491,7 +491,8 @@ act_user_finalize (GObject *object)
         g_free (user->shell);
         g_free (user->email);
         g_free (user->location);
-        g_variant_unref (user->login_history);
+        if (user->login_history)
+          g_variant_unref (user->login_history);
 
         if (user->accounts_proxy != NULL) {
                 g_object_unref (user->accounts_proxy);
@@ -1106,7 +1107,7 @@ collect_props (const gchar *key,
                         g_object_notify (G_OBJECT (user), "login-frequency");
                 }
         } else if (strcmp (key, "LoginTime") == 0) {
-                gint64 new_login_time = value;
+                gint64 new_login_time = g_variant_get_int64 (value);
 
                 if (user->login_time != new_login_time) {
                         user->login_time = new_login_time;
@@ -1115,8 +1116,10 @@ collect_props (const gchar *key,
         } else if (strcmp (key, "LoginHistory") == 0) {
                 GVariant *new_login_history = value;
 
-                if (!g_variant_compare (user->login_history, new_login_history)) {
-                        g_variant_unref (user->login_history);
+                if (user->login_history == NULL ||
+                    !g_variant_compare (user->login_history, new_login_history)) {
+                        if (user->login_history)
+                          g_variant_unref (user->login_history);
                         user->login_history = g_variant_ref (new_login_history);
                         g_object_notify (G_OBJECT (user), "login-history");
                 }
