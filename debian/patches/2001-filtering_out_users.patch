@@ -86,7 +86,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
  }
  
  #ifdef HAVE_UTMPX_H
-@@ -400,8 +373,8 @@ load_entries (Daemon             *daemon
+@@ -480,8 +453,8 @@ load_entries (Daemon             *daemon
                  if (pwent == NULL)
                          break;
  
@@ -97,7 +97,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
                          g_debug ("skipping user: %s", pwent->pw_name);
                          continue;
                  }
-@@ -628,6 +601,59 @@ on_gdm_monitor_changed (GFileMonitor
+@@ -708,6 +681,59 @@ on_gdm_monitor_changed (GFileMonitor
          queue_reload_autologin (daemon);
  }
  
@@ -157,7 +157,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
  static void
  daemon_init (Daemon *daemon)
  {
-@@ -637,6 +663,7 @@ daemon_init (Daemon *daemon)
+@@ -717,6 +743,7 @@ daemon_init (Daemon *daemon)
  
          daemon->priv = DAEMON_GET_PRIVATE (daemon);
  
@@ -165,7 +165,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
          daemon->priv->exclusions = g_hash_table_new_full (g_str_hash,
                                                            g_str_equal,
                                                            g_free,
-@@ -935,21 +962,19 @@ finish_list_cached_users (gpointer user_
+@@ -1015,21 +1042,19 @@ finish_list_cached_users (gpointer user_
          const gchar *name;
          User *user;
          uid_t uid;
@@ -201,7 +201,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
                                        User                  *user,
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
-@@ -283,7 +283,7 @@ user_update_from_pwent (User          *u
+@@ -287,7 +287,7 @@ user_update_from_pwent (User          *u
  
          user->system_account = daemon_local_user_is_excluded (user->daemon,
                                                                user->user_name,

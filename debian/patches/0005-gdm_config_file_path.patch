@@ -18,7 +18,7 @@ Bug: https://bugs.freedesktop.org/show_bug.cgi?id=49993
  
  static const char *default_excludes[] = {
          "bin",
-@@ -531,7 +531,7 @@ reload_autologin_timeout (Daemon *daemon
+@@ -611,7 +611,7 @@ reload_autologin_timeout (Daemon *daemon
          daemon->priv->autologin_id = 0;
  
          if (!load_autologin (daemon, &name, &enabled, &error)) {
