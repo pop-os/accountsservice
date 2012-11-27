@@ -1,3 +1,9 @@
+Changes in 0.6.29
+=================
+
+* Translate D-Bus errors to local errors in libaccountsservice
+* Fix a wrong property name n the login history support
+
 Changes in 0.6.28
 =================
 

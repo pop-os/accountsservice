@@ -353,7 +353,7 @@ entry_generator_wtmp (GHashTable *users,
                         g_variant_builder_unref (builder2);
                         g_free (previous_login->id);
                 }
-                g_object_set (user, "login-previous_login", g_variant_new ("a(xxa{sv})", builder), NULL);
+                g_object_set (user, "login-history", g_variant_new ("a(xxa{sv})", builder), NULL);
                 g_variant_builder_unref (builder);
                 g_list_free (accounting->previous_logins);
         }

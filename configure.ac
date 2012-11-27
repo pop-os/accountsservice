@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.28])
+AC_INIT([AccountsService],[0.6.29])
 AM_INIT_AUTOMAKE(no-dist-gzip dist-xz tar-ustar foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -9,7 +9,7 @@ AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",
 # Support silent build rules, requires at least automake-1.11. Enable
 # by either passing --enable-silent-rules to configure or passing V=0
 # to make
-m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([no])])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_USE_SYSTEM_EXTENSIONS
 AC_PROG_CC
