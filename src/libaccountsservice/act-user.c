@@ -33,6 +33,14 @@
 #include "act-user-private.h"
 #include "accounts-user-generated.h"
 
+/**
+ * SECTION:act-user
+ * @title: ActUser
+ * @short_description: information about a user account
+ *
+ * An ActUser object represents a user account on the system.
+ */
+
 #define ACT_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST ((klass), ACT_TYPE_USER, ActUserClass))
 #define ACT_IS_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), ACT_TYPE_USER))
 #define ACT_USER_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS ((object), ACT_TYPE_USER, ActUserClass))
@@ -453,6 +461,7 @@ act_user_init (ActUser *user)
 {
         GError *error = NULL;
 
+        user->local_account = TRUE;
         user->user_name = NULL;
         user->real_name = NULL;
         user->sessions = NULL;
