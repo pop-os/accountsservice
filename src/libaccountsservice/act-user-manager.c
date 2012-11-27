@@ -2838,7 +2838,6 @@ act_user_manager_cache_user (ActUserManager     *manager,
  * act_user_manager_cache_user_async:
  * @manager: a #ActUserManager
  * @username: a unix user name
- * @accounttype: a #ActUserAccountType
  * @cancellable: (allow-none): optional #GCancellable object,
  *     %NULL to ignore
  * @callback: (scope async): a #GAsyncReadyCallback to call
@@ -3064,7 +3063,7 @@ act_user_manager_delete_user_finish (ActUserManager  *manager,
         GSimpleAsyncResult *res;
 
         g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_delete_user_async), FALSE);
-        res = G_SIMPLE_ASYNC_RESULT (res);
+        res = G_SIMPLE_ASYNC_RESULT (result);
         inner_result = g_simple_async_result_get_op_res_gpointer (res);
         g_assert (inner_result);
 

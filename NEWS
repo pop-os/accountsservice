@@ -1,3 +1,17 @@
+Changes in 0.6.28
+=================
+
+* Fix act_user_manager_delete_user_finish
+* Fix handling of LoginTime and LoginHistory properties
+
+Changes in 0.6.27
+=================
+
+* Fix warnings when the singleton user manager object is finalized
+* Generated docs for libaccountsservice
+* Initialize local_acount to TRUE
+* Add async api for user creation, caching and deletion
+
 Changes in 0.6.26
 =================
 
