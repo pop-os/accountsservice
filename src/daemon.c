@@ -205,15 +205,37 @@ daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gcha
 }
 
 #ifdef HAVE_UTMPX_H
+
+typedef struct {
+        int frequency;
+        gint64 time;
+        GList *previous_logins;
+} UserAccounting;
+
+typedef struct {
+        gchar  *id;
+        gint64  login_time;
+        gint64  logout_time;
+} UserPreviousLogin;
+
+typedef struct {
+        GHashTable *login_hash;
+        GHashTable *logout_hash;
+} WTmpGeneratorState;
+
 static struct passwd *
 entry_generator_wtmp (GHashTable *users,
                       gpointer   *state)
 {
-        GHashTable *login_frequency_hash;
+        GHashTable *login_hash, *logout_hash;
         struct utmpx *wtmp_entry;
         GHashTableIter iter;
         gpointer key, value;
         struct passwd *pwent;
+        User *user;
+        WTmpGeneratorState *state_data;
+        GVariantBuilder *builder, *builder2;
+        GList *l;
 
         if (*state == NULL) {
                 /* First iteration */
@@ -225,12 +247,41 @@ entry_generator_wtmp (GHashTable *users,
                 utmpxname (_PATH_WTMPX);
                 setutxent ();
 #endif
-                *state = g_hash_table_new (g_str_hash, g_str_equal);
+                *state = g_new (WTmpGeneratorState, 1);
+                state_data = *state;
+                state_data->login_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+                state_data->logout_hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
         }
 
         /* Every iteration */
-        login_frequency_hash = *state;
+        state_data = *state;
+        login_hash = state_data->login_hash;
+        logout_hash = state_data->logout_hash;
         while ((wtmp_entry = getutxent ())) {
+                UserAccounting    *accounting;
+                UserPreviousLogin *previous_login;
+
+                if (wtmp_entry->ut_type == BOOT_TIME) {
+                        /* Set boot time for missing logout records */
+                        g_hash_table_iter_init (&iter, logout_hash);
+                        while (g_hash_table_iter_next (&iter, &key, &value)) {
+                                previous_login = (UserPreviousLogin *) value;
+
+                                if (previous_login->logout_time == 0) {
+                                        previous_login->logout_time = wtmp_entry->ut_tv.tv_sec;
+                                }
+                        }
+                        g_hash_table_remove_all (logout_hash);
+                } else if (wtmp_entry->ut_type == DEAD_PROCESS) {
+                        /* Save corresponding logout time */
+                        if (g_hash_table_lookup_extended (logout_hash, wtmp_entry->ut_line, &key, &value)) {
+                                previous_login = (UserPreviousLogin *) value;
+                                previous_login->logout_time = wtmp_entry->ut_tv.tv_sec;
+
+                                g_hash_table_remove (logout_hash, previous_login->id);
+                        }
+                }
+
                 if (wtmp_entry->ut_type != USER_PROCESS) {
                         continue;
                 }
@@ -244,21 +295,29 @@ entry_generator_wtmp (GHashTable *users,
                         continue;
                 }
 
-                if (!g_hash_table_lookup_extended (login_frequency_hash,
+                if (!g_hash_table_lookup_extended (login_hash,
                                                    wtmp_entry->ut_user,
                                                    &key, &value)) {
-                        g_hash_table_insert (login_frequency_hash,
-                                             g_strdup (wtmp_entry->ut_user),
-                                             GUINT_TO_POINTER (1));
+                        accounting = g_new (UserAccounting, 1);
+                        accounting->frequency = 0;
+                        accounting->previous_logins = NULL;
+
+                        g_hash_table_insert (login_hash, g_strdup (wtmp_entry->ut_user), accounting);
                 } else {
-                        guint frequency;
-
-                        frequency = GPOINTER_TO_UINT (value) + 1;
-
-                        g_hash_table_insert (login_frequency_hash,
-                                             key,
-                                             GUINT_TO_POINTER (frequency));
+                        accounting = value;
                 }
+
+                accounting->frequency++;
+                accounting->time = wtmp_entry->ut_tv.tv_sec;
+
+                /* Add zero logout time to change it later on logout record */
+                previous_login = g_new (UserPreviousLogin, 1);
+                previous_login->id = g_strdup (wtmp_entry->ut_line);
+                previous_login->login_time = wtmp_entry->ut_tv.tv_sec;
+                previous_login->logout_time = 0;
+                accounting->previous_logins = g_list_prepend (accounting->previous_logins, previous_login);
+
+                g_hash_table_insert (logout_hash, g_strdup (wtmp_entry->ut_line), previous_login);
 
                 return pwent;
         }
@@ -266,21 +325,42 @@ entry_generator_wtmp (GHashTable *users,
         /* Last iteration */
         endutxent ();
 
-        g_hash_table_iter_init (&iter, login_frequency_hash);
+        g_hash_table_iter_init (&iter, login_hash);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
-                User *user;
-                guint64 frequency = (guint64) GPOINTER_TO_UINT (value);
+                UserAccounting    *accounting = (UserAccounting *) value;
+                UserPreviousLogin *previous_login;
 
                 user = g_hash_table_lookup (users, key);
                 if (user == NULL) {
+                        for (l = accounting->previous_logins; l != NULL; l = l->next) {
+                                previous_login = l->data;
+                                g_free (previous_login->id);
+                        }
+                        g_list_free (accounting->previous_logins);
                         continue;
                 }
 
-                g_object_set (user, "login-frequency", frequency, NULL);
+                g_object_set (user, "login-frequency", accounting->frequency, NULL);
+                g_object_set (user, "login-time", accounting->time, NULL);
+
+                builder = g_variant_builder_new (G_VARIANT_TYPE ("a(xxa{sv})"));
+                for (l = g_list_last (accounting->previous_logins); l != NULL; l = l->prev) {
+                        previous_login = l->data;
+
+                        builder2 = g_variant_builder_new (G_VARIANT_TYPE ("a{sv}"));
+                        g_variant_builder_add (builder2, "{sv}", "type", g_variant_new_string (previous_login->id));
+                        g_variant_builder_add (builder, "(xxa{sv})", previous_login->login_time, previous_login->logout_time, builder2);
+                        g_variant_builder_unref (builder2);
+                        g_free (previous_login->id);
+                }
+                g_object_set (user, "login-previous_login", g_variant_new ("a(xxa{sv})", builder), NULL);
+                g_variant_builder_unref (builder);
+                g_list_free (accounting->previous_logins);
         }
 
-        g_hash_table_foreach (login_frequency_hash, (GHFunc) g_free, NULL);
-        g_hash_table_unref (login_frequency_hash);
+        g_hash_table_unref (login_hash);
+        g_hash_table_unref (logout_hash);
+        g_free (state_data);
         *state = NULL;
         return NULL;
 }
@@ -1283,6 +1363,11 @@ daemon_delete_user (AccountsAccounts      *accounts,
 {
         Daemon *daemon = (Daemon*)accounts;
         DeleteUserData *data;
+
+        if (uid == 0) {
+                throw_error (context, ERROR_FAILED, "Refuse to delete root user");
+                return TRUE;
+        }
 
         data = g_new0 (DeleteUserData, 1);
         data->uid = uid;
