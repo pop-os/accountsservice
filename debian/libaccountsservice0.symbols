@@ -105,6 +105,7 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_dup_icon_file@Base 0.6.18
  accounts_user_dup_language@Base 0.6.18
  accounts_user_dup_location@Base 0.6.18
+ accounts_user_dup_login_history@Base 0.6.29
  accounts_user_dup_password_hint@Base 0.6.18
  accounts_user_dup_real_name@Base 0.6.18
  accounts_user_dup_shell@Base 0.6.18
@@ -121,6 +122,8 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_get_location@Base 0.6.18
  accounts_user_get_locked@Base 0.6.18
  accounts_user_get_login_frequency@Base 0.6.18
+ accounts_user_get_login_history@Base 0.6.29
+ accounts_user_get_login_time@Base 0.6.29
  accounts_user_get_password_hint@Base 0.6.18
  accounts_user_get_password_mode@Base 0.6.18
  accounts_user_get_real_name@Base 0.6.18
@@ -149,6 +152,8 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_set_location@Base 0.6.18
  accounts_user_set_locked@Base 0.6.18
  accounts_user_set_login_frequency@Base 0.6.18
+ accounts_user_set_login_history@Base 0.6.29
+ accounts_user_set_login_time@Base 0.6.29
  accounts_user_set_password_hint@Base 0.6.18
  accounts_user_set_password_mode@Base 0.6.18
  accounts_user_set_real_name@Base 0.6.18
@@ -170,6 +175,8 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_get_location@Base 0.6.8
  act_user_get_locked@Base 0.6.8
  act_user_get_login_frequency@Base 0.6.8
+ act_user_get_login_history@Base 0.6.29
+ act_user_get_login_time@Base 0.6.29
  act_user_get_num_sessions@Base 0.6.8
  act_user_get_object_path@Base 0.6.8
  act_user_get_password_hint@Base 0.6.8
@@ -187,9 +194,15 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_is_system_account@Base 0.6.9
  act_user_manager_activate_user_session@Base 0.6.8
  act_user_manager_cache_user@Base 0.6.24
+ act_user_manager_cache_user_async@Base 0.6.29
+ act_user_manager_cache_user_finish@Base 0.6.29
  act_user_manager_can_switch@Base 0.6.8
  act_user_manager_create_user@Base 0.6.12
+ act_user_manager_create_user_async@Base 0.6.29
+ act_user_manager_create_user_finish@Base 0.6.29
  act_user_manager_delete_user@Base 0.6.13
+ act_user_manager_delete_user_async@Base 0.6.29
+ act_user_manager_delete_user_finish@Base 0.6.29
  act_user_manager_error_get_type@Base 0.6.18
  act_user_manager_error_quark@Base 0.6.8
  act_user_manager_get_default@Base 0.6.8
