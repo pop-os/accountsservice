@@ -26,6 +26,8 @@ accountsservice (0.6.29-1) experimental; urgency=low
       + Translate D-Bus errors to local errors in libaccountsservice
       + Fix a wrong property name n the login history support
   * Refresh patches.
+  * Update symbols control file.
+  * Don't build gtk-docs for now.
 
  -- Alessio Treglia <alessio@debian.org>  Thu, 11 Oct 2012 16:10:45 +0100
 
