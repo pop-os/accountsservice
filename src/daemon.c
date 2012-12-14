@@ -207,7 +207,7 @@ daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gcha
 #ifdef HAVE_UTMPX_H
 
 typedef struct {
-        int frequency;
+        guint64 frequency;
         gint64 time;
         GList *previous_logins;
 } UserAccounting;
@@ -411,7 +411,7 @@ entry_generator_cachedir (GHashTable *users,
 
         /* First iteration */
         if (*state == NULL) {
-                *state = dir = g_dir_open (USERDIR, 0, &error);
+                *state = g_dir_open (USERDIR, 0, &error);
                 if (error != NULL) {
                         if (!g_error_matches (error, G_FILE_ERROR, G_FILE_ERROR_NOENT))
                                 g_warning ("couldn't list user cache directory: %s", USERDIR);
@@ -440,7 +440,7 @@ entry_generator_cachedir (GHashTable *users,
                 if (regular) {
                         pwent = getpwnam (name);
                         if (pwent == NULL)
-                                g_debug ("user '%s' in cache dir but not presen on system", name);
+                                g_debug ("user '%s' in cache dir but not present on system", name);
                         else
                                 return pwent;
                 }
