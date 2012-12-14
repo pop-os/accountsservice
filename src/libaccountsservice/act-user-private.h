@@ -34,6 +34,8 @@ void           _act_user_update_from_object_path   (ActUser    *user,
                                                     const char *object_path);
 void           _act_user_update_login_frequency    (ActUser    *user,
                                                     int         login_frequency);
+void           _act_user_load_from_user          (ActUser    *user,
+                                                  ActUser    *user_to_copy);
 
 void           _act_user_add_session      (ActUser             *user,
                                            const char          *session_id);

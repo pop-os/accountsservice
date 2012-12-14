@@ -75,9 +75,12 @@ GType               act_user_manager_get_type              (void);
 
 ActUserManager *    act_user_manager_get_default           (void);
 
+gboolean            act_user_manager_no_service            (ActUserManager *manager);
 GSList *            act_user_manager_list_users            (ActUserManager *manager);
 ActUser *           act_user_manager_get_user              (ActUserManager *manager,
                                                             const char     *username);
+ActUser *           act_user_manager_get_user_by_id        (ActUserManager *manager,
+                                                            uid_t           id);
 
 gboolean            act_user_manager_activate_user_session (ActUserManager *manager,
                                                             ActUser        *user);
