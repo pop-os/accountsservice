@@ -308,36 +308,42 @@ user_update_from_keyfile (User     *user,
                 /* TODO: validate / normalize */
                 g_free (user->language);
                 user->language = s;
+                g_object_notify (G_OBJECT (user), "language");
         }
 
         s = g_key_file_get_string (keyfile, "User", "XSession", NULL);
         if (s != NULL) {
                 g_free (user->x_session);
                 user->x_session = s;
+                g_object_notify (G_OBJECT (user), "x-session");
         }
 
         s = g_key_file_get_string (keyfile, "User", "Email", NULL);
         if (s != NULL) {
                 g_free (user->email);
                 user->email = s;
+                g_object_notify (G_OBJECT (user), "email");
         }
 
         s = g_key_file_get_string (keyfile, "User", "Location", NULL);
         if (s != NULL) {
                 g_free (user->location);
                 user->location = s;
+                g_object_notify (G_OBJECT (user), "location");
         }
 
         s = g_key_file_get_string (keyfile, "User", "PasswordHint", NULL);
         if (s != NULL) {
                 g_free (user->password_hint);
                 user->password_hint = s;
+                g_object_notify (G_OBJECT (user), "password-hint");
         }
 
         s = g_key_file_get_string (keyfile, "User", "Icon", NULL);
         if (s != NULL) {
                 g_free (user->icon_file);
                 user->icon_file = s;
+                g_object_notify (G_OBJECT (user), "icon-file");
         }
 
         g_object_thaw_notify (G_OBJECT (user));
@@ -390,7 +396,7 @@ save_extra_data (User *user)
         error = NULL;
         data = g_key_file_to_data (keyfile, NULL, &error);
         if (error == NULL) {
-                filename = g_build_filename ("/var/lib/AccountsService/users",
+                filename = g_build_filename (USERDIR,
                                              user->user_name,
                                              NULL);
                 g_file_set_contents (filename, data, -1, &error);
@@ -411,9 +417,9 @@ move_extra_data (const gchar *old_name,
         gchar *old_filename;
         gchar *new_filename;
 
-        old_filename = g_build_filename ("/var/lib/AccountsService/users",
+        old_filename = g_build_filename (USERDIR,
                                          old_name, NULL);
-        new_filename = g_build_filename ("/var/lib/AccountsService/users",
+        new_filename = g_build_filename (USERDIR,
                                          new_name, NULL);
 
         g_rename (old_filename, new_filename);

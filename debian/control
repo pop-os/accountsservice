@@ -6,15 +6,17 @@ Build-Depends:
  debhelper (>= 7.0.50~),
  dh-autoreconf,
  gir1.2-freedesktop,
- gir1.2-glib-2.0,
+ gir1.2-glib-2.0 (>= 1.34),
  gnome-doc-utils,
  gobject-introspection (>= 0.9.12-4~),
  intltool,
  libgirepository1.0-dev (>= 0.9.12),
- libglib2.0-dev (>= 2.25.11),
+ libglib2.0-dev (>= 2.34),
  libpolkit-gobject-1-dev,
  xmlto
-Standards-Version: 3.9.3
+Build-Depends-Indep:
+ gtk-doc-tools
+Standards-Version: 3.9.4
 Homepage: http://cgit.freedesktop.org/accountsservice/
 Vcs-Git: git://git.debian.org/collab-maint/accountsservice.git
 Vcs-Browser: http://git.debian.org/?p=collab-maint/accountsservice.git
@@ -103,4 +105,18 @@ Description: query and manipulate user account information - debug
  based on the useradd, usermod and userdel commands.
  .
  This package provides the debugging symbols for the
+ AccountService library.
+
+Package: libaccountsservice-doc
+Section: doc
+Architecture: all
+Depends:
+ ${misc:Depends}
+Description: query and manipulate user account information - documentation
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This package provides the developers reference for the
  AccountService library.

@@ -107,6 +107,8 @@ struct _ActUser {
         ActUserAccountType  account_type;
         ActUserPasswordMode password_mode;
 
+        guint           uid_set : 1;
+
         guint           is_loaded : 1;
         guint           locked : 1;
         guint           automatic_login : 1;
@@ -983,8 +985,9 @@ collect_props (const gchar *key,
                 guint64 new_uid;
 
                 new_uid = g_variant_get_uint64 (value);
-                if ((guint64) user->uid != new_uid) {
+                if (!user->uid_set || (guint64) user->uid != new_uid) {
                         user->uid = (uid_t) new_uid;
+                        user->uid_set = TRUE;
                         g_object_notify (G_OBJECT (user), "uid");
                 }
         } else if (strcmp (key, "UserName") == 0) {
@@ -1298,6 +1301,90 @@ _act_user_update_login_frequency (ActUser    *user,
                 user->login_frequency = login_frequency;
                 g_object_notify (G_OBJECT (user), "login-frequency");
         }
+}
+
+static void
+copy_sessions_list (ActUser *user,
+                    ActUser *user_to_copy)
+{
+        GList *node;
+
+        for (node = g_list_last (user_to_copy->sessions);
+             node != NULL;
+             node = node->prev) {
+                user->sessions = g_list_prepend (user->sessions, g_strdup (node->data));
+        }
+}
+
+void
+_act_user_load_from_user (ActUser    *user,
+                          ActUser    *user_to_copy)
+{
+        if (!user_to_copy->is_loaded) {
+                return;
+        }
+
+        /* loading users may already have a uid, user name, or session list
+         * from creation, so only update them if necessary
+         */
+        if (!user->uid_set) {
+                user->uid = user_to_copy->uid;
+                g_object_notify (G_OBJECT (user), "uid");
+        }
+
+        if (user->user_name == NULL) {
+                user->user_name = g_strdup (user_to_copy->user_name);
+                g_object_notify (G_OBJECT (user), "user-name");
+        }
+
+        if (user->sessions == NULL) {
+                copy_sessions_list (user, user_to_copy);
+                g_signal_emit (user, signals[SESSIONS_CHANGED], 0);
+        }
+
+        user->real_name = g_strdup (user_to_copy->real_name);
+        g_object_notify (G_OBJECT (user), "real-name");
+
+        user->password_hint = g_strdup (user_to_copy->real_name);
+        g_object_notify (G_OBJECT (user), "password-hint");
+
+        user->home_dir = g_strdup (user_to_copy->home_dir);
+        g_object_notify (G_OBJECT (user), "home-directory");
+
+        user->shell = g_strdup (user_to_copy->shell);
+        g_object_notify (G_OBJECT (user), "shell");
+
+        user->email = g_strdup (user_to_copy->email);
+        g_object_notify (G_OBJECT (user), "email");
+
+        user->location = g_strdup (user_to_copy->location);
+        g_object_notify (G_OBJECT (user), "location");
+
+        user->icon_file = g_strdup (user_to_copy->icon_file);
+        g_object_notify (G_OBJECT (user), "icon-file");
+
+        user->language = g_strdup (user_to_copy->language);
+        g_object_notify (G_OBJECT (user), "language");
+
+        user->x_session = g_strdup (user_to_copy->x_session);
+        g_object_notify (G_OBJECT (user), "x-session");
+
+        user->login_frequency = user_to_copy->login_frequency;
+        g_object_notify (G_OBJECT (user), "login-frequency");
+
+        user->login_time = user_to_copy->login_time;
+        g_object_notify (G_OBJECT (user), "login-time");
+
+        user->login_history = g_variant_ref (user_to_copy->login_history);
+        g_object_notify (G_OBJECT (user), "login-history");
+
+        user->account_type = user_to_copy->account_type;
+        g_object_notify (G_OBJECT (user), "account-type");
+
+        user->password_mode = user_to_copy->password_mode;
+        g_object_notify (G_OBJECT (user), "password-mode");
+
+        set_is_loaded (user, TRUE);
 }
 
 /**
