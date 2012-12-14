@@ -1,3 +1,14 @@
+accountsservice (0.6.30-1) experimental; urgency=low
+
+  * New upstream release:
+    - Minor source clean ups
+    - Crasher fix on 32bit systems (Closes: #694727)
+    - Add get_user_by_id
+    - Don't lose sessions list for users at startup
+    - Add API for detecting when accountsservice is unavailable.
+
+ -- Alessio Treglia <alessio@debian.org>  Fri, 14 Dec 2012 09:33:13 +0000
+
 accountsservice (0.6.29-1) experimental; urgency=low
 
   * New upstream release:
