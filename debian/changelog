@@ -1,3 +1,12 @@
+accountsservice (0.6.21-8) unstable; urgency=low
+
+  * debian/patches/0007-add-lightdm-support.patch
+    - Properly set gdm3's configuration directory in order to
+      fix autologin settings when gdm3 is used as default login
+      manager. Thanks to Jean-Peer Lorenz (Closes: #680786)
+
+ -- Alessio Treglia <alessio@debian.org>  Wed, 02 Jan 2013 13:45:12 +0000
+
 accountsservice (0.6.21-7) unstable; urgency=low
 
   [ Simon McVittie ]
