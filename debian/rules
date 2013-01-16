@@ -6,12 +6,6 @@ LDFLAGS+=-Wl,--as-needed
 %:
 	dh $@ --parallel --with autoreconf
 
-override_dh_autoreconf:
-	rm -f gtk-doc.make
-	echo 'EXTRA_DIST =' > gtk-doc.make
-	echo 'CLEANFILES =' >> gtk-doc.make
-	dh_autoreconf
-
 override_dh_shlibdeps:
 	dh_shlibdeps
 	dh_girepository -l src:debian/libaccountsservice-dev/usr/share/gir-1.0
