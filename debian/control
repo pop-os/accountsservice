@@ -14,6 +14,8 @@ Build-Depends:
  libglib2.0-dev (>= 2.25.11),
  libpolkit-gobject-1-dev,
  xmlto
+Build-Depends-Indep:
+ gtk-doc-tools
 Standards-Version: 3.9.3
 Homepage: http://cgit.freedesktop.org/accountsservice/
 Vcs-Git: git://git.debian.org/collab-maint/accountsservice.git
