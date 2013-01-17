@@ -80,7 +80,7 @@ Description: Create and manage groups like on a debian system.
                          g_free (groups);
                          return ACCOUNT_TYPE_ADMINISTRATOR;
                  }
-@@ -1281,7 +1281,7 @@ user_change_account_type_authorized_cb (
+@@ -1287,7 +1287,7 @@ user_change_account_type_authorized_cb (
          gid_t *groups;
          gint ngroups;
          GString *str;
@@ -89,7 +89,7 @@ Description: Create and manage groups like on a debian system.
          struct group *grp;
          gint i;
          const gchar *argv[6];
-@@ -1291,24 +1291,24 @@ user_change_account_type_authorized_cb (
+@@ -1297,24 +1297,24 @@ user_change_account_type_authorized_cb (
                           "change account type of user '%s' (%d) to %d",
                           user->user_name, user->uid, account_type);
  
