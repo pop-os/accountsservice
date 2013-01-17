@@ -11,7 +11,7 @@ accountsservice (0.6.30-1) experimental; urgency=low
   * Bump build-deps on glib-2.0 >= 2.34.
   * Add gtk-doc-tools to Build-Depends-Indep.
   * Build libaccountsservice's documentation. (Closes: #698290)
-  * Bump up debhelper compatibility, therefore enable hardening.
+  * Enable hardening.
   * Bump Standards.
 
  -- Alessio Treglia <alessio@debian.org>  Fri, 14 Dec 2012 09:33:13 +0000
