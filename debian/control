@@ -3,7 +3,7 @@ Section: admin
 Priority: optional
 Maintainer: Alessio Treglia <alessio@debian.org>
 Build-Depends:
- debhelper (>= 9~),
+ debhelper (>= 7.0.50~),
  dh-autoreconf,
  gir1.2-freedesktop,
  gir1.2-glib-2.0 (>= 1.34),
