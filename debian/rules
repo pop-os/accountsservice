@@ -6,12 +6,19 @@ LDFLAGS+=-Wl,--as-needed
 %:
 	dh $@ --parallel --with autoreconf
 
+override_dh_autoreconf:
+ifneq (,$(findstring libaccountsservice-doc,$(shell dh_listpackages)))
+	gtkdocize
+endif
+	dh_autoreconf
+
 override_dh_shlibdeps:
 	dh_shlibdeps
 	dh_girepository -l src:debian/libaccountsservice-dev/usr/share/gir-1.0
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
+		--enable-gtk-doc \
 		--enable-static=no
 
 # Disabled to avoid FTBFS

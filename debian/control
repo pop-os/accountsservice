@@ -106,3 +106,17 @@ Description: query and manipulate user account information - debug
  .
  This package provides the debugging symbols for the
  AccountService library.
+
+Package: libaccountsservice-doc
+Section: doc
+Architecture: all
+Depends:
+ ${misc:Depends}
+Description: query and manipulate user account information - documentation
+ The AccountService project provides a set of D-Bus
+ interfaces for querying and manipulating user account
+ information and an implementation of these interfaces,
+ based on the useradd, usermod and userdel commands.
+ .
+ This package provides the developers reference for the
+ AccountService library.
