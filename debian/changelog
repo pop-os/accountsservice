@@ -1,3 +1,11 @@
+accountsservice (0.6.30-2) unstable; urgency=low
+
+  * ACK NMU.
+  * Upload to unstable.
+  * Fix VCS canonical URLs.
+
+ -- Alessio Treglia <alessio@debian.org>  Wed, 08 May 2013 08:06:25 +0200
+
 accountsservice (0.6.30-1.1) experimental; urgency=low
 
   * Non-maintainer upload with maintainer approval.
