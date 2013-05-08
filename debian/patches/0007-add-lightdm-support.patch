@@ -101,7 +101,7 @@ Last-Update: 2012-04-30
          gboolean result;
 +        GError *local_error = NULL;
 +
-+        if (!g_file_test ("/etc/gdm", G_FILE_TEST_EXISTS))
++        if (!g_file_test ("/etc/gdm3", G_FILE_TEST_EXISTS))
 +                return TRUE; /* not an error, just not installed */
  
          keyfile = g_key_file_new ();
