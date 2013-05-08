@@ -5,7 +5,3 @@
 1001-buildsystem.patch
 2001-filtering_out_users.patch
 2002-disable_systemd.patch
-9001-manage_pending_ck_calls_with_cancellable.patch
-9002-memory_leak_actuser.c
-9003-CVE-2012-2737.patch
-9004-ActUserManagerNewSession-do-not-free-if-there-are-pe.patch

@@ -1,3 +1,84 @@
+Changes in 0.6.30
+=================
+
+* Minor source clean ups
+* Crasher fix on 32bit systems
+* Add get_user_by_id
+* Don't lose sessions list for users at startup
+* Add API for detecting when accountsservice is unavailable
+
+Changes in 0.6.29
+=================
+
+* Translate D-Bus errors to local errors in libaccountsservice
+* Fix a wrong property name n the login history support
+
+Changes in 0.6.28
+=================
+
+* Fix act_user_manager_delete_user_finish
+* Fix handling of LoginTime and LoginHistory properties
+
+Changes in 0.6.27
+=================
+
+* Fix warnings when the singleton user manager object is finalized
+* Generated docs for libaccountsservice
+* Initialize local_acount to TRUE
+* Add async api for user creation, caching and deletion
+
+Changes in 0.6.26
+=================
+
+* Require libsystemd-login 186
+* Protect against deleting root user
+* Add LoginTime and LoginHistory properties
+* fix crash consolekit code
+* fix has_multiple_user property after removing user
+
+Changes in 0.6.25
+=================
+
+* Uninitialized variable fix
+* Typo fix
+* Create data dirs just-in-time
+* Ignore closing sessions for is_logged_in test
+* Disable NULL user for delete_user call
+* Translation updates
+
+Changes in 0.6.24
+=================
+
+* add User.Local property for identifying local users
+
+Changes in 0.6.23
+=================
+
+* Fix up some debug output
+* add new CacheUser and UncacheUser apis
+* uncache user before deleting user
+
+Changes in 0.6.22
+=================
+
+* Correct CVE-2012-2737, local file disclosure
+
+* small memory leak fix
+
+* exclude system accounts from ListCachedUsers
+
+* make has-multiple-users properly only check non-system users
+
+* remove icon when deleting user
+
+* Revert usage of getpwent() as fallback for fgetpwent
+
+* support consolekit call cancellation to prevent crashes caused
+  by shortlived sessions
+
+* ignore built files in .gitignore
+* quiet down build goo nagging
+
 Changes in 0.6.21
 =================
 

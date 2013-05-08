@@ -36,19 +36,19 @@ act-user-enum-types.c: act-user.h act-user-manager.h act-user-enum-types.h
 	         $^ ) > $@
 
 accounts-generated.c accounts-generated.h: $(top_srcdir)/data/org.freedesktop.Accounts.xml Makefile
-	gdbus-codegen --generate-c-code accounts-generated --c-namespace Accounts --interface-prefix=org.freedesktop. $(top_srcdir)/data/org.freedesktop.Accounts.xml
+	$(AM_V_GEN) gdbus-codegen --generate-c-code accounts-generated --c-namespace Accounts --interface-prefix=org.freedesktop. $(top_srcdir)/data/org.freedesktop.Accounts.xml
 
 accounts-user-generated.c accounts-user-generated.h: $(top_srcdir)/data/org.freedesktop.Accounts.User.xml Makefile
-	gdbus-codegen --generate-c-code accounts-user-generated --c-namespace Accounts --interface-prefix=org.freedesktop.Accounts. $(top_srcdir)/data/org.freedesktop.Accounts.User.xml
+	$(AM_V_GEN) gdbus-codegen --generate-c-code accounts-user-generated --c-namespace Accounts --interface-prefix=org.freedesktop.Accounts. $(top_srcdir)/data/org.freedesktop.Accounts.User.xml
 
 ck-manager-generated.c ck-manager-generated.h: org.freedesktop.ConsoleKit.Manager.xml Makefile
-	gdbus-codegen --generate-c-code ck-manager-generated --c-namespace ConsoleKit --interface-prefix=org.freedesktop.ConsoleKit $(srcdir)/org.freedesktop.ConsoleKit.Manager.xml
+	$(AM_V_GEN) gdbus-codegen --generate-c-code ck-manager-generated --c-namespace ConsoleKit --interface-prefix=org.freedesktop.ConsoleKit $(srcdir)/org.freedesktop.ConsoleKit.Manager.xml
 
 ck-seat-generated.c ck-seat-generated.h: org.freedesktop.ConsoleKit.Seat.xml Makefile
-	gdbus-codegen --generate-c-code ck-seat-generated --c-namespace ConsoleKit --interface-prefix=org.freedesktop.ConsoleKit $(srcdir)/org.freedesktop.ConsoleKit.Seat.xml
+	$(AM_V_GEN) gdbus-codegen --generate-c-code ck-seat-generated --c-namespace ConsoleKit --interface-prefix=org.freedesktop.ConsoleKit $(srcdir)/org.freedesktop.ConsoleKit.Seat.xml
 
 ck-session-generated.c ck-session-generated.h: org.freedesktop.ConsoleKit.Session.xml Makefile
-	gdbus-codegen --generate-c-code ck-session-generated --c-namespace ConsoleKit --interface-prefix=org.freedesktop.ConsoleKit $(srcdir)/org.freedesktop.ConsoleKit.Session.xml
+	$(AM_V_GEN) gdbus-codegen --generate-c-code ck-session-generated --c-namespace ConsoleKit --interface-prefix=org.freedesktop.ConsoleKit $(srcdir)/org.freedesktop.ConsoleKit.Session.xml
 
 BUILT_SOURCES += \
 	accounts-generated.c			\
@@ -91,11 +91,15 @@ libaccountsservice_la_LIBADD =                                                \
         -lcrypt                                                               \
         $(END_OF_LIST)
 
-libaccountsservice_la_SOURCES =                                               \
+libaccountsservice_la_sources =                                               \
         $(libaccountsservice_headers)                                         \
-        act-user-private.h                                                    \
         act-user.c                                                            \
         act-user-manager.c                                                    \
+        $(END_OF_LIST)
+
+libaccountsservice_la_SOURCES =                                               \
+        $(libaccountsservice_la_sources)                                      \
+        act-user-private.h                                                    \
         $(BUILT_SOURCES)                                                      \
         $(END_OF_LIST)
 
@@ -128,8 +132,7 @@ AccountsService_1_0_gir_SCANNERFLAGS =                                        \
 AccountsService_1_0_gir_INCLUDES = $(LIBACCOUNTSSERVICE_GIR_INCLUDES)
 AccountsService_1_0_gir_LIBS = libaccountsservice.la
 AccountsService_1_0_gir_FILES =                                               \
-        $(filter-out %-private.h, $(libaccountsservice_la_SOURCES))           \
-        $(BUILT_SOURCES)                                                      \
+        $(libaccountsservice_la_sources)                                      \
         $(END_OF_LIST)
 
 CLEANFILES += $(gir_DATA) $(typelibs_DATA)

@@ -653,6 +653,33 @@
     </doc:doc>
   </property>
 
+  <property name="LoginTime" type="x" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The last login time.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="LoginHistory" type="a(xxa{sv})" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          The login history for this user.
+          Each entry in the array represents a login session. The first two
+          members are the login time and logout time, as timestamps (seconds since the epoch). If the session is still running, the logout time
+          is 0.
+        </doc:para>
+        <doc:para>
+          The a{sv} member is a dictionary containing additional information
+          about the session. Possible members include 'type' (with values like ':0', 'tty0', 'pts/0' etc).
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
   <property name="IconFile" type="s" access="read">
     <doc:doc>
       <doc:description>
@@ -724,6 +751,16 @@
            Whether this is a 'system' account, like 'root' or 'nobody'.
            System accounts should normally not appear in lists of
            users, and ListCachedUsers will not include such accounts.
+        </doc:para>
+      </doc:description>
+    </doc:doc>
+  </property>
+
+  <property name="LocalAccount" type="b" access="read">
+    <doc:doc>
+      <doc:description>
+        <doc:para>
+          Whether the user is a local account or not.
         </doc:para>
       </doc:description>
     </doc:doc>

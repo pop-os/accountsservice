@@ -4,10 +4,10 @@ Author: Alessio Treglia <alessio@debian.org>
 Forwarded: no
 Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
 ---
- src/daemon.c |  111 ++++++++++++++++++++++++++++++++++++-----------------------
+ src/daemon.c |  109 ++++++++++++++++++++++++++++++++++++-----------------------
  src/daemon.h |    2 -
  src/user.c   |    2 -
- 3 files changed, 70 insertions(+), 45 deletions(-)
+ 3 files changed, 69 insertions(+), 44 deletions(-)
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
@@ -21,9 +21,9 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
 +#define FALLBACK_MINIMAL_UID 500
 +#endif
  
- #define USERDIR LOCALSTATEDIR "/lib/AccountsService/users"
- 
-@@ -93,6 +98,7 @@ struct DaemonPrivate {
+ static const char *default_excludes[] = {
+         "bin",
+@@ -91,6 +96,7 @@ struct DaemonPrivate {
  
          GHashTable *users;
          GHashTable *exclusions;
@@ -85,20 +85,11 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
 +        return FALSE;
  }
  
- static void
-@@ -232,7 +205,7 @@ reload_wtmp_history (Daemon *daemon)
+ #ifdef HAVE_UTMPX_H
+@@ -480,8 +453,8 @@ load_entries (Daemon             *daemon
+                 if (pwent == NULL)
+                         break;
  
-                 if (daemon_local_user_is_excluded (daemon,
-                                                    wtmp_entry->ut_user,
--                                                   NULL)) {
-+                                                   daemon->priv->minimal_uid)) {
-                         g_debug ("excluding user '%s'", wtmp_entry->ut_user);
-                         continue;
-                 }
-@@ -328,8 +301,8 @@ reload_passwd (Daemon *daemon)
- #else
-         while ((pwent = getpwent ()) != NULL) {
- #endif
 -                /* Skip system users... */
 -                if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_shell)) {
 +                /* Skip users below MINIMAL_UID...... */
@@ -106,7 +97,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
                          g_debug ("skipping user: %s", pwent->pw_name);
                          continue;
                  }
-@@ -542,6 +515,59 @@ on_gdm_monitor_changed (GFileMonitor
+@@ -708,6 +681,59 @@ on_gdm_monitor_changed (GFileMonitor
          queue_reload_autologin (daemon);
  }
  
@@ -166,7 +157,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
  static void
  daemon_init (Daemon *daemon)
  {
-@@ -551,6 +577,7 @@ daemon_init (Daemon *daemon)
+@@ -717,6 +743,7 @@ daemon_init (Daemon *daemon)
  
          daemon->priv = DAEMON_GET_PRIVATE (daemon);
  
@@ -174,7 +165,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
          daemon->priv->exclusions = g_hash_table_new_full (g_str_hash,
                                                            g_str_equal,
                                                            g_free,
-@@ -851,15 +878,13 @@ finish_list_cached_users (gpointer user_
+@@ -1015,21 +1042,19 @@ finish_list_cached_users (gpointer user_
          const gchar *name;
          User *user;
          uid_t uid;
@@ -184,12 +175,18 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
  
          g_hash_table_iter_init (&iter, data->daemon->priv->users);
          while (g_hash_table_iter_next (&iter, (gpointer *)&name, (gpointer *)&user)) {
-                 uid = user_local_get_uid (user);
--                shell = user_local_get_shell (user);
--                if (!daemon_local_user_is_excluded (data->daemon, name, shell)) {
-+                if (!daemon_local_user_is_excluded (data->daemon, name, uid)) {
-                         g_debug ("user %s %ld not excluded\n", name, (long) uid);
-                         g_ptr_array_add (object_paths, (gpointer) user_local_get_object_path (user));
+                 uid = user_get_uid (user);
+-                shell = user_get_shell (user);
+ 
+                 if (user_get_system_account (user)) {
+                         g_debug ("user %s %ld is system account, so excluded\n", name, (long) uid);
+                         continue;
+                 }
+ 
+-                if (daemon_local_user_is_excluded (data->daemon, name, shell)) {
++                if (daemon_local_user_is_excluded (data->daemon, name, uid)) {
+                         g_debug ("user %s %ld excluded\n", name, (long) uid);
+                         continue;
                  }
 --- accountsservice.orig/src/daemon.h
 +++ accountsservice/src/daemon.h
@@ -204,7 +201,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
                                        User                  *user,
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
-@@ -283,7 +283,7 @@ user_local_update_from_pwent (User
+@@ -287,7 +287,7 @@ user_update_from_pwent (User          *u
  
          user->system_account = daemon_local_user_is_excluded (user->daemon,
                                                                user->user_name,

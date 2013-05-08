@@ -46,8 +46,6 @@
 #include "accounts-user-generated.h"
 #include "util.h"
 
-#define ICONDIR LOCALSTATEDIR "/lib/AccountsService/icons"
-
 enum {
         PROP_0,
         PROP_UID,
@@ -61,12 +59,15 @@ enum {
         PROP_X_SESSION,
         PROP_LOCATION,
         PROP_LOGIN_FREQUENCY,
+        PROP_LOGIN_TIME,
+        PROP_LOGIN_HISTORY,
         PROP_ICON_FILE,
         PROP_LOCKED,
         PROP_PASSWORD_MODE,
         PROP_PASSWORD_HINT,
         PROP_AUTOMATIC_LOGIN,
-        PROP_SYSTEM_ACCOUNT
+        PROP_SYSTEM_ACCOUNT,
+        PROP_LOCAL_ACCOUNT,
 };
 
 struct User {
@@ -91,11 +92,14 @@ struct User {
         gchar        *x_session;
         gchar        *location;
         guint64       login_frequency;
+        gint64        login_time;
+        GVariant     *login_history;
         gchar        *icon_file;
         gchar        *default_icon_file;
         gboolean      locked;
         gboolean      automatic_login;
         gboolean      system_account;
+        gboolean      local_account;
 };
 
 typedef struct UserClass
@@ -143,8 +147,8 @@ account_type_from_pwent (struct passwd *pwent)
 }
 
 void
-user_local_update_from_pwent (User          *user,
-                              struct passwd *pwent)
+user_update_from_pwent (User          *user,
+                        struct passwd *pwent)
 {
 #ifdef HAVE_SHADOW_H
         struct spwd *spent;
@@ -292,8 +296,8 @@ user_local_update_from_pwent (User          *user,
 }
 
 void
-user_local_update_from_keyfile (User     *user,
-                                GKeyFile *keyfile)
+user_update_from_keyfile (User     *user,
+                          GKeyFile *keyfile)
 {
         gchar *s;
 
@@ -304,44 +308,60 @@ user_local_update_from_keyfile (User     *user,
                 /* TODO: validate / normalize */
                 g_free (user->language);
                 user->language = s;
+                g_object_notify (G_OBJECT (user), "language");
         }
 
         s = g_key_file_get_string (keyfile, "User", "XSession", NULL);
         if (s != NULL) {
                 g_free (user->x_session);
                 user->x_session = s;
+                g_object_notify (G_OBJECT (user), "x-session");
         }
 
         s = g_key_file_get_string (keyfile, "User", "Email", NULL);
         if (s != NULL) {
                 g_free (user->email);
                 user->email = s;
+                g_object_notify (G_OBJECT (user), "email");
         }
 
         s = g_key_file_get_string (keyfile, "User", "Location", NULL);
         if (s != NULL) {
                 g_free (user->location);
                 user->location = s;
+                g_object_notify (G_OBJECT (user), "location");
         }
 
         s = g_key_file_get_string (keyfile, "User", "PasswordHint", NULL);
         if (s != NULL) {
                 g_free (user->password_hint);
                 user->password_hint = s;
+                g_object_notify (G_OBJECT (user), "password-hint");
         }
 
         s = g_key_file_get_string (keyfile, "User", "Icon", NULL);
         if (s != NULL) {
                 g_free (user->icon_file);
                 user->icon_file = s;
+                g_object_notify (G_OBJECT (user), "icon-file");
         }
 
         g_object_thaw_notify (G_OBJECT (user));
 }
 
+void
+user_update_local_account_property (User          *user,
+                                    gboolean       local)
+{
+        if (local == user->local_account)
+                return;
+        user->local_account = local;
+        g_object_notify (G_OBJECT (user), "local-account");
+}
+
 static void
-user_local_save_to_keyfile (User     *user,
-                            GKeyFile *keyfile)
+user_save_to_keyfile (User     *user,
+                      GKeyFile *keyfile)
 {
         if (user->email)
                 g_key_file_set_string (keyfile, "User", "Email", user->email);
@@ -371,12 +391,12 @@ save_extra_data (User *user)
         GError *error;
 
         keyfile = g_key_file_new ();
-        user_local_save_to_keyfile (user, keyfile);
+        user_save_to_keyfile (user, keyfile);
 
         error = NULL;
         data = g_key_file_to_data (keyfile, NULL, &error);
         if (error == NULL) {
-                filename = g_build_filename ("/var/lib/AccountsService/users",
+                filename = g_build_filename (USERDIR,
                                              user->user_name,
                                              NULL);
                 g_file_set_contents (filename, data, -1, &error);
@@ -397,9 +417,9 @@ move_extra_data (const gchar *old_name,
         gchar *old_filename;
         gchar *new_filename;
 
-        old_filename = g_build_filename ("/var/lib/AccountsService/users",
+        old_filename = g_build_filename (USERDIR,
                                          old_name, NULL);
-        new_filename = g_build_filename ("/var/lib/AccountsService/users",
+        new_filename = g_build_filename (USERDIR,
                                          new_name, NULL);
 
         g_rename (old_filename, new_filename);
@@ -420,7 +440,7 @@ compute_object_path (User *user)
 }
 
 void
-user_local_register (User *user)
+user_register (User *user)
 {
         GError *error = NULL;
 
@@ -448,13 +468,14 @@ user_local_register (User *user)
 }
 
 void
-user_local_unregister (User *user)
+user_unregister (User *user)
 {
         g_dbus_interface_skeleton_unexport (G_DBUS_INTERFACE_SKELETON (user));
 }
 
 User *
-user_local_new (Daemon *daemon, uid_t uid)
+user_new (Daemon *daemon,
+          uid_t   uid)
 {
         User *user;
 
@@ -466,25 +487,37 @@ user_local_new (Daemon *daemon, uid_t uid)
 }
 
 const gchar *
-user_local_get_user_name (User *user)
+user_get_user_name (User *user)
 {
         return user->user_name;
 }
 
+gboolean
+user_get_system_account (User *user)
+{
+        return user->system_account;
+}
+
+gboolean
+user_get_local_account (User *user)
+{
+        return user->local_account;
+}
+
 const gchar *
-user_local_get_object_path (User *user)
+user_get_object_path (User *user)
 {
         return user->object_path;
 }
 
 uid_t
-user_local_get_uid (User *user)
+user_get_uid (User *user)
 {
         return user->uid;
 }
 
 const gchar *
-user_local_get_shell(User *user)
+user_get_shell(User *user)
 {
 	return user->shell;
 }
@@ -548,35 +581,21 @@ user_change_real_name_authorized_cb (Daemon                *daemon,
         accounts_user_complete_set_real_name (ACCOUNTS_USER (user), context);
 }
 
-static uid_t
-method_invocation_get_uid (GDBusMethodInvocation *context)
-{
-  const gchar *sender;
-  PolkitSubject *busname;
-  PolkitSubject *process;
-  uid_t uid;
-
-  sender = g_dbus_method_invocation_get_sender (context);
-  busname = polkit_system_bus_name_new (sender);
-  process = polkit_system_bus_name_get_process_sync (POLKIT_SYSTEM_BUS_NAME (busname), NULL, NULL);
-  uid = polkit_unix_process_get_uid (POLKIT_UNIX_PROCESS (process));
-  g_object_unref (busname);
-  g_object_unref (process);
-
-  return uid;
-}
-
 static gboolean
 user_set_real_name (AccountsUser          *auser,
                     GDBusMethodInvocation *context,
                     const gchar           *real_name)
 {
         User *user = (User*)auser;
-        uid_t uid;
+        int uid;
         const gchar *action_id;
 
-        uid = method_invocation_get_uid (context);
-        if (user->uid == uid)
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return FALSE;
+        }
+
+        if (user->uid == (uid_t) uid)
                 action_id = "org.freedesktop.accounts.change-own-user-data";
         else
                 action_id = "org.freedesktop.accounts.user-administration";
@@ -688,11 +707,15 @@ user_set_email (AccountsUser          *auser,
                 const gchar           *email)
 {
         User *user = (User*)auser;
-        uid_t uid;
+        int uid;
         const gchar *action_id;
 
-        uid = method_invocation_get_uid (context);
-        if (user->uid == uid)
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return FALSE;
+        }
+
+        if (user->uid == (uid_t) uid)
                 action_id = "org.freedesktop.accounts.change-own-user-data";
         else
                 action_id = "org.freedesktop.accounts.user-administration";
@@ -740,11 +763,15 @@ user_set_language (AccountsUser          *auser,
                    const gchar           *language)
 {
         User *user = (User*)auser;
-        uid_t uid;
+        int uid;
         const gchar *action_id;
 
-        uid = method_invocation_get_uid (context);
-        if (user->uid == uid)
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return FALSE;
+        }
+
+        if (user->uid == (uid_t) uid)
                 action_id = "org.freedesktop.accounts.change-own-user-data";
         else
                 action_id = "org.freedesktop.accounts.user-administration";
@@ -790,11 +817,15 @@ user_set_x_session (AccountsUser          *auser,
                     const gchar           *x_session)
 {
         User *user = (User*)auser;
-        uid_t uid;
+        int uid;
         const gchar *action_id;
 
-        uid = method_invocation_get_uid (context);
-        if (user->uid == uid)
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return FALSE;
+        }
+
+        if (user->uid == (uid_t) uid)
                 action_id = "org.freedesktop.accounts.change-own-user-data";
         else
                 action_id = "org.freedesktop.accounts.user-administration";
@@ -840,11 +871,15 @@ user_set_location (AccountsUser          *auser,
                    const gchar           *location)
 {
         User *user = (User*)auser;
-        uid_t uid;
+        int uid;
         const gchar *action_id;
 
-        uid = method_invocation_get_uid (context);
-        if (user->uid == uid)
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return FALSE;
+        }
+
+        if (user->uid == (uid_t) uid)
                 action_id = "org.freedesktop.accounts.change-own-user-data";
         else
                 action_id = "org.freedesktop.accounts.user-administration";
@@ -1159,11 +1194,15 @@ user_set_icon_file (AccountsUser          *auser,
                     const gchar           *filename)
 {
         User *user = (User*)auser;
-        uid_t uid;
+        int uid;
         const gchar *action_id;
 
-        uid = method_invocation_get_uid (context);
-        if (user->uid == uid)
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return FALSE;
+        }
+
+        if (user->uid == (uid_t) uid)
                 action_id = "org.freedesktop.accounts.change-own-user-data";
         else
                 action_id = "org.freedesktop.accounts.user-administration";
@@ -1589,73 +1628,85 @@ user_set_automatic_login (AccountsUser          *auser,
 }
 
 static guint64
-user_get_uid (AccountsUser *user)
+user_real_get_uid (AccountsUser *user)
 {
         return (guint64) USER (user)->uid;
 }
 
 static const gchar *
-user_get_user_name (AccountsUser *user)
+user_real_get_user_name (AccountsUser *user)
 {
         return USER (user)->user_name;
 }
 
 static const gchar *
-user_get_real_name (AccountsUser *user)
+user_real_get_real_name (AccountsUser *user)
 {
         return USER (user)->real_name;
 }
 
 static gint
-user_get_account_type (AccountsUser *user)
+user_real_get_account_type (AccountsUser *user)
 {
         return (gint) USER (user)->account_type;
 }
 
 static const gchar *
-user_get_home_directory (AccountsUser *user)
+user_real_get_home_directory (AccountsUser *user)
 {
         return USER (user)->home_dir;
 }
 
 static const gchar *
-user_get_shell (AccountsUser *user)
+user_real_get_shell (AccountsUser *user)
 {
         return USER (user)->shell;
 }
 
 static const gchar *
-user_get_email (AccountsUser *user)
+user_real_get_email (AccountsUser *user)
 {
         return USER (user)->email;
 }
 
 static const gchar *
-user_get_language (AccountsUser *user)
+user_real_get_language (AccountsUser *user)
 {
         return USER (user)->language;
 }
 
 static const gchar *
-user_get_xsession (AccountsUser *user)
+user_real_get_xsession (AccountsUser *user)
 {
         return USER (user)->x_session;
 }
 
 static const gchar *
-user_get_location (AccountsUser *user)
+user_real_get_location (AccountsUser *user)
 {
         return USER (user)->location;
 }
 
 static guint64
-user_get_login_frequency (AccountsUser *user)
+user_real_get_login_frequency (AccountsUser *user)
 {
         return USER (user)->login_frequency;
 }
 
+static gint64
+user_real_get_login_time (AccountsUser *user)
+{
+        return USER (user)->login_time;
+}
+
+static const GVariant *
+user_real_get_login_history (AccountsUser *user)
+{
+        return USER (user)->login_history;
+}
+
 static const gchar *
-user_get_icon_file (AccountsUser *user)
+user_real_get_icon_file (AccountsUser *user)
 {
         if (USER (user)->icon_file)
                 return USER (user)->icon_file;
@@ -1664,31 +1715,31 @@ user_get_icon_file (AccountsUser *user)
 }
 
 static gboolean
-user_get_locked (AccountsUser *user)
+user_real_get_locked (AccountsUser *user)
 {
         return USER (user)->locked;
 }
 
 static gint
-user_get_password_mode (AccountsUser *user)
+user_real_get_password_mode (AccountsUser *user)
 {
         return USER (user)->password_mode;
 }
 
 static const gchar *
-user_get_password_hint (AccountsUser *user)
+user_real_get_password_hint (AccountsUser *user)
 {
         return USER (user)->password_hint;
 }
 
 static gboolean
-user_get_automatic_login (AccountsUser *user)
+user_real_get_automatic_login (AccountsUser *user)
 {
         return USER (user)->automatic_login;
 }
 
 static gboolean
-user_get_system_account (AccountsUser *user)
+user_real_get_system_account (AccountsUser *user)
 {
         return USER (user)->system_account;
 }
@@ -1740,6 +1791,12 @@ user_set_property (GObject      *object,
                 break;
         case PROP_LOGIN_FREQUENCY:
                 user->login_frequency = g_value_get_uint64 (value);
+                break;
+        case PROP_LOGIN_TIME:
+                user->login_time = g_value_get_int64 (value);
+                break;
+        case PROP_LOGIN_HISTORY:
+                user->login_history = g_variant_ref (g_value_get_variant (value));
                 break;
         case PROP_AUTOMATIC_LOGIN:
                 user->automatic_login = g_value_get_boolean (value);
@@ -1811,6 +1868,12 @@ user_get_property (GObject    *object,
         case PROP_LOGIN_FREQUENCY:
                 g_value_set_uint64 (value, user->login_frequency);
                 break;
+        case PROP_LOGIN_TIME:
+                g_value_set_int64 (value, user->login_time);
+                break;
+        case PROP_LOGIN_HISTORY:
+                g_value_set_variant (value, user->login_history);
+                break;
         case PROP_LOCKED:
                 g_value_set_boolean (value, user->locked);
                 break;
@@ -1819,6 +1882,9 @@ user_get_property (GObject    *object,
                 break;
         case PROP_SYSTEM_ACCOUNT:
                 g_value_set_boolean (value, user->system_account);
+                break;
+        case PROP_LOCAL_ACCOUNT:
+                g_value_set_boolean (value, user->local_account);
                 break;
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, param_id, pspec);
@@ -1857,23 +1923,25 @@ user_accounts_user_iface_init (AccountsUserIface *iface)
         iface->handle_set_shell = user_set_shell;
         iface->handle_set_user_name = user_set_user_name;
         iface->handle_set_xsession = user_set_x_session;
-        iface->get_uid = user_get_uid;
-        iface->get_user_name = user_get_user_name;
-        iface->get_real_name = user_get_real_name;
-        iface->get_account_type = user_get_account_type;
-        iface->get_home_directory = user_get_home_directory;
-        iface->get_shell = user_get_shell;
-        iface->get_email = user_get_email;
-        iface->get_language = user_get_language;
-        iface->get_xsession = user_get_xsession;
-        iface->get_location = user_get_location;
-        iface->get_login_frequency = user_get_login_frequency;
-        iface->get_icon_file = user_get_icon_file;
-        iface->get_locked = user_get_locked;
-        iface->get_password_mode = user_get_password_mode;
-        iface->get_password_hint = user_get_password_hint;
-        iface->get_automatic_login = user_get_automatic_login;
-        iface->get_system_account = user_get_system_account;
+        iface->get_uid = user_real_get_uid;
+        iface->get_user_name = user_real_get_user_name;
+        iface->get_real_name = user_real_get_real_name;
+        iface->get_account_type = user_real_get_account_type;
+        iface->get_home_directory = user_real_get_home_directory;
+        iface->get_shell = user_real_get_shell;
+        iface->get_email = user_real_get_email;
+        iface->get_language = user_real_get_language;
+        iface->get_xsession = user_real_get_xsession;
+        iface->get_location = user_real_get_location;
+        iface->get_login_frequency = user_real_get_login_frequency;
+        iface->get_login_time = user_real_get_login_time;
+        iface->get_login_history = user_real_get_login_history;
+        iface->get_icon_file = user_real_get_icon_file;
+        iface->get_locked = user_real_get_locked;
+        iface->get_password_mode = user_real_get_password_mode;
+        iface->get_password_hint = user_real_get_password_hint;
+        iface->get_automatic_login = user_real_get_automatic_login;
+        iface->get_system_account = user_real_get_system_account;
 }
 
 static void
@@ -1897,4 +1965,5 @@ user_init (User *user)
         user->locked = FALSE;
         user->automatic_login = FALSE;
         user->system_account = FALSE;
+        user->login_history = NULL;
 }
