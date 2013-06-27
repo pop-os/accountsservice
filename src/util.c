@@ -201,6 +201,32 @@ get_caller_loginuid (GDBusMethodInvocation *context, gchar *loginuid, gint size)
         g_free (path);
 }
 
+static gboolean
+compat_check_exit_status (int      estatus,
+                          GError **error)
+{
+#if GLIB_CHECK_VERSION(2, 33, 12)
+        return g_spawn_check_exit_status (estatus, error);
+#else
+        if (!WIFEXITED (estatus)) {
+                g_set_error (error,
+                             G_SPAWN_ERROR,
+                             G_SPAWN_ERROR_FAILED,
+                             "Exited abnormally");
+                return FALSE;
+        }
+        if (WEXITSTATUS (estatus) != 0) {
+                g_set_error (error,
+                             G_SPAWN_ERROR,
+                             G_SPAWN_ERROR_FAILED,
+                             "Exited with code %d",
+                             WEXITSTATUS(estatus));
+                return FALSE;
+        }
+        return TRUE;
+#endif
+}
+
 static void
 setup_loginuid (gpointer data)
 {
@@ -217,35 +243,20 @@ spawn_with_login_uid (GDBusMethodInvocation  *context,
                       const gchar            *argv[],
                       GError                **error)
 {
-        GError *local_error;
+        gboolean ret = FALSE;
         gchar loginuid[20];
-        gchar *std_err;
         gint status;
 
-        get_caller_loginuid (context, loginuid, 20);
+        get_caller_loginuid (context, loginuid, G_N_ELEMENTS (loginuid));
 
-        local_error = NULL;
-        std_err = NULL;
+        if (!g_spawn_sync (NULL, (gchar**)argv, NULL, 0, setup_loginuid, loginuid, NULL, NULL, &status, error))
+                goto out;
+        if (!compat_check_exit_status (status, error))
+                goto out;
 
-        if (!g_spawn_sync (NULL, (gchar**)argv, NULL, 0, setup_loginuid, loginuid, NULL, &std_err, &status, &local_error)) {
-                g_propagate_error (error, local_error);
-                g_free (std_err);
-                return FALSE;
-        }
-
-        if (WEXITSTATUS (status) != 0) {
-                g_set_error (error,
-                             G_SPAWN_ERROR,
-                             G_SPAWN_ERROR_FAILED,
-                             "%s returned an error (%d): %s",
-                             argv[0], WEXITSTATUS(status), std_err);
-                g_free (std_err);
-                return FALSE;
-        }
-
-        g_free (std_err);
-
-        return TRUE;
+        ret = TRUE;
+ out:
+        return ret;
 }
 
 gint
@@ -259,7 +270,7 @@ get_user_groups (const gchar  *user,
         ngroups = 0;
         res = getgrouplist (user, group, NULL, &ngroups);
 
-        g_debug ("user %s has %d groups\n", user, ngroups);
+        g_debug ("user %s has %d groups", user, ngroups);
         *groups = g_new (gid_t, ngroups);
         res = getgrouplist (user, group, *groups, &ngroups);
 

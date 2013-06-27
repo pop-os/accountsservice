@@ -37,8 +37,15 @@ void           _act_user_update_login_frequency    (ActUser    *user,
 void           _act_user_load_from_user          (ActUser    *user,
                                                   ActUser    *user_to_copy);
 
+/* 'Our' sessions are the graphical sessions on the same seat as the
+   current process.  The primary session of a user will always be
+   choosen from one of our sessions and act_user_is_logged_in only
+   considers our sessions.
+*/
+
 void           _act_user_add_session      (ActUser             *user,
-                                           const char          *session_id);
+                                           const char          *session_id,
+                                           gboolean            is_ours);
 void           _act_user_remove_session   (ActUser             *user,
                                            const char          *session_id);
 

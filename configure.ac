@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.30])
+AC_INIT([AccountsService],[0.6.34])
 AM_INIT_AUTOMAKE(no-dist-gzip dist-xz tar-ustar foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -25,23 +25,40 @@ AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
 AC_SUBST(LT_AGE)
 
-PKG_CHECK_MODULES(GLIB, glib-2.0)
-PKG_CHECK_MODULES(GIO, gio-2.0 gio-unix-2.0)
-PKG_CHECK_MODULES(POLKIT, polkit-gobject-1)
+PKG_CHECK_MODULES(GIO, gio-unix-2.0)
+PKG_CHECK_MODULES(POLKIT, gio-unix-2.0 polkit-gobject-1)
 
 AM_MAINTAINER_MODE([enable])
 
 # client library dependencies
-LIBACCOUNTSSERVICE_LIBS="$GLIB_LIBS $GIO_LIBS"
+LIBACCOUNTSSERVICE_LIBS="$GIO_LIBS"
 AC_SUBST(LIBACCOUNTSSERVICE_LIBS)
-LIBACCOUNTSSERVICE_CFLAGS="$GLIB_CFLAGS $GIO_CFLAGS"
+LIBACCOUNTSSERVICE_CFLAGS="$GIO_CFLAGS"
 AC_SUBST(LIBACCOUNTSSERVICE_CFLAGS)
 
 GOBJECT_INTROSPECTION_CHECK([0.9.12])
-LIBACCOUNTSSERVICE_GIR_INCLUDES="GLib-2.0 GObject-2.0"
-AC_SUBST(LIBACCOUNTSSERVICE_GIR_INCLUDES)
 
 VAPIGEN_CHECK
+
+dnl ---------------------------------------------------------------------------
+dnl - Core configuration
+dnl ---------------------------------------------------------------------------
+
+AC_ARG_ENABLE(admin-group,
+        [AS_HELP_STRING([--enable-admin-group],[Set group for administrative accounts @<:@default=auto@:>@])],
+        ,enable_admin_group=auto)
+AS_IF([test x$enable_admin_group = xauto], [
+  AC_CHECK_FILE(/etc/redhat-release, enable_admin_group=wheel)
+  AC_CHECK_FILE(/etc/debian_version, enable_admin_group=sudo)
+  AS_IF([test x$enable_admin_group = xauto], [
+    enable_admin_group=wheel
+  ])
+])
+AC_DEFINE_UNQUOTED([ADMIN_GROUP], ["$enable_admin_group"], [Define to the group for administrator users])
+
+dnl ---------------------------------------------------------------------------
+dnl - Warnings
+dnl ---------------------------------------------------------------------------
 
 AC_ARG_ENABLE(more-warnings,
               AS_HELP_STRING([--enable-more-warnings],
@@ -194,7 +211,7 @@ AC_ARG_ENABLE([systemd],
               [enable_systemd=auto])
 
 if test x$enable_systemd != xno; then
-   PKG_CHECK_MODULES(SYSTEMD, [libsystemd-login >= 186 libsystemd-daemon],
+   PKG_CHECK_MODULES(SYSTEMD, [libsystemd-login >= 186],
 			                     [have_systemd=yes], [have_systemd=no])
 else
    have_systemd=no
@@ -262,6 +279,7 @@ if test "x$enable_docbook_docs" = "xyes"; then
 else
         AC_MSG_NOTICE([** DocBook documentation build disabled])
 fi
+        AC_MSG_NOTICE([** Administrator group: $enable_admin_group])
 echo
 
 

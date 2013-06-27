@@ -42,8 +42,10 @@
 #include <gio/gunixinputstream.h>
 
 #ifdef WITH_SYSTEMD
-#include <systemd/sd-daemon.h>
 #include <systemd/sd-login.h>
+
+/* check if logind is running */
+#define LOGIND_RUNNING() (access("/run/systemd/seats/", F_OK) >= 0)
 #endif
 
 #include "act-user-manager.h"
@@ -63,6 +65,29 @@
  *
  * There is typically a singleton ActUserManager object, which
  * can be obtained by act_user_manager_get_default().
+ */
+
+/**
+ * ActUserManager:
+ *
+ * A user manager object.
+ */
+
+/**
+ * ACT_USER_MANAGER_ERROR:
+ *
+ * The GError domain for #ActUserManagerError errors
+ */
+
+/**
+ * ActUserManagerError:
+ * @ACT_USER_MANAGER_ERROR_FAILED: Generic failure
+ * @ACT_USER_MANAGER_ERROR_USER_EXISTS: The user already exists
+ * @ACT_USER_MANAGER_ERROR_USER_DOES_NOT_EXIST: The user does not exist
+ * @ACT_USER_MANAGER_ERROR_PERMISSION_DENIED: Permission denied
+ * @ACT_USER_MANAGER_ERROR_NOT_SUPPORTED: Operation not supported
+ *
+ * Various error codes returned by the accounts service.
  */
 
 #define ACT_USER_MANAGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), ACT_TYPE_USER_MANAGER, ActUserManagerPrivate))
@@ -216,6 +241,8 @@ static void     give_up (ActUserManager                 *manager,
 static void     fetch_user_incrementally       (ActUserManagerFetchUserRequest *request);
 
 static void     maybe_set_is_loaded            (ActUserManager *manager);
+static void     update_user                    (ActUserManager *manager,
+                                                ActUser        *user);
 static gpointer user_manager_object = NULL;
 
 G_DEFINE_TYPE (ActUserManager, act_user_manager, G_TYPE_OBJECT)
@@ -392,7 +419,7 @@ session_is_login_window (ActUserManager *manager,
                          const char     *session_id)
 {
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 return _systemd_session_is_login_window (manager, session_id);
         }
 #endif
@@ -400,6 +427,66 @@ session_is_login_window (ActUserManager *manager,
         return _ck_session_is_login_window (manager, session_id);
 }
 
+static gboolean
+_ck_session_is_on_our_seat (ActUserManager *manager,
+                            const char     *session_id)
+{
+        /* With ConsoleKit, we only ever see sessions on our seat. */
+        return TRUE;
+}
+
+#ifdef WITH_SYSTEMD
+static gboolean
+_systemd_session_is_on_our_seat (ActUserManager *manager,
+                                 const char     *session_id)
+{
+        int   res;
+        int   ret;
+        char *session_seat;
+
+        ret = FALSE;
+        res = sd_session_get_seat (session_id, &session_seat);
+        if (res == -ENOENT) {
+                goto out;
+        } else if (res < 0) {
+                g_debug ("failed to determine seat of session %s: %s",
+                         session_id,
+                         strerror (-res));
+                goto out;
+        }
+
+        if (g_strcmp0 (manager->priv->seat.id, session_seat) == 0) {
+                ret = TRUE;
+        }
+
+        free (session_seat);
+
+out:
+        return ret;
+}
+#endif
+
+static gboolean
+session_is_on_our_seat (ActUserManager *manager,
+                        const char     *session_id)
+{
+#ifdef WITH_SYSTEMD
+        if (LOGIND_RUNNING()) {
+                return _systemd_session_is_on_our_seat (manager, session_id);
+        }
+#endif
+
+        return _ck_session_is_on_our_seat (manager, session_id);
+}
+
+/**
+ * act_user_manager_goto_login_session:
+ * @manager: the user manager
+ *
+ * Switch the display to the login manager.
+ *
+ * Returns: whether successful or not
+ */
 gboolean
 act_user_manager_goto_login_session (ActUserManager *manager)
 {
@@ -460,6 +547,14 @@ _can_activate_console_kit_sessions (ActUserManager *manager)
         return can_activate_sessions;
 }
 
+/**
+ * act_user_manager_can_switch:
+ * @manager: the user manager
+ *
+ * Check whether the user can switch to another session.
+ *
+ * Returns: whether we can switch to another session
+ */
 gboolean
 act_user_manager_can_switch (ActUserManager *manager)
 {
@@ -477,7 +572,7 @@ act_user_manager_can_switch (ActUserManager *manager)
 
 
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 return _can_activate_systemd_sessions (manager);
         }
 #endif
@@ -485,6 +580,15 @@ act_user_manager_can_switch (ActUserManager *manager)
         return _can_activate_console_kit_sessions (manager);
 }
 
+/**
+ * act_user_manager_activate_user_session:
+ * @manager: the user manager
+ * @user: the user to activate
+ *
+ * Activate the session for a given user.
+ *
+ * Returns: whether successfully activated
+ */
 gboolean
 act_user_manager_activate_user_session (ActUserManager *manager,
                                         ActUser        *user)
@@ -513,7 +617,7 @@ act_user_manager_activate_user_session (ActUserManager *manager,
         }
 
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 return activate_systemd_session_id (manager, manager->priv->seat.id, ssid);
         }
 #endif
@@ -584,6 +688,8 @@ on_user_changed (ActUser        *user,
                          describe_user (user));
 
                 g_signal_emit (manager, signals[USER_CHANGED], 0, user);
+
+                update_user (manager, user);
         }
 }
 
@@ -640,12 +746,12 @@ _get_systemd_seat_id (ActUserManager *manager)
         int   res;
         char *seat_id;
 
-        res = sd_session_get_seat (manager->priv->seat.session_id,
-                                   &seat_id);
+        res = sd_session_get_seat (NULL, &seat_id);
 
-        if (res < 0) {
-                g_warning ("Could not get seat of session '%s': %s",
-                           manager->priv->seat.session_id,
+        if (res == -ENOENT) {
+                seat_id = NULL;
+        } else if (res < 0) {
+                g_warning ("Could not get current seat: %s",
                            strerror (-res));
                 unload_seat (manager);
                 return;
@@ -664,7 +770,7 @@ static void
 get_seat_id_for_current_session (ActUserManager *manager)
 {
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 _get_systemd_seat_id (manager);
                 return;
         }
@@ -705,13 +811,14 @@ username_in_exclude_list (ActUserManager *manager,
 static void
 add_session_for_user (ActUserManager *manager,
                       ActUser        *user,
-                      const char     *ssid)
+                      const char     *ssid,
+                      gboolean        is_ours)
 {
         g_hash_table_insert (manager->priv->sessions,
                              g_strdup (ssid),
                              g_object_ref (user));
 
-        _act_user_add_session (user, ssid);
+        _act_user_add_session (user, ssid, is_ours);
         g_debug ("ActUserManager: added session for %s", describe_user (user));
 }
 
@@ -772,15 +879,15 @@ add_user (ActUserManager *manager,
                                  G_CALLBACK (on_user_changed),
                                  manager, 0);
 
+        if (g_hash_table_size (manager->priv->normal_users_by_name) > 1) {
+                set_has_multiple_users (manager, TRUE);
+        }
+
         if (manager->priv->is_loaded) {
                 g_debug ("ActUserManager: loaded, so emitting user-added signal");
                 g_signal_emit (manager, signals[USER_ADDED], 0, user);
         } else {
                 g_debug ("ActUserManager: not yet loaded, so not emitting user-added signal");
-        }
-
-        if (g_hash_table_size (manager->priv->normal_users_by_name) > 1) {
-                set_has_multiple_users (manager, TRUE);
         }
 }
 
@@ -805,6 +912,10 @@ remove_user (ActUserManager *manager,
 
         }
 
+        if (g_hash_table_size (manager->priv->normal_users_by_name) <= 1) {
+                set_has_multiple_users (manager, FALSE);
+        }
+
         if (manager->priv->is_loaded) {
                 g_debug ("ActUserManager: loaded, so emitting user-removed signal");
                 g_signal_emit (manager, signals[USER_REMOVED], 0, user);
@@ -813,9 +924,39 @@ remove_user (ActUserManager *manager,
         }
 
         g_object_unref (user);
+}
 
-        if (g_hash_table_size (manager->priv->normal_users_by_name) <= 1) {
-                set_has_multiple_users (manager, FALSE);
+static void
+update_user (ActUserManager *manager,
+             ActUser        *user)
+{
+        const char *username;
+
+        username = act_user_get_user_name (user);
+        if (g_hash_table_lookup (manager->priv->system_users_by_name, username) != NULL) {
+                if (!act_user_is_system_account (user)) {
+                        g_hash_table_insert (manager->priv->normal_users_by_name,
+                                             g_strdup (act_user_get_user_name (user)),
+                                             g_object_ref (user));
+                        g_hash_table_remove (manager->priv->system_users_by_name, username);
+                        g_signal_emit (manager, signals[USER_ADDED], 0, user);
+
+                        if (g_hash_table_size (manager->priv->normal_users_by_name) > 1) {
+                                set_has_multiple_users (manager, TRUE);
+                        }
+                }
+        } else {
+                if (act_user_is_system_account (user)) {
+                        g_hash_table_insert (manager->priv->system_users_by_name,
+                                             g_strdup (act_user_get_user_name (user)),
+                                             g_object_ref (user));
+                        g_hash_table_remove (manager->priv->normal_users_by_name, username);
+                        g_signal_emit (manager, signals[USER_REMOVED], 0, user);
+
+                        if (g_hash_table_size (manager->priv->normal_users_by_name) <= 1) {
+                                set_has_multiple_users (manager, FALSE);
+                        }
+                }
         }
 }
 
@@ -912,7 +1053,7 @@ add_new_user_for_object_path (const char     *object_path,
 {
         ActUser *user;
 
-        user = g_hash_table_lookup (manager->priv->users_by_object_path, object_path); 
+        user = g_hash_table_lookup (manager->priv->users_by_object_path, object_path);
 
         if (user != NULL) {
                 g_debug ("ActUserManager: tracking existing %s with object path %s",
@@ -1007,9 +1148,11 @@ _get_current_systemd_session_id (ActUserManager *manager)
         char *session_id;
         int   res;
 
-        res = sd_seat_get_active ("seat0", &session_id, NULL);
+        res = sd_pid_get_session (0, &session_id);
 
-        if (res < 0) {
+        if (res == -ENOENT) {
+                session_id = NULL;
+        } else if (res < 0) {
                 g_debug ("Failed to identify the current session: %s",
                          strerror (-res));
                 unload_seat (manager);
@@ -1030,7 +1173,7 @@ static void
 get_current_session_id (ActUserManager *manager)
 {
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 _get_current_systemd_session_id (manager);
                 return;
         }
@@ -1091,7 +1234,7 @@ get_proxy_for_new_session (ActUserManagerNewSession *new_session)
 {
         GError            *error = NULL;
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 new_session->state++;
                 load_new_session_incrementally (new_session);
                 return;
@@ -1184,7 +1327,7 @@ static void
 get_uid_for_new_session (ActUserManagerNewSession *new_session)
 {
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 _get_uid_for_new_systemd_session (new_session);
                 return;
         }
@@ -1396,7 +1539,7 @@ on_get_x11_display_finished (GObject      *object,
                 unload_new_session (new_session);
                 return;
         }
-  
+
         g_debug ("ActUserManager: Found x11 display of session '%s': %s",
                  new_session->id, x11_display);
 
@@ -1426,12 +1569,12 @@ _get_x11_display_for_new_systemd_session (ActUserManagerNewSession *new_session)
         }
 
         if (g_strcmp0 (session_type, "x11") != 0) {
-                g_debug ("ActUserManager: ignoring %s session '%s' since it's not graphical",
+                g_debug ("ActUserManager: (mostly) ignoring %s session '%s' since it's not graphical",
                          session_type,
                          new_session->id);
                 free (session_type);
-                unload_new_session (new_session);
-                return;
+                x11_display = NULL;
+                goto done;
         }
         free (session_type);
 
@@ -1449,6 +1592,7 @@ _get_x11_display_for_new_systemd_session (ActUserManagerNewSession *new_session)
         g_debug ("ActUserManager: Found x11 display of session '%s': %s",
                  new_session->id, x11_display);
 
+ done:
         new_session->x11_display = g_strdup (x11_display);
         free (x11_display);
         new_session->state++;
@@ -1461,7 +1605,7 @@ static void
 get_x11_display_for_new_session (ActUserManagerNewSession *new_session)
 {
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 _get_x11_display_for_new_systemd_session (new_session);
                 return;
         }
@@ -1481,39 +1625,37 @@ maybe_add_new_session (ActUserManagerNewSession *new_session)
 {
         ActUserManager *manager;
         ActUser        *user;
+        gboolean        is_ours;
 
         manager = ACT_USER_MANAGER (new_session->manager);
 
-        if (new_session->x11_display == NULL || new_session->x11_display[0] == '\0') {
-                g_debug ("AcUserManager: ignoring session '%s' since it's not graphical",
-                         new_session->id);
-                goto done;
-        }
+        is_ours = TRUE;
 
-        if (session_is_login_window (manager, new_session->id)) {
-                goto done;
+        if (new_session->x11_display == NULL || new_session->x11_display[0] == '\0') {
+                g_debug ("AcUserManager: (mostly) ignoring session '%s' since it's not graphical",
+                         new_session->id);
+                is_ours = FALSE;
+        } else if (session_is_login_window (manager, new_session->id)) {
+                new_session->state = ACT_USER_MANAGER_NEW_SESSION_STATE_LOADED;
+                unload_new_session (new_session);
+                return;
+        } else if (!session_is_on_our_seat (manager, new_session->id)) {
+                is_ours = FALSE;
         }
 
         user = act_user_manager_get_user_by_id (manager, new_session->uid);
         if (user == NULL) {
-                goto failed;
+                unload_new_session (new_session);
+                return;
         }
 
-        add_session_for_user (manager, user, new_session->id);
+        add_session_for_user (manager, user, new_session->id, is_ours);
 
         /* if we haven't yet gotten the login frequency
            then at least add one because the session exists */
         if (act_user_get_login_frequency (user) == 0) {
                 _act_user_update_login_frequency (user, 1);
         }
-
-done:
-        new_session->state = ACT_USER_MANAGER_NEW_SESSION_STATE_LOADED;
-        unload_new_session (new_session);
-        return;
-
-failed:
-        unload_new_session (new_session);
 }
 
 static void
@@ -1603,6 +1745,7 @@ _remove_session (ActUserManager *manager,
 
         g_debug ("ActUserManager: Session removed for %s", describe_user (user));
         _act_user_remove_session (user, session_id);
+        g_hash_table_remove (manager->priv->sessions, session_id);
 }
 
 static void
@@ -1693,14 +1836,13 @@ _remove_stale_systemd_sessions (ActUserManager *manager,
         node = manager->priv->new_sessions;
         while (node != NULL) {
                 ActUserManagerNewSession *new_session = node->data;
-                GSList *next_node = node->next;
+                node = node->next;
 
                 if (g_hash_table_contains (systemd_sessions, new_session->id)) {
                         continue;
                 }
 
                 sessions_to_remove = g_slist_prepend (sessions_to_remove, new_session->id);
-                node = next_node;
         }
 
         node = sessions_to_remove;
@@ -1740,6 +1882,8 @@ reload_systemd_sessions (ActUserManager *manager)
 
         if (sessions != NULL) {
                 for (i = 0; sessions[i] != NULL; i ++) {
+                        char *session_class;
+
                         res = sd_session_get_state (sessions[i], &state);
 
                         if (res < 0) {
@@ -1753,6 +1897,21 @@ reload_systemd_sessions (ActUserManager *manager)
                         if (is_closing) {
                                 continue;
                         }
+
+                        session_class = NULL;
+                        res = sd_session_get_class (sessions[i], &session_class);
+
+                        if (res < 0) {
+                                g_debug ("Failed to determine class of session %s: %s", sessions[i], strerror (-res));
+                                continue;
+                        }
+
+                        if (g_strcmp0 (session_class, "user") != 0) {
+                                g_debug ("Ignoring non-user session %s (class %s)", sessions[i], session_class);
+                                free (session_class);
+                                continue;
+                        }
+                        free (session_class);
 
                         g_hash_table_insert (systemd_sessions,
                                              sessions[i], NULL);
@@ -1819,7 +1978,7 @@ get_seat_proxy (ActUserManager *manager)
         GError *error = NULL;
 
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 _monitor_for_systemd_session_changes (manager);
                 manager->priv->seat.state++;
                 return;
@@ -1893,7 +2052,7 @@ get_session_proxy (ActUserManager *manager)
         g_debug ("get_session_proxy");
 
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 manager->priv->seat.state++;
                 queue_load_seat_incrementally (manager);
                 return;
@@ -2191,7 +2350,7 @@ listify_hash_values_hfunc (gpointer key,
  *
  * Get a list of system user accounts
  *
- * Returns: (element-type ActUser) (transfer full): List of #ActUser objects
+ * Returns: (element-type ActUser) (transfer container): List of #ActUser objects
  */
 GSList *
 act_user_manager_list_users (ActUserManager *manager)
@@ -2317,7 +2476,7 @@ static void
 load_sessions (ActUserManager *manager)
 {
 #ifdef WITH_SYSTEMD
-        if (sd_booted () > 0) {
+        if (LOGIND_RUNNING()) {
                 reload_systemd_sessions (manager);
                 maybe_set_is_loaded (manager);
                 return;
@@ -2333,7 +2492,7 @@ load_users (ActUserManager *manager)
         g_debug ("ActUserManager: calling 'ListCachedUsers'");
 
         accounts_accounts_call_list_cached_users (manager->priv->accounts_proxy,
-                                                  NULL, 
+                                                  NULL,
                                                   on_list_cached_users_finished,
                                                   g_object_ref (manager));
         manager->priv->listing_cached_users = TRUE;
@@ -2480,31 +2639,36 @@ act_user_manager_class_init (ActUserManagerClass *klass)
         g_object_class_install_property (object_class,
                                          PROP_IS_LOADED,
                                          g_param_spec_boolean ("is-loaded",
-                                                               NULL,
-                                                               NULL,
+                                                               "Is loaded",
+                                                               "Determines whether or not the manager object is loaded and ready to read from.",
                                                                FALSE,
                                                                G_PARAM_READABLE));
         g_object_class_install_property (object_class,
                                          PROP_HAS_MULTIPLE_USERS,
                                          g_param_spec_boolean ("has-multiple-users",
-                                                               NULL,
-                                                               NULL,
+                                                               "Has multiple users",
+                                                               "Whether more than one normal user is present",
                                                                FALSE,
                                                                G_PARAM_READABLE));
         g_object_class_install_property (object_class,
                                          PROP_INCLUDE_USERNAMES_LIST,
                                          g_param_spec_pointer ("include-usernames-list",
-                                                               NULL,
-                                                               NULL,
+                                                               "Include usernames list",
+                                                               "Usernames who are specifically included",
                                                                G_PARAM_READWRITE));
 
         g_object_class_install_property (object_class,
                                          PROP_EXCLUDE_USERNAMES_LIST,
                                          g_param_spec_pointer ("exclude-usernames-list",
-                                                               NULL,
-                                                               NULL,
+                                                               "Exclude usernames list",
+                                                               "Usernames who are specifically excluded",
                                                                G_PARAM_READWRITE));
 
+        /**
+         * ActUserManager::user-added:
+         *
+         * Emitted when a user is added to the user manager.
+         */
         signals [USER_ADDED] =
                 g_signal_new ("user-added",
                               G_TYPE_FROM_CLASS (klass),
@@ -2513,6 +2677,11 @@ act_user_manager_class_init (ActUserManagerClass *klass)
                               NULL, NULL,
                               g_cclosure_marshal_VOID__OBJECT,
                               G_TYPE_NONE, 1, ACT_TYPE_USER);
+        /**
+         * ActUserManager::user-removed:
+         *
+         * Emitted when a user is removed from the user manager.
+         */
         signals [USER_REMOVED] =
                 g_signal_new ("user-removed",
                               G_TYPE_FROM_CLASS (klass),
@@ -2521,6 +2690,11 @@ act_user_manager_class_init (ActUserManagerClass *klass)
                               NULL, NULL,
                               g_cclosure_marshal_VOID__OBJECT,
                               G_TYPE_NONE, 1, ACT_TYPE_USER);
+        /**
+         * ActUserManager::user-is-logged-in-changed:
+         *
+         * One of the users has logged in or out.
+         */
         signals [USER_IS_LOGGED_IN_CHANGED] =
                 g_signal_new ("user-is-logged-in-changed",
                               G_TYPE_FROM_CLASS (klass),
@@ -2529,6 +2703,11 @@ act_user_manager_class_init (ActUserManagerClass *klass)
                               NULL, NULL,
                               g_cclosure_marshal_VOID__OBJECT,
                               G_TYPE_NONE, 1, ACT_TYPE_USER);
+        /**
+         * ActUserManager::user-changed:
+         *
+         * One of the users has changed
+         */
         signals [USER_CHANGED] =
                 g_signal_new ("user-changed",
                               G_TYPE_FROM_CLASS (klass),
@@ -2765,6 +2944,8 @@ act_user_manager_get_default (void)
  * act_user_manager_no_service:
  * @manager: a #ActUserManager
  *
+ * Check whether or not the accounts service is running.
+ *
  * Returns: whether or not accounts service is running
  */
 gboolean
@@ -2844,7 +3025,7 @@ act_user_manager_async_complete_handler (GObject      *source,
  *     %NULL to ignore
  * @callback: (scope async): a #GAsyncReadyCallback to call
  *     when the request is satisfied
- * @user_data (closure): the data to pass to @callback
+ * @user_data: (closure): the data to pass to @callback
  *
  * Asynchronously creates a user account on the system.
  *
@@ -2982,7 +3163,7 @@ act_user_manager_cache_user (ActUserManager     *manager,
  *     %NULL to ignore
  * @callback: (scope async): a #GAsyncReadyCallback to call
  *     when the request is satisfied
- * @user_data (closure): the data to pass to @callback
+ * @user_data: (closure): the data to pass to @callback
  *
  * Asynchronously caches a user account so it shows up via
  * act_user_manager_list_users().
@@ -3149,7 +3330,7 @@ act_user_manager_delete_user (ActUserManager  *manager,
  *     %NULL to ignore
  * @callback: (scope async): a #GAsyncReadyCallback to call
  *     when the request is satisfied
- * @user_data (closure): the data to pass to @callback
+ * @user_data: (closure): the data to pass to @callback
  *
  * Asynchronously deletes a user account from the system.
  *
