@@ -2,6 +2,7 @@ accountsservice (0.6.34-1) unstable; urgency=low
 
   * New upstream release.
   * Refresh patches.
+  * Update symbols.
 
  -- Alessio Treglia <alessio@debian.org>  Tue, 02 Jul 2013 04:12:44 +0100
 
