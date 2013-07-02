@@ -4,26 +4,38 @@ Author: Alessio Treglia <alessio@debian.org>
 Forwarded: no
 Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
 ---
- src/daemon.c |  109 ++++++++++++++++++++++++++++++++++++-----------------------
- src/daemon.h |    2 -
- src/user.c   |    2 -
- 3 files changed, 69 insertions(+), 44 deletions(-)
+ src/daemon.c |  130 ++++++++++++++++++++++++++++++-----------------------------
+ src/daemon.h |    3 -
+ src/user.c   |    3 -
+ 3 files changed, 69 insertions(+), 67 deletions(-)
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -50,6 +50,11 @@
+@@ -50,10 +50,15 @@
  #define PATH_NOLOGIN "/sbin/nologin"
  #define PATH_FALSE "/bin/false"
  #define PATH_GDM_CUSTOM "/etc/gdm3/daemon.conf"
 +#define PATH_LOGIN_DEFS "/etc/login.defs"
-+
+ #ifdef HAVE_UTMPX_H
+ #define PATH_WTMP _PATH_WTMPX
+ #endif
+ 
 +#ifndef FALLBACK_MINIMAL_UID
 +#define FALLBACK_MINIMAL_UID 500
 +#endif
- 
++
  static const char *default_excludes[] = {
          "bin",
-@@ -91,6 +96,7 @@ struct DaemonPrivate {
+         "root",
+@@ -82,6 +87,7 @@ static const char *default_excludes[] =
+         "at",
+         "gdm",
+         "gnome-initial-setup",
++        uid_t minimal_uid;
+         NULL
+ };
+ 
+@@ -96,6 +102,7 @@ struct DaemonPrivate {
  
          GHashTable *users;
          GHashTable *exclusions;
@@ -31,15 +43,16 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
  
          User *autologin;
  
-@@ -158,50 +164,17 @@ error_get_type (void)
- }
- 
+@@ -168,73 +175,18 @@ error_get_type (void)
  gboolean
--daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gchar *shell)
-+daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, uid_t uid)
+ daemon_local_user_is_excluded (Daemon      *daemon,
+                                const gchar *username,
+-                               const gchar *shell,
+-                               const gchar *password_hash)
++                               uid_t uid)
  {
 -        int ret;
--
+ 
          if (g_hash_table_lookup (daemon->priv->exclusions, username)) {
                  return TRUE;
          }
@@ -77,6 +90,28 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
 -                g_free (basename);
 -                g_free (nologin_basename);
 -                g_free (false_basename);
+-        }
+-
+-        if (password_hash != NULL) {
+-                /* skip over the account-is-locked '!' prefix if present */
+-                if (password_hash[0] == '!')
+-                    password_hash++;
+-
+-                if (password_hash[0] != '\0') {
+-                        /* modern hashes start with "$n$" */
+-                        if (password_hash[0] == '$') {
+-                                if (strlen (password_hash) < 4)
+-                                    ret = TRUE;
+-
+-                        /* DES crypt is base64 encoded [./A-Za-z0-9]*
+-                         */
+-                        } else if (!g_ascii_isalnum (password_hash[0]) &&
+-                                   password_hash[0] != '.' &&
+-                                   password_hash[0] != '/') {
+-                                ret = TRUE;
+-                        }
+-                }
+-
 +        if (uid < daemon->priv->minimal_uid) {
 +                return TRUE;
          }
@@ -86,18 +121,16 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
  }
  
  #ifdef HAVE_UTMPX_H
-@@ -480,8 +453,8 @@ load_entries (Daemon             *daemon
-                 if (pwent == NULL)
+@@ -516,7 +468,7 @@ load_entries (Daemon             *daemon
                          break;
  
--                /* Skip system users... */
--                if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_shell)) {
-+                /* Skip users below MINIMAL_UID...... */
+                 /* Skip system users... */
+-                if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_shell, NULL)) {
 +                if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_uid)) {
                          g_debug ("skipping user: %s", pwent->pw_name);
                          continue;
                  }
-@@ -708,6 +681,59 @@ on_gdm_monitor_changed (GFileMonitor
+@@ -743,6 +695,59 @@ on_gdm_monitor_changed (GFileMonitor
          queue_reload_autologin (daemon);
  }
  
@@ -157,7 +190,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
  static void
  daemon_init (Daemon *daemon)
  {
-@@ -717,6 +743,7 @@ daemon_init (Daemon *daemon)
+@@ -752,6 +757,7 @@ daemon_init (Daemon *daemon)
  
          daemon->priv = DAEMON_GET_PRIVATE (daemon);
  
@@ -165,7 +198,7 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
          daemon->priv->exclusions = g_hash_table_new_full (g_str_hash,
                                                            g_str_equal,
                                                            g_free,
-@@ -1015,21 +1042,19 @@ finish_list_cached_users (gpointer user_
+@@ -1075,16 +1081,14 @@ finish_list_cached_users (gpointer user_
          const gchar *name;
          User *user;
          uid_t uid;
@@ -178,35 +211,32 @@ Bug-Debian: http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=673095
                  uid = user_get_uid (user);
 -                shell = user_get_shell (user);
  
-                 if (user_get_system_account (user)) {
-                         g_debug ("user %s %ld is system account, so excluded\n", name, (long) uid);
-                         continue;
-                 }
- 
--                if (daemon_local_user_is_excluded (data->daemon, name, shell)) {
+-                if (daemon_local_user_is_excluded (data->daemon, name, shell, NULL)) {
 +                if (daemon_local_user_is_excluded (data->daemon, name, uid)) {
-                         g_debug ("user %s %ld excluded\n", name, (long) uid);
+                         g_debug ("user %s %ld excluded", name, (long) uid);
                          continue;
                  }
 --- accountsservice.orig/src/daemon.h
 +++ accountsservice/src/daemon.h
-@@ -77,7 +77,7 @@ User *daemon_local_find_user_by_name (Da
-                                       const gchar           *name);
+@@ -78,8 +78,7 @@ User *daemon_local_find_user_by_name (Da
+ User *daemon_local_get_automatic_login_user (Daemon         *daemon);
  gboolean daemon_local_user_is_excluded (Daemon              *daemon,
                                          const gchar         *name,
--                                        const gchar         *shell);
+-                                        const gchar         *shell,
+-                                        const gchar         *password_hash);
 +                                        uid_t                uid);
  
  typedef void (*AuthorizedCallback)   (Daemon                *daemon,
                                        User                  *user,
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
-@@ -287,7 +287,7 @@ user_update_from_pwent (User          *u
- 
+@@ -290,8 +290,7 @@ user_update_from_pwent (User          *u
+          */
          user->system_account = daemon_local_user_is_excluded (user->daemon,
                                                                user->user_name,
--                                                              pwent->pw_shell);
-+                                                              pwent->pw_uid);
+-                                                              pwent->pw_shell,
+-                                                              passwd);
++                                                              pwent->pw_uid)
  
          g_object_thaw_notify (G_OBJECT (user));
  
