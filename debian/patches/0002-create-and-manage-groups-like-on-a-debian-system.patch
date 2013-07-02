@@ -4,20 +4,20 @@ Forwarded: not-needed
 Description: Create and manage groups like on a debian system.
 ---
  src/daemon.c |   22 ++++++----------------
- src/user.c   |   22 +++++++++++-----------
+ src/user.c   |   16 ++++++++--------
  src/util.c   |   42 ++++++++++++++++++++++++++++++++++++++++++
  src/util.h   |    9 +++++++++
- 4 files changed, 68 insertions(+), 27 deletions(-)
+ 4 files changed, 65 insertions(+), 24 deletions(-)
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -1114,22 +1114,8 @@ daemon_create_user_authorized_cb (Daemon
+@@ -1187,22 +1187,8 @@ daemon_create_user_authorized_cb (Daemon
          argv[1] = "-m";
          argv[2] = "-c";
          argv[3] = cd->real_name;
 -        if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
 -                argv[4] = "-G";
--                argv[5] = "wheel";
+-                argv[5] = ADMIN_GROUP;
 -                argv[6] = "--";
 -                argv[7] = cd->user_name;
 -                argv[8] = NULL;
@@ -36,7 +36,7 @@ Description: Create and manage groups like on a debian system.
  
          error = NULL;
          if (!spawn_with_login_uid (context, argv, &error)) {
-@@ -1138,6 +1124,10 @@ daemon_create_user_authorized_cb (Daemon
+@@ -1211,6 +1197,10 @@ daemon_create_user_authorized_cb (Daemon
                  return;
          }
  
@@ -46,7 +46,7 @@ Description: Create and manage groups like on a debian system.
 +
          user = daemon_local_find_user_by_name (daemon, cd->user_name);
          user_update_local_account_property (user, TRUE);
- 
+         user_update_system_account_property (user, FALSE);
 --- accountsservice.orig/src/user.c
 +++ accountsservice/src/user.c
 @@ -115,7 +115,7 @@ static gint
@@ -58,15 +58,8 @@ Description: Create and manage groups like on a debian system.
          gid_t *groups;
          gint ngroups;
          gint i;
-@@ -125,17 +125,17 @@ account_type_from_pwent (struct passwd *
-                 return ACCOUNT_TYPE_ADMINISTRATOR;
-         }
- 
--        grp = getgrnam ("wheel");
-+        grp = getgrnam ("sudo");
-         if (grp == NULL) {
--                g_debug ("wheel group not found");
-+                g_debug ("sudo group not found");
+@@ -130,12 +130,12 @@ account_type_from_pwent (struct passwd *
+                 g_debug (ADMIN_GROUP " group not found");
                  return ACCOUNT_TYPE_STANDARD;
          }
 -        wheel = grp->gr_gid;
@@ -80,7 +73,7 @@ Description: Create and manage groups like on a debian system.
                          g_free (groups);
                          return ACCOUNT_TYPE_ADMINISTRATOR;
                  }
-@@ -1287,7 +1287,7 @@ user_change_account_type_authorized_cb (
+@@ -1347,7 +1347,7 @@ user_change_account_type_authorized_cb (
          gid_t *groups;
          gint ngroups;
          GString *str;
@@ -89,15 +82,12 @@ Description: Create and manage groups like on a debian system.
          struct group *grp;
          gint i;
          const gchar *argv[6];
-@@ -1297,24 +1297,24 @@ user_change_account_type_authorized_cb (
-                          "change account type of user '%s' (%d) to %d",
-                          user->user_name, user->uid, account_type);
+@@ -1359,22 +1359,22 @@ user_change_account_type_authorized_cb (
  
--                grp = getgrnam ("wheel");
-+                grp = getgrnam ("sudo");
+                 grp = getgrnam (ADMIN_GROUP);
                  if (grp == NULL) {
 -                        throw_error (context, ERROR_FAILED, "failed to set account type: wheel group not found");
-+                        throw_error (context, ERROR_FAILED, "failed to set account type: sudo group not found");
++                        throw_error (context, ERROR_FAILED, "failed to set account type: admin group not found");
                          return;
                  }
 -                wheel = grp->gr_gid;
@@ -121,7 +111,7 @@ Description: Create and manage groups like on a debian system.
                  default:
 --- accountsservice.orig/src/util.c
 +++ accountsservice/src/util.c
-@@ -302,3 +302,45 @@ get_caller_uid (GDBusMethodInvocation *c
+@@ -313,3 +313,45 @@ get_caller_uid (GDBusMethodInvocation *c
  
          return TRUE;
  }

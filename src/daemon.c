@@ -50,6 +50,9 @@
 #define PATH_NOLOGIN "/sbin/nologin"
 #define PATH_FALSE "/bin/false"
 #define PATH_GDM_CUSTOM "/etc/gdm/custom.conf"
+#ifdef HAVE_UTMPX_H
+#define PATH_WTMP _PATH_WTMPX
+#endif
 
 static const char *default_excludes[] = {
         "bin",
@@ -77,6 +80,8 @@ static const char *default_excludes[] = {
         "games",
         "man",
         "at",
+        "gdm",
+        "gnome-initial-setup",
         NULL
 };
 
@@ -97,6 +102,9 @@ struct DaemonPrivate {
         GFileMonitor *passwd_monitor;
         GFileMonitor *shadow_monitor;
         GFileMonitor *gdm_monitor;
+#ifdef HAVE_UTMPX_H
+        GFileMonitor *wtmp_monitor;
+#endif
 
         guint reload_id;
         guint autologin_id;
@@ -158,7 +166,10 @@ error_get_type (void)
 }
 
 gboolean
-daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gchar *shell)
+daemon_local_user_is_excluded (Daemon      *daemon,
+                               const gchar *username,
+                               const gchar *shell,
+                               const gchar *password_hash)
 {
         int ret;
 
@@ -199,6 +210,28 @@ daemon_local_user_is_excluded (Daemon *daemon, const gchar *username, const gcha
                 g_free (basename);
                 g_free (nologin_basename);
                 g_free (false_basename);
+        }
+
+        if (password_hash != NULL) {
+                /* skip over the account-is-locked '!' prefix if present */
+                if (password_hash[0] == '!')
+                    password_hash++;
+
+                if (password_hash[0] != '\0') {
+                        /* modern hashes start with "$n$" */
+                        if (password_hash[0] == '$') {
+                                if (strlen (password_hash) < 4)
+                                    ret = TRUE;
+
+                        /* DES crypt is base64 encoded [./A-Za-z0-9]*
+                         */
+                        } else if (!g_ascii_isalnum (password_hash[0]) &&
+                                   password_hash[0] != '.' &&
+                                   password_hash[0] != '/') {
+                                ret = TRUE;
+                        }
+                }
+
         }
 
         return ret;
@@ -244,7 +277,7 @@ entry_generator_wtmp (GHashTable *users,
                         return NULL;
                 }
 #else
-                utmpxname (_PATH_WTMPX);
+                utmpxname (PATH_WTMP);
                 setutxent ();
 #endif
                 *state = g_new (WTmpGeneratorState, 1);
@@ -356,6 +389,8 @@ entry_generator_wtmp (GHashTable *users,
                 g_object_set (user, "login-history", g_variant_new ("a(xxa{sv})", builder), NULL);
                 g_variant_builder_unref (builder);
                 g_list_free (accounting->previous_logins);
+
+                user_changed (user);
         }
 
         g_hash_table_unref (login_hash);
@@ -481,7 +516,7 @@ load_entries (Daemon             *daemon,
                         break;
 
                 /* Skip system users... */
-                if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_shell)) {
+                if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_shell, NULL)) {
                         g_debug ("skipping user: %s", pwent->pw_name);
                         continue;
                 }
@@ -629,7 +664,7 @@ reload_autologin_timeout (Daemon *daemon)
         }
 
         if (enabled) {
-                g_debug ("automatic login is enabled for '%s'\n", name);
+                g_debug ("automatic login is enabled for '%s'", name);
                 if (daemon->priv->autologin != user) {
                         g_object_set (user, "automatic-login", TRUE, NULL);
                         daemon->priv->autologin = g_object_ref (user);
@@ -637,7 +672,7 @@ reload_autologin_timeout (Daemon *daemon)
                 }
         }
         else {
-                g_debug ("automatic login is disabled\n");
+                g_debug ("automatic login is disabled");
         }
 
         g_free (name);
@@ -679,11 +714,11 @@ queue_reload_autologin (Daemon *daemon)
 }
 
 static void
-on_passwd_monitor_changed (GFileMonitor      *monitor,
-                           GFile             *file,
-                           GFile             *other_file,
-                           GFileMonitorEvent  event_type,
-                           Daemon            *daemon)
+on_users_monitor_changed (GFileMonitor      *monitor,
+                          GFile             *file,
+                          GFile             *other_file,
+                          GFileMonitorEvent  event_type,
+                          Daemon            *daemon)
 {
         if (event_type != G_FILE_MONITOR_EVENT_CHANGED &&
             event_type != G_FILE_MONITOR_EVENT_CREATED) {
@@ -735,38 +770,56 @@ daemon_init (Daemon *daemon)
                                                             G_FILE_MONITOR_NONE,
                                                             NULL,
                                                             &error);
-        g_object_unref (file);
-        file = g_file_new_for_path (PATH_SHADOW);
-        daemon->priv->shadow_monitor = g_file_monitor_file (file,
-                                                            G_FILE_MONITOR_NONE,
-                                                            NULL,
-                                                            &error);
-        g_object_unref (file);
-        file = g_file_new_for_path (PATH_GDM_CUSTOM);
-        daemon->priv->gdm_monitor = g_file_monitor_file (file,
-                                                         G_FILE_MONITOR_NONE,
-                                                         NULL,
-                                                         &error);
-        g_object_unref (file);
-
         if (daemon->priv->passwd_monitor != NULL) {
                 g_signal_connect (daemon->priv->passwd_monitor,
                                   "changed",
-                                  G_CALLBACK (on_passwd_monitor_changed),
+                                  G_CALLBACK (on_users_monitor_changed),
                                   daemon);
         } else {
                 g_warning ("Unable to monitor %s: %s", PATH_PASSWD, error->message);
                 g_error_free (error);
         }
+        g_object_unref (file);
+
+        file = g_file_new_for_path (PATH_SHADOW);
+        daemon->priv->shadow_monitor = g_file_monitor_file (file,
+                                                            G_FILE_MONITOR_NONE,
+                                                            NULL,
+                                                            &error);
         if (daemon->priv->shadow_monitor != NULL) {
                 g_signal_connect (daemon->priv->shadow_monitor,
                                   "changed",
-                                  G_CALLBACK (on_passwd_monitor_changed),
+                                  G_CALLBACK (on_users_monitor_changed),
                                   daemon);
         } else {
                 g_warning ("Unable to monitor %s: %s", PATH_SHADOW, error->message);
                 g_error_free (error);
-       }
+        }
+        g_object_unref (file);
+
+#ifdef HAVE_UTMPX_H
+        file = g_file_new_for_path (PATH_WTMP);
+        daemon->priv->wtmp_monitor = g_file_monitor_file (file,
+                                                           G_FILE_MONITOR_NONE,
+                                                           NULL,
+                                                           &error);
+        if (daemon->priv->wtmp_monitor != NULL) {
+                g_signal_connect (daemon->priv->wtmp_monitor,
+                                  "changed",
+                                  G_CALLBACK (on_users_monitor_changed),
+                                  daemon);
+        } else {
+                g_warning ("Unable to monitor %s: %s", PATH_WTMP, error->message);
+                g_error_free (error);
+        }
+        g_object_unref (file);
+#endif
+
+        file = g_file_new_for_path (PATH_GDM_CUSTOM);
+        daemon->priv->gdm_monitor = g_file_monitor_file (file,
+                                                         G_FILE_MONITOR_NONE,
+                                                         NULL,
+                                                         &error);
         if (daemon->priv->gdm_monitor != NULL) {
                 g_signal_connect (daemon->priv->gdm_monitor,
                                   "changed",
@@ -776,6 +829,7 @@ daemon_init (Daemon *daemon)
                 g_warning ("Unable to monitor %s: %s", PATH_GDM_CUSTOM, error->message);
                 g_error_free (error);
         }
+        g_object_unref (file);
 
         queue_reload_users (daemon);
         queue_reload_autologin (daemon);
@@ -927,7 +981,7 @@ daemon_local_find_user_by_name (Daemon      *daemon,
 
         pwent = getpwnam (name);
         if (pwent == NULL) {
-                g_debug ("unable to lookup name %s", name);
+                g_debug ("unable to lookup name %s: %s", name, g_strerror (errno));
                 return NULL;
         }
 
@@ -937,6 +991,12 @@ daemon_local_find_user_by_name (Daemon      *daemon,
                 user = add_new_user_for_pwent (daemon, pwent);
 
         return user;
+}
+
+User *
+daemon_local_get_automatic_login_user (Daemon *daemon)
+{
+        return daemon->priv->autologin;
 }
 
 static gboolean
@@ -1024,17 +1084,12 @@ finish_list_cached_users (gpointer user_data)
                 uid = user_get_uid (user);
                 shell = user_get_shell (user);
 
-                if (user_get_system_account (user)) {
-                        g_debug ("user %s %ld is system account, so excluded\n", name, (long) uid);
+                if (daemon_local_user_is_excluded (data->daemon, name, shell, NULL)) {
+                        g_debug ("user %s %ld excluded", name, (long) uid);
                         continue;
                 }
 
-                if (daemon_local_user_is_excluded (data->daemon, name, shell)) {
-                        g_debug ("user %s %ld excluded\n", name, (long) uid);
-                        continue;
-                }
-
-                g_debug ("user %s %ld not excluded\n", name, (long) uid);
+                g_debug ("user %s %ld not excluded", name, (long) uid);
                 g_ptr_array_add (object_paths, (gpointer) user_get_object_path (user));
         }
         g_ptr_array_add (object_paths, NULL);
@@ -1072,6 +1127,24 @@ static const gchar *
 daemon_get_daemon_version (AccountsAccounts *object)
 {
     return VERSION;
+}
+
+static void
+cache_user (Daemon *daemon,
+            User   *user)
+{
+        gchar       *filename;
+        const char  *user_name;
+
+        /* Always use the canonical user name looked up */
+        user_name = user_get_user_name (user);
+
+        filename = g_build_filename (USERDIR, user_name, NULL);
+        if (!g_file_test (filename, G_FILE_TEST_EXISTS)) {
+                user_save (user);
+        }
+
+        g_free (filename);
 }
 
 typedef struct {
@@ -1116,7 +1189,7 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
         argv[3] = cd->real_name;
         if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
                 argv[4] = "-G";
-                argv[5] = "wheel";
+                argv[5] = ADMIN_GROUP;
                 argv[6] = "--";
                 argv[7] = cd->user_name;
                 argv[8] = NULL;
@@ -1140,6 +1213,9 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
 
         user = daemon_local_find_user_by_name (daemon, cd->user_name);
         user_update_local_account_property (user, TRUE);
+        user_update_system_account_property (user, FALSE);
+
+        cache_user (daemon, user);
 
         accounts_accounts_complete_create_user (NULL, context, user_get_object_path (user));
 }
@@ -1178,9 +1254,6 @@ daemon_cache_user_authorized_cb (Daemon                *daemon,
                                  gpointer               data)
 {
         const gchar *user_name = data;
-        GError      *error = NULL;
-        gchar       *filename;
-        gchar       *comment;
         User        *user;
 
         sys_log (context, "cache user '%s'", user_name);
@@ -1192,23 +1265,9 @@ daemon_cache_user_authorized_cb (Daemon                *daemon,
                 return;
         }
 
-        /* Always use the canonical user name looked up */
-        user_name = user_get_user_name (user);
+        user_update_system_account_property (user, FALSE);
 
-        filename = g_build_filename (USERDIR, user_name, NULL);
-        if (!g_file_test (filename, G_FILE_TEST_EXISTS)) {
-                comment = g_strdup_printf ("# Cached file for %s\n\n", user_name);
-                g_file_set_contents (filename, comment, -1, &error);
-                g_free (comment);
-
-                if (error != NULL) {
-                        g_warning ("Couldn't write user cache file: %s: %s",
-                                   filename, error->message);
-                        g_error_free (error);
-                }
-        }
-
-        g_free (filename);
+        cache_user (daemon, user);
 
         accounts_accounts_complete_cache_user (NULL, context, user_get_object_path (user));
 }
@@ -1321,6 +1380,19 @@ daemon_delete_user_authorized_cb (Daemon                *daemon,
         }
 
         sys_log (context, "delete user '%s' (%d)", pwent->pw_name, ud->uid);
+
+        if (daemon->priv->autologin != NULL) {
+                User *user;
+
+                user = daemon_local_find_user_by_id (daemon, ud->uid);
+
+                g_assert (user != NULL);
+
+                if (daemon->priv->autologin == user) {
+                        daemon_local_set_automatic_login (daemon, user, FALSE, NULL);
+                }
+
+        }
 
         filename = g_build_filename (USERDIR, pwent->pw_name, NULL);
         g_remove (filename);

@@ -178,6 +178,7 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_get_login_history@Base 0.6.29
  act_user_get_login_time@Base 0.6.29
  act_user_get_num_sessions@Base 0.6.8
+ act_user_get_num_sessions_anywhere@Base 0.6.34
  act_user_get_object_path@Base 0.6.8
  act_user_get_password_hint@Base 0.6.8
  act_user_get_password_mode@Base 0.6.8
@@ -191,6 +192,7 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_is_loaded@Base 0.6.8
  act_user_is_local_account@Base 0.6.24
  act_user_is_logged_in@Base 0.6.8
+ act_user_is_logged_in_anywhere@Base 0.6.34
  act_user_is_system_account@Base 0.6.9
  act_user_manager_activate_user_session@Base 0.6.8
  act_user_manager_cache_user@Base 0.6.24

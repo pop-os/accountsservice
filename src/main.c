@@ -31,6 +31,7 @@
 
 #include <glib.h>
 #include <glib/gi18n.h>
+#include <glib-unix.h>
 
 #include "daemon.h"
 
@@ -102,6 +103,27 @@ on_name_lost (GDBusConnection  *connection,
 static gboolean debug;
 
 static void
+on_log_debug (const gchar *log_domain,
+              GLogLevelFlags log_level,
+              const gchar *message,
+              gpointer user_data)
+{
+        GString *string;
+        const gchar *progname;
+        int ret G_GNUC_UNUSED;
+
+        string = g_string_new (NULL);
+
+        progname = g_get_prgname ();
+        g_string_append_printf (string, "(%s:%lu): %s%sDEBUG: %s\n",
+                                progname ? progname : "process", (gulong)getpid (),
+                                log_domain ? log_domain : "", log_domain ? "-" : "",
+                                message ? message : "(NULL) message");
+
+        ret = write (1, string->str, string->len);
+}
+
+static void
 log_handler (const gchar   *domain,
              GLogLevelFlags level,
              const gchar   *message,
@@ -112,6 +134,13 @@ log_handler (const gchar   *domain,
                 return;
 
         g_log_default_handler (domain, level, message, data);
+}
+
+static gboolean
+on_signal_quit (gpointer data)
+{
+        g_main_loop_quit (data);
+        return FALSE;
 }
 
 int
@@ -137,7 +166,9 @@ main (int argc, char *argv[])
         setlocale (LC_ALL, "");
         bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 
+#if !GLIB_CHECK_VERSION (2, 35, 3)
         g_type_init ();
+#endif
 
         if (!g_setenv ("GIO_USE_VFS", "local", TRUE)) {
                 g_warning ("Couldn't set GIO_USE_GVFS");
@@ -162,6 +193,9 @@ main (int argc, char *argv[])
                 goto out;
         }
 
+        /* If --debug, then print debug messages even when no G_MESSAGES_DEBUG */
+        if (debug && !g_getenv ("G_MESSAGES_DEBUG"))
+                g_log_set_handler (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, on_log_debug, NULL);
         g_log_set_default_handler (log_handler, NULL);
 
         flags = G_BUS_NAME_OWNER_FLAGS_ALLOW_REPLACEMENT;
@@ -178,9 +212,13 @@ main (int argc, char *argv[])
 
         loop = g_main_loop_new (NULL, FALSE);
 
-        g_debug ("entering main loop\n");
+        g_unix_signal_add (SIGINT, on_signal_quit, loop);
+        g_unix_signal_add (SIGTERM, on_signal_quit, loop);
+
+        g_debug ("entering main loop");
         g_main_loop_run (loop);
 
+        g_debug ("exiting");
         g_main_loop_unref (loop);
 
         ret = 0;

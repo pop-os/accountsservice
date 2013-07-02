@@ -36,16 +36,18 @@ G_BEGIN_DECLS
 #define ACT_USER_MANAGER_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), ACT_TYPE_USER_MANAGER, ActUserManagerClass))
 
 typedef struct ActUserManagerPrivate ActUserManagerPrivate;
-typedef struct ActUserManager ActUserManager;
-typedef struct ActUserManagerClass ActUserManagerClass;
+typedef struct _ActUserManager ActUserManager;
+typedef struct _ActUserManagerClass ActUserManagerClass;
 
-struct ActUserManager
+struct _ActUserManager
 {
         GObject                parent;
+
+        /*< private >*/
         ActUserManagerPrivate *priv;
 };
 
-struct ActUserManagerClass
+struct _ActUserManagerClass
 {
         GObjectClass   parent_class;
 

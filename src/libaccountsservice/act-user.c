@@ -41,6 +41,29 @@
  * An ActUser object represents a user account on the system.
  */
 
+/**
+ * ActUser:
+ *
+ * Represents a user account on the system.
+ */
+
+/**
+ * ActUserAccountType:
+ * @ACT_USER_ACCOUNT_TYPE_STANDARD: Normal non-administrative user
+ * @ACT_USER_ACCOUNT_TYPE_ADMINISTRATOR: Administrative user
+ *
+ * Type of user account
+ */
+
+/**
+ * ActUserPasswordMode:
+ * @ACT_USER_PASSWORD_MODE_REGULAR: Password set normally
+ * @ACT_USER_PASSWORD_MODE_SET_AT_LOGIN: Password will be chosen at next login
+ * @ACT_USER_PASSWORD_MODE_NONE: No password set
+ *
+ * Mode for setting the user's password.
+ */
+
 #define ACT_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST ((klass), ACT_TYPE_USER, ActUserClass))
 #define ACT_IS_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), ACT_TYPE_USER))
 #define ACT_USER_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS ((object), ACT_TYPE_USER, ActUserClass))
@@ -99,7 +122,8 @@ struct _ActUser {
         char           *icon_file;
         char           *language;
         char           *x_session;
-        GList          *sessions;
+        GList          *our_sessions;
+        GList          *other_sessions;
         int             login_frequency;
         gint64          login_time;
         GVariant       *login_history;
@@ -142,17 +166,24 @@ session_compare (const char *a,
 
 void
 _act_user_add_session (ActUser    *user,
-                       const char *ssid)
+                       const char *ssid,
+                       gboolean    is_ours)
 {
         GList *li;
 
         g_return_if_fail (ACT_IS_USER (user));
         g_return_if_fail (ssid != NULL);
 
-        li = g_list_find_custom (user->sessions, ssid, (GCompareFunc)session_compare);
+        li = g_list_find_custom (user->our_sessions, ssid, (GCompareFunc)session_compare);
+        if (li == NULL)
+                li = g_list_find_custom (user->other_sessions, ssid, (GCompareFunc)session_compare);
+
         if (li == NULL) {
                 g_debug ("ActUser: adding session %s", ssid);
-                user->sessions = g_list_prepend (user->sessions, g_strdup (ssid));
+                if (is_ours)
+                        user->our_sessions = g_list_prepend (user->our_sessions, g_strdup (ssid));
+                else
+                        user->other_sessions = g_list_prepend (user->other_sessions, g_strdup (ssid));
                 g_signal_emit (user, signals[SESSIONS_CHANGED], 0);
         } else {
                 g_debug ("ActUser: session already present: %s", ssid);
@@ -163,26 +194,57 @@ void
 _act_user_remove_session (ActUser    *user,
                           const char *ssid)
 {
-        GList *li;
+        GList *li, **headp;
 
         g_return_if_fail (ACT_IS_USER (user));
         g_return_if_fail (ssid != NULL);
 
-        li = g_list_find_custom (user->sessions, ssid, (GCompareFunc)session_compare);
+        headp = &(user->our_sessions);
+        li = g_list_find_custom (user->our_sessions, ssid, (GCompareFunc)session_compare);
+        if (li == NULL) {
+                headp = &(user->other_sessions);
+                li = g_list_find_custom (user->other_sessions, ssid, (GCompareFunc)session_compare);
+        }
+
         if (li != NULL) {
                 g_debug ("ActUser: removing session %s", ssid);
                 g_free (li->data);
-                user->sessions = g_list_delete_link (user->sessions, li);
+                *headp = g_list_delete_link (*headp, li);
                 g_signal_emit (user, signals[SESSIONS_CHANGED], 0);
         } else {
                 g_debug ("ActUser: session not found: %s", ssid);
         }
 }
 
+/**
+ * act_user_get_num_sessions:
+ * @user: a user
+ *
+ * Get the number of sessions for a user that are graphical and on the
+ * same seat as the session of the calling process.
+ *
+ * Returns: the number of sessions
+ */
 guint
 act_user_get_num_sessions (ActUser    *user)
 {
-        return g_list_length (user->sessions);
+        return g_list_length (user->our_sessions);
+}
+
+/**
+ * act_user_get_num_sessions_anywhere:
+ * @user: a user
+ *
+ * Get the number of sessions for a user on any seat of any type.
+ * See also act_user_get_num_sessions().
+ *
+ * Returns: the number of sessions
+ */
+guint
+act_user_get_num_sessions_anywhere (ActUser    *user)
+{
+        return (g_list_length (user->our_sessions)
+                + g_list_length (user->other_sessions));
 }
 
 static void
@@ -403,8 +465,8 @@ act_user_class_init (ActUserClass *class)
         g_object_class_install_property (gobject_class,
                                          PROP_IS_LOADED,
                                          g_param_spec_boolean ("is-loaded",
-                                                               NULL,
-                                                               NULL,
+                                                               "Is loaded",
+                                                               "Determines whether or not the user object is loaded and ready to read from.",
                                                                FALSE,
                                                                G_PARAM_READABLE));
         g_object_class_install_property (gobject_class,
@@ -440,6 +502,11 @@ act_user_class_init (ActUserClass *class)
                                                                G_PARAM_READABLE));
 
 
+        /**
+         * ActUser::changed:
+         *
+         * Emitted when the user accounts changes in some way.
+         */
         signals [CHANGED] =
                 g_signal_new ("changed",
                               G_TYPE_FROM_CLASS (class),
@@ -448,6 +515,11 @@ act_user_class_init (ActUserClass *class)
                               NULL, NULL,
                               g_cclosure_marshal_VOID__VOID,
                               G_TYPE_NONE, 0);
+        /**
+         * ActUser::sessions-changed:
+         *
+         * Emitted when the list of sessions for this user changes.
+         */
         signals [SESSIONS_CHANGED] =
                 g_signal_new ("sessions-changed",
                               G_TYPE_FROM_CLASS (class),
@@ -466,7 +538,8 @@ act_user_init (ActUser *user)
         user->local_account = TRUE;
         user->user_name = NULL;
         user->real_name = NULL;
-        user->sessions = NULL;
+        user->our_sessions = NULL;
+        user->other_sessions = NULL;
         user->login_history = NULL;
 
         user->connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
@@ -748,6 +821,16 @@ act_user_get_login_history (ActUser *user) {
         return user->login_history;
 }
 
+/**
+ * act_user_collate:
+ * @user1: a user
+ * @user2: a user
+ *
+ * Organize the user by login frequency and names.
+ *
+ * Returns: negative if @user1 is before @user2, zero if equal
+ *    or positive if @user1 is after @user2
+ */
 int
 act_user_collate (ActUser *user1,
                   ActUser *user2)
@@ -774,8 +857,8 @@ act_user_collate (ActUser *user1,
         }
 
 
-        len1 = g_list_length (user1->sessions);
-        len2 = g_list_length (user2->sessions);
+        len1 = g_list_length (user1->our_sessions);
+        len2 = g_list_length (user2->our_sessions);
 
         if (len1 > len2) {
                 return -1;
@@ -817,14 +900,30 @@ act_user_collate (ActUser *user1,
  * act_user_is_logged_in:
  * @user: a #ActUser
  *
- * Returns whether or not #ActUser is currently logged in.
+ * Returns whether or not #ActUser is currently graphically logged in
+ * on the same seat as the seat of the session of the calling process.
  *
  * Returns: %TRUE or %FALSE
  */
 gboolean
 act_user_is_logged_in (ActUser *user)
 {
-        return user->sessions != NULL;
+        return user->our_sessions != NULL;
+}
+
+/**
+ * act_user_is_logged_in_anywhere:
+ * @user: a #ActUser
+ *
+ * Returns whether or not #ActUser is currently logged in in any way
+ * whatsoever.  See also act_user_is_logged_in().
+ *
+ * Returns: %TRUE or %FALSE
+ */
+gboolean
+act_user_is_logged_in_anywhere (ActUser *user)
+{
+        return user->our_sessions != NULL || user->other_sessions != NULL;
 }
 
 /**
@@ -956,22 +1055,24 @@ act_user_get_object_path (ActUser *user)
  * act_user_get_primary_session_id:
  * @user: a #ActUser
  *
- * Returns the primary ConsoleKit session id of @user, or %NULL if @user isn't
- * logged in.
+ * Returns the id of the primary session of @user, or %NULL if @user
+ * has no primary session.  The primary session will always be
+ * graphical and will be chosen from the sessions on the same seat as
+ * the seat of the session of the calling process.
  *
- * Returns: (transfer none): the primary ConsoleKit session id of the user
+ * Returns: (transfer none): the id of the primary session of the user
  */
 const char *
 act_user_get_primary_session_id (ActUser *user)
 {
-        if (!act_user_is_logged_in (user)) {
-                g_debug ("User %s is not logged in, so has no primary session",
+        if (user->our_sessions == NULL) {
+                g_debug ("User %s is not logged in here, so has no primary session",
                          act_user_get_user_name (user));
                 return NULL;
         }
 
         /* FIXME: better way to choose? */
-        return user->sessions->data;
+        return user->our_sessions->data;
 }
 
 static void
@@ -1120,7 +1221,7 @@ collect_props (const gchar *key,
                 GVariant *new_login_history = value;
 
                 if (user->login_history == NULL ||
-                    !g_variant_compare (user->login_history, new_login_history)) {
+                    !g_variant_equal (user->login_history, new_login_history)) {
                         if (user->login_history)
                           g_variant_unref (user->login_history);
                         user->login_history = g_variant_ref (new_login_history);
@@ -1304,15 +1405,21 @@ _act_user_update_login_frequency (ActUser    *user,
 }
 
 static void
-copy_sessions_list (ActUser *user,
-                    ActUser *user_to_copy)
+copy_sessions_lists (ActUser *user,
+                     ActUser *user_to_copy)
 {
         GList *node;
 
-        for (node = g_list_last (user_to_copy->sessions);
+        for (node = g_list_last (user_to_copy->our_sessions);
              node != NULL;
              node = node->prev) {
-                user->sessions = g_list_prepend (user->sessions, g_strdup (node->data));
+                user->our_sessions = g_list_prepend (user->our_sessions, g_strdup (node->data));
+        }
+
+        for (node = g_list_last (user_to_copy->other_sessions);
+             node != NULL;
+             node = node->prev) {
+                user->other_sessions = g_list_prepend (user->other_sessions, g_strdup (node->data));
         }
 }
 
@@ -1337,35 +1444,44 @@ _act_user_load_from_user (ActUser    *user,
                 g_object_notify (G_OBJECT (user), "user-name");
         }
 
-        if (user->sessions == NULL) {
-                copy_sessions_list (user, user_to_copy);
+        if (user->our_sessions == NULL && user->other_sessions == NULL) {
+                copy_sessions_lists (user, user_to_copy);
                 g_signal_emit (user, signals[SESSIONS_CHANGED], 0);
         }
 
+        g_free (user->real_name);
         user->real_name = g_strdup (user_to_copy->real_name);
         g_object_notify (G_OBJECT (user), "real-name");
 
+        g_free (user->password_hint);
         user->password_hint = g_strdup (user_to_copy->real_name);
         g_object_notify (G_OBJECT (user), "password-hint");
 
+        g_free (user->home_dir);
         user->home_dir = g_strdup (user_to_copy->home_dir);
         g_object_notify (G_OBJECT (user), "home-directory");
 
+        g_free (user->shell);
         user->shell = g_strdup (user_to_copy->shell);
         g_object_notify (G_OBJECT (user), "shell");
 
+        g_free (user->email);
         user->email = g_strdup (user_to_copy->email);
         g_object_notify (G_OBJECT (user), "email");
 
+        g_free (user->location);
         user->location = g_strdup (user_to_copy->location);
         g_object_notify (G_OBJECT (user), "location");
 
+        g_free (user->icon_file);
         user->icon_file = g_strdup (user_to_copy->icon_file);
         g_object_notify (G_OBJECT (user), "icon-file");
 
+        g_free (user->language);
         user->language = g_strdup (user_to_copy->language);
         g_object_notify (G_OBJECT (user), "language");
 
+        g_free (user->x_session);
         user->x_session = g_strdup (user_to_copy->x_session);
         g_object_notify (G_OBJECT (user), "x-session");
 
@@ -1375,7 +1491,7 @@ _act_user_load_from_user (ActUser    *user,
         user->login_time = user_to_copy->login_time;
         g_object_notify (G_OBJECT (user), "login-time");
 
-        user->login_history = g_variant_ref (user_to_copy->login_history);
+        user->login_history = user_to_copy->login_history ? g_variant_ref (user_to_copy->login_history) : NULL;
         g_object_notify (G_OBJECT (user), "login-history");
 
         user->account_type = user_to_copy->account_type;
@@ -1765,6 +1881,7 @@ act_user_set_locked (ActUser  *user,
 
 /**
  * act_user_set_automatic_login:
+ * @user: the user object to alter
  * @enabled: whether or not to autologin for user.
  *
  * If enabled is set to %TRUE then this user will automatically be logged in

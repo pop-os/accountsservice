@@ -125,9 +125,9 @@ account_type_from_pwent (struct passwd *pwent)
                 return ACCOUNT_TYPE_ADMINISTRATOR;
         }
 
-        grp = getgrnam ("wheel");
+        grp = getgrnam (ADMIN_GROUP);
         if (grp == NULL) {
-                g_debug ("wheel group not found");
+                g_debug (ADMIN_GROUP " group not found");
                 return ACCOUNT_TYPE_STANDARD;
         }
         wheel = grp->gr_gid;
@@ -244,7 +244,7 @@ user_update_from_pwent (User          *user,
                 g_object_notify (G_OBJECT (user), "shell");
         }
 
-        passwd = pwent->pw_passwd;
+        passwd = NULL;
 #ifdef HAVE_SHADOW_H
         spent = getspnam (pwent->pw_name);
         if (spent)
@@ -285,9 +285,13 @@ user_update_from_pwent (User          *user,
                 g_object_notify (G_OBJECT (user), "password-mode");
         }
 
+        /* FIXME: this relies on heuristics that don't always come out
+         * right.
+         */
         user->system_account = daemon_local_user_is_excluded (user->daemon,
                                                               user->user_name,
-                                                              pwent->pw_shell);
+                                                              pwent->pw_shell,
+                                                              passwd);
 
         g_object_thaw_notify (G_OBJECT (user));
 
@@ -315,7 +319,7 @@ user_update_from_keyfile (User     *user,
         if (s != NULL) {
                 g_free (user->x_session);
                 user->x_session = s;
-                g_object_notify (G_OBJECT (user), "x-session");
+                g_object_notify (G_OBJECT (user), "xsession");
         }
 
         s = g_key_file_get_string (keyfile, "User", "Email", NULL);
@@ -346,6 +350,16 @@ user_update_from_keyfile (User     *user,
                 g_object_notify (G_OBJECT (user), "icon-file");
         }
 
+        if (g_key_file_has_key (keyfile, "User", "SystemAccount", NULL)) {
+            gboolean system_account;
+
+            system_account = g_key_file_get_boolean (keyfile, "User", "SystemAccount", NULL);
+            if (system_account != user->system_account) {
+                    user->system_account = system_account;
+                    g_object_notify (G_OBJECT (user), "system-account");
+            }
+        }
+
         g_object_thaw_notify (G_OBJECT (user));
 }
 
@@ -357,6 +371,16 @@ user_update_local_account_property (User          *user,
                 return;
         user->local_account = local;
         g_object_notify (G_OBJECT (user), "local-account");
+}
+
+void
+user_update_system_account_property (User          *user,
+                                     gboolean       system)
+{
+        if (system == user->system_account)
+                return;
+        user->system_account = system;
+        g_object_notify (G_OBJECT (user), "system-account");
 }
 
 static void
@@ -380,6 +404,8 @@ user_save_to_keyfile (User     *user,
 
         if (user->icon_file)
                 g_key_file_set_string (keyfile, "User", "Icon", user->icon_file);
+
+        g_key_file_set_boolean (keyfile, "User", "SystemAccount", user->system_account);
 }
 
 static void
@@ -468,9 +494,21 @@ user_register (User *user)
 }
 
 void
+user_save (User *user)
+{
+    save_extra_data (user);
+}
+
+void
 user_unregister (User *user)
 {
         g_dbus_interface_skeleton_unexport (G_DBUS_INTERFACE_SKELETON (user));
+}
+
+void
+user_changed (User *user)
+{
+        accounts_user_emit_changed (ACCOUNTS_USER (user));
 }
 
 User *
@@ -696,7 +734,7 @@ user_change_email_authorized_cb (Daemon                *daemon,
                 g_object_notify (G_OBJECT (user), "email");
         }
 
-        accounts_user_complete_set_email (ACCOUNTS_USER (user), context);  
+        accounts_user_complete_set_email (ACCOUNTS_USER (user), context);
 }
 
 
@@ -1084,14 +1122,14 @@ user_change_icon_file_authorized_cb (Daemon                *daemon,
         g_object_unref (file);
 
         if (type != G_FILE_TYPE_REGULAR) {
-                g_debug ("not a regular file\n");
+                g_debug ("not a regular file");
                 throw_error (context, ERROR_FAILED, "file '%s' is not a regular file", filename);
                 g_free (filename);
                 return;
         }
 
         if (size > 1048576) {
-                g_debug ("file too large\n");
+                g_debug ("file too large");
                 /* 1MB ought to be enough for everybody */
                 throw_error (context, ERROR_FAILED, "file '%s' is too large to be used as an icon", filename);
                 g_free (filename);
@@ -1249,6 +1287,28 @@ user_change_locked_authorized_cb (Daemon                *daemon,
 
                 user->locked = locked;
 
+                if (user->automatic_login) {
+                    User *automatic_login_user;
+
+                    automatic_login_user = daemon_local_get_automatic_login_user (daemon);
+                    if (user->locked) {
+                            /* If automatic login is enabled for the user then
+                             * disable it in the config file, but keep the state
+                             * attached to the user unharmed so it can be restored
+                             * later in the session
+                             */
+                            if (user == automatic_login_user) {
+                                    daemon_local_set_automatic_login (daemon, user, FALSE, NULL);
+                                    user->automatic_login = TRUE;
+                            }
+                    } else {
+                            if (automatic_login_user == NULL) {
+                                    user->automatic_login = FALSE;
+                                    daemon_local_set_automatic_login (daemon, user, TRUE, NULL);
+                            }
+                    }
+                }
+
                 accounts_user_emit_changed (ACCOUNTS_USER (user));
 
                 g_object_notify (G_OBJECT (user), "locked");
@@ -1297,7 +1357,7 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
                          "change account type of user '%s' (%d) to %d",
                          user->user_name, user->uid, account_type);
 
-                grp = getgrnam ("wheel");
+                grp = getgrnam (ADMIN_GROUP);
                 if (grp == NULL) {
                         throw_error (context, ERROR_FAILED, "failed to set account type: wheel group not found");
                         return;
@@ -1600,6 +1660,11 @@ user_change_automatic_login_authorized_cb (Daemon                *daemon,
                  "%s automatic login for user '%s' (%d)",
                  enabled ? "enable" : "disable", user->user_name, user->uid);
 
+        if (user->locked) {
+                throw_error (context, ERROR_FAILED, "failed to change automatic login: user is locked");
+                return;
+        }
+
         if (!daemon_local_set_automatic_login (daemon, user, enabled, &error)) {
                 throw_error (context, ERROR_FAILED, "failed to change automatic login: %s", error->message);
                 g_error_free (error);
@@ -1699,7 +1764,7 @@ user_real_get_login_time (AccountsUser *user)
         return USER (user)->login_time;
 }
 
-static const GVariant *
+static GVariant *
 user_real_get_login_history (AccountsUser *user)
 {
         return USER (user)->login_history;
