@@ -13,6 +13,8 @@ Build-Depends:
  libgirepository1.0-dev (>= 0.9.12),
  libglib2.0-dev (>= 2.34),
  libpolkit-gobject-1-dev,
+ libsystemd-daemon-dev,
+ libsystemd-login-dev,
  xmlto
 Build-Depends-Indep:
  gtk-doc-tools
