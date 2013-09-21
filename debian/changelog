@@ -1,3 +1,18 @@
+accountsservice (0.6.34-2) unstable; urgency=low
+
+  * Re-enable systemd support (Closes: #723857):
+    - Revert "Disable systemd support:"
+    - Revert "Strip SystemdService out of org.freedesktop.Accounts.service
+      service file."
+    - Enable systemd on Linux only.
+    - Use dh-systemd.
+    - If it is being used, let systemd handle restarting the daemon in
+      maintscripts.
+  * Fix various memory leaks. Thanks to Roberto Paleari for the bug
+    report. (Closes: #723745)
+
+ -- Alessio Treglia <alessio@debian.org>  Sat, 21 Sep 2013 22:56:06 +0100
+
 accountsservice (0.6.34-1) unstable; urgency=low
 
   * New upstream release.

@@ -11,7 +11,7 @@ get_pid() {
               string:$1 2>/dev/null | awk '/uint32/ {print $2}'
 }
 
-if [ "$1" = "remove" ]; then
+if [ "$1" = "remove" -a ! -d /run/systemd/system ]; then
     kill $(get_pid org.freedesktop.Accounts) 2>/dev/null || true
 fi
 
