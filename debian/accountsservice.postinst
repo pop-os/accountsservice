@@ -11,7 +11,7 @@ get_pid() {
               string:$1 2>/dev/null | awk '/uint32/ {print $2}'
 }
 
-if [ "$1" = "configure" ]; then
+if [ "$1" = "configure" -a ! -d /run/systemd/system ]; then
    # stop accounts-daemon
    pid=$(get_pid org.freedesktop.Accounts)
    kill $pid 2>/dev/null || true
