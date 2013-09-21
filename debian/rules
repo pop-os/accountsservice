@@ -9,7 +9,7 @@ export LDFLAGS:=$(shell dpkg-buildflags --get LDFLAGS)
 LDFLAGS+=-Wl,--as-needed
 
 %:
-	dh $@ --parallel --with autoreconf
+	dh $@ --parallel --with=autoreconf,systemd
 
 override_dh_autoreconf:
 	dh_autoreconf ./autogen.sh
