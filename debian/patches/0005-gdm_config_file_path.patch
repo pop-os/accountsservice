@@ -9,16 +9,16 @@ Bug: https://bugs.freedesktop.org/show_bug.cgi?id=49993
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -49,7 +49,7 @@
+@@ -50,7 +50,7 @@
+ #define PATH_PASSWD "/etc/passwd"
  #define PATH_SHADOW "/etc/shadow"
- #define PATH_NOLOGIN "/sbin/nologin"
- #define PATH_FALSE "/bin/false"
+ #define PATH_GROUP "/etc/group"
 -#define PATH_GDM_CUSTOM "/etc/gdm/custom.conf"
 +#define PATH_GDM_CUSTOM "/etc/gdm3/daemon.conf"
  #ifdef HAVE_UTMPX_H
  #define PATH_WTMP _PATH_WTMPX
  #endif
-@@ -646,7 +646,7 @@ reload_autologin_timeout (Daemon *daemon
+@@ -547,7 +547,7 @@ reload_autologin_timeout (Daemon *daemon
          daemon->priv->autologin_id = 0;
  
          if (!load_autologin (daemon, &name, &enabled, &error)) {
