@@ -3,6 +3,7 @@
   * Copyright (C) 2004-2005 James M. Cape <jcape@ignore-your.tv>.
   * Copyright (C) 2007-2008 William Jon McCann <mccann@jhu.edu>
   * Copyright (C) 2009-2010 Red Hat, Inc.
+  * Copyright © 2013 Canonical Limited
   *
   * This program is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published by
@@ -41,6 +42,7 @@
 #include <gio/gunixinputstream.h>
 #include <polkit/polkit.h>
 
+#include "user-classify.h"
 #include "daemon.h"
 #include "user.h"
 #include "accounts-user-generated.h"
@@ -78,6 +80,8 @@ struct User {
 
         Daemon       *daemon;
 
+        GKeyFile     *keyfile;
+
         uid_t         uid;
         gid_t         gid;
         gchar        *user_name;
@@ -100,6 +104,9 @@ struct User {
         gboolean      automatic_login;
         gboolean      system_account;
         gboolean      local_account;
+
+        guint        *extension_ids;
+        guint         n_extension_ids;
 };
 
 typedef struct UserClass
@@ -158,6 +165,7 @@ user_update_from_pwent (User          *user,
         const gchar *passwd;
         gboolean locked;
         PasswordMode mode;
+        AccountType account_type;
 
         g_object_freeze_notify (G_OBJECT (user));
 
@@ -216,7 +224,12 @@ user_update_from_pwent (User          *user,
         /* GID */
         user->gid = pwent->pw_gid;
 
-        user->account_type = account_type_from_pwent (pwent);
+        account_type = account_type_from_pwent (pwent);
+        if (account_type != user->account_type) {
+                user->account_type = account_type;
+                changed = TRUE;
+                g_object_notify (G_OBJECT (user), "account-type");
+        }
 
         /* Username */
         if (g_strcmp0 (user->user_name, pwent->pw_name) != 0) {
@@ -264,7 +277,7 @@ user_update_from_pwent (User          *user,
                 g_object_notify (G_OBJECT (user), "locked");
         }
 
-        if (passwd && passwd[0] != 0) {
+        if (passwd == NULL || passwd[0] != 0) {
                 mode = PASSWORD_MODE_REGULAR;
         }
         else {
@@ -285,13 +298,7 @@ user_update_from_pwent (User          *user,
                 g_object_notify (G_OBJECT (user), "password-mode");
         }
 
-        /* FIXME: this relies on heuristics that don't always come out
-         * right.
-         */
-        user->system_account = daemon_local_user_is_excluded (user->daemon,
-                                                              user->user_name,
-                                                              pwent->pw_shell,
-                                                              passwd);
+        user->system_account = !user_classify_is_human (user->uid, user->user_name, pwent->pw_shell, passwd);
 
         g_object_thaw_notify (G_OBJECT (user));
 
@@ -360,6 +367,9 @@ user_update_from_keyfile (User     *user,
             }
         }
 
+        g_clear_pointer (&user->keyfile, g_key_file_unref);
+        user->keyfile = g_key_file_ref (keyfile);
+
         g_object_thaw_notify (G_OBJECT (user));
 }
 
@@ -387,6 +397,8 @@ static void
 user_save_to_keyfile (User     *user,
                       GKeyFile *keyfile)
 {
+        g_key_file_remove_group (keyfile, "User", NULL);
+
         if (user->email)
                 g_key_file_set_string (keyfile, "User", "Email", user->email);
 
@@ -412,15 +424,13 @@ static void
 save_extra_data (User *user)
 {
         gchar *filename;
-        GKeyFile *keyfile;
         gchar *data;
         GError *error;
 
-        keyfile = g_key_file_new ();
-        user_save_to_keyfile (user, keyfile);
+        user_save_to_keyfile (user, user->keyfile);
 
         error = NULL;
-        data = g_key_file_to_data (keyfile, NULL, &error);
+        data = g_key_file_to_data (user->keyfile, NULL, &error);
         if (error == NULL) {
                 filename = g_build_filename (USERDIR,
                                              user->user_name,
@@ -433,7 +443,6 @@ save_extra_data (User *user)
                            user->user_name, error->message);
                 g_error_free (error);
         }
-        g_key_file_free (keyfile);
 }
 
 static void
@@ -452,6 +461,259 @@ move_extra_data (const gchar *old_name,
 
         g_free (old_filename);
         g_free (new_filename);
+}
+
+static GVariant *
+user_extension_get_value (User                    *user,
+                          GDBusInterfaceInfo      *interface,
+                          const GDBusPropertyInfo *property)
+{
+        const GVariantType *type = G_VARIANT_TYPE (property->signature);
+        GVariant *value;
+        gchar *printed;
+        gint i;
+
+        /* First, try to get the value from the keyfile */
+        printed = g_key_file_get_value (user->keyfile, interface->name, property->name, NULL);
+        if (printed) {
+                value = g_variant_parse (type, printed, NULL, NULL, NULL);
+                g_free (printed);
+
+                if (value != NULL)
+                        return value;
+        }
+
+        /* If that didn't work, try for a default value annotation */
+        for (i = 0; property->annotations && property->annotations[i]; i++) {
+                GDBusAnnotationInfo *annotation = property->annotations[i];
+
+                if (g_str_equal (annotation->key, "org.freedesktop.Accounts.DefaultValue.String")) {
+                        if (g_str_equal (property->signature, "s"))
+                                return g_variant_ref_sink (g_variant_new_string (annotation->value));
+                }
+                else if (g_str_equal (annotation->key, "org.freedesktop.Accounts.DefaultValue")) {
+                        value = g_variant_parse (type, annotation->value, NULL, NULL, NULL);
+                        if (value != NULL)
+                                return value;
+                }
+        }
+
+        /* Nothing found... */
+        return NULL;
+}
+
+static void
+user_extension_get_property (User                  *user,
+                             Daemon                *daemon,
+                             GDBusInterfaceInfo    *interface,
+                             GDBusMethodInvocation *invocation)
+{
+        const GDBusPropertyInfo *property = g_dbus_method_invocation_get_property_info (invocation);
+        GVariant *value;
+
+        value = user_extension_get_value (user, interface, property);
+
+        if (value) {
+                g_dbus_method_invocation_return_value (invocation, g_variant_new ("(v)", value));
+                g_variant_unref (value);
+        }
+        else {
+                g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS,
+                                                       "Key '%s' is not set and has no default value",
+                                                       property->name);
+        }
+}
+
+static void
+user_extension_get_all_properties (User                  *user,
+                                   Daemon                *daemon,
+                                   GDBusInterfaceInfo    *interface,
+                                   GDBusMethodInvocation *invocation)
+{
+        GVariantBuilder builder;
+        gint i;
+
+        g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
+        for (i = 0; interface->properties && interface->properties[i]; i++) {
+                GDBusPropertyInfo *property = interface->properties[i];
+                GVariant *value;
+
+                value = user_extension_get_value (user, interface, property);
+
+                if (value) {
+                        g_variant_builder_add (&builder, "{sv}", property->name, value);
+                        g_variant_unref (value);
+                }
+        }
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("(a{sv})", &builder));
+}
+
+static void
+user_extension_set_property (User                  *user,
+                             Daemon                *daemon,
+                             GDBusInterfaceInfo    *interface,
+                             GDBusMethodInvocation *invocation)
+{
+        const GDBusPropertyInfo *property = g_dbus_method_invocation_get_property_info (invocation);
+        GVariant *value;
+        gchar *printed;
+        gchar *prev;
+
+        g_variant_get_child (g_dbus_method_invocation_get_parameters (invocation), 2, "v", &value);
+
+        /* We'll always have the type when we parse it back so
+         * we don't need it to be printed with annotations.
+         */
+        printed = g_variant_print (value, FALSE);
+
+        /* May as well try to avoid the thrashing... */
+        prev = g_key_file_get_value (user->keyfile, interface->name, property->name, NULL);
+
+        if (!prev || !g_str_equal (printed, prev)) {
+                g_key_file_set_value (user->keyfile, interface->name, property->name, printed);
+
+                /* Emit a change signal.  Use invalidation
+                 * because the data may not be world-readable.
+                 */
+                g_dbus_connection_emit_signal (g_dbus_method_invocation_get_connection (invocation),
+                                               NULL, /* destination_bus_name */
+                                               g_dbus_method_invocation_get_object_path (invocation),
+                                               "org.freedesktop.DBus.Properties", "PropertiesChanged",
+                                               g_variant_new_parsed ("( %s, %a{sv}, [ %s ] )",
+                                                                     interface->name, NULL, property->name),
+                                               NULL);
+
+                accounts_user_emit_changed (ACCOUNTS_USER (user));
+                save_extra_data (user);
+        }
+
+        g_variant_unref (value);
+        g_free (printed);
+        g_free (prev);
+
+        g_dbus_method_invocation_return_value (invocation, g_variant_new ("()"));
+}
+
+static void
+user_extension_authentication_done (Daemon                *daemon,
+                                    User                  *user,
+                                    GDBusMethodInvocation *invocation,
+                                    gpointer               user_data)
+{
+        GDBusInterfaceInfo *interface = user_data;
+        const gchar *method_name;
+
+        method_name = g_dbus_method_invocation_get_method_name (invocation);
+
+        if (g_str_equal (method_name, "Get"))
+                user_extension_get_property (user, daemon, interface, invocation);
+        else if (g_str_equal (method_name, "GetAll"))
+                user_extension_get_all_properties (user, daemon, interface, invocation);
+        else if (g_str_equal (method_name, "Set"))
+                user_extension_set_property (user, daemon, interface, invocation);
+        else
+                g_assert_not_reached ();
+}
+
+static void
+user_extension_method_call (GDBusConnection       *connection,
+                            const gchar           *sender,
+                            const gchar           *object_path,
+                            const gchar           *interface_name,
+                            const gchar           *method_name,
+                            GVariant              *parameters,
+                            GDBusMethodInvocation *invocation,
+                            gpointer               user_data)
+{
+        User *user = user_data;
+        GDBusInterfaceInfo *iface_info;
+        const gchar *annotation_name;
+        const gchar *action_id;
+        gint uid;
+        gint i;
+
+        /* We don't allow method calls on extension interfaces, so we
+         * should only ever see property calls here.
+         */
+        g_assert_cmpstr (interface_name, ==, "org.freedesktop.DBus.Properties");
+
+        /* Now get the real interface name */
+        g_variant_get_child (parameters, 0, "&s", &interface_name);
+
+        if (get_caller_uid (invocation, &uid) && (uid_t) uid == user->uid) {
+                /* Operation on sender's own User object */
+                if (g_str_equal (method_name, "Set")) {
+                        annotation_name = "org.freedesktop.Accounts.Authentication.ChangeOwn";
+                        action_id = "org.freedesktop.accounts.change-own-user-data";
+                }
+                else {
+                        annotation_name = "org.freedesktop.Accounts.Authentication.ReadOwn";
+                        action_id = ""; /* reading allowed by default */
+                }
+        }
+        else {
+                /* Operation on someone else's User object */
+                if (g_str_equal (method_name, "Set")) {
+                        annotation_name = "org.freedesktop.Accounts.Authentication.ChangeAny";
+                        action_id = "org.freedesktop.accounts.user-administration";
+                }
+                else {
+                        annotation_name = "org.freedesktop.Accounts.Authentication.ReadAny";
+                        action_id = ""; /* reading allowed by default */
+                }
+        }
+
+        iface_info = g_hash_table_lookup (daemon_get_extension_ifaces (user->daemon), interface_name);
+        g_assert (iface_info != NULL);
+
+        for (i = 0; iface_info->annotations && iface_info->annotations[i]; i++) {
+                if (g_str_equal (iface_info->annotations[i]->key, annotation_name)) {
+                        action_id = iface_info->annotations[i]->value;
+                        break;
+                }
+        }
+
+        if (action_id[0] == '\0') {
+                /* Should always allow this call, so just do it now */
+                user_extension_authentication_done (user->daemon, user, invocation, iface_info);
+        }
+        else {
+                daemon_local_check_auth (user->daemon, user, action_id, TRUE,
+                                         user_extension_authentication_done,
+                                         invocation, iface_info, NULL);
+        }
+}
+
+static void
+user_register_extensions (User *user)
+{
+        static const GDBusInterfaceVTable vtable = {
+                user_extension_method_call,
+                NULL /* get_property */,
+                NULL /* set_property */
+        };
+        GHashTable *extensions;
+        GHashTableIter iter;
+        gpointer iface;
+        gint i = 0;
+
+        g_assert (user->extension_ids == NULL);
+        g_assert (user->n_extension_ids == 0);
+
+        extensions = daemon_get_extension_ifaces (user->daemon);
+        user->n_extension_ids = g_hash_table_size (extensions);
+        user->extension_ids = g_new (guint, user->n_extension_ids);
+        g_hash_table_iter_init (&iter, extensions);
+
+        /* Ignore errors when registering more interfaces because (a)
+         * they won't happen and (b) even if they do, we still want to
+         * publish the main user interface.
+         */
+        while (g_hash_table_iter_next (&iter, NULL, &iface))
+                user->extension_ids[i++] = g_dbus_connection_register_object (user->system_bus_connection,
+                                                                              user->object_path, iface,
+                                                                              &vtable, user, NULL, NULL);
 }
 
 static gchar *
@@ -491,6 +753,8 @@ user_register (User *user)
                 }
                 return;
         }
+
+        user_register_extensions (user);
 }
 
 void
@@ -503,6 +767,21 @@ void
 user_unregister (User *user)
 {
         g_dbus_interface_skeleton_unexport (G_DBUS_INTERFACE_SKELETON (user));
+
+        if (user->extension_ids) {
+                guint i;
+
+                for (i = 0; i < user->n_extension_ids; i++) {
+                        /* In theory, if an error happened during registration, we could have 0 here. */
+                        if (user->extension_ids[i] == 0)
+                                continue;
+
+                        g_dbus_connection_unregister_object (user->system_bus_connection, user->extension_ids[i]);
+                }
+
+                g_clear_pointer (&user->extension_ids, g_free);
+                user->n_extension_ids = 0;
+        }
 }
 
 void
@@ -1816,6 +2095,8 @@ user_finalize (GObject *object)
 
         user = USER (object);
 
+        g_clear_pointer (&user->keyfile, g_key_file_unref);
+
         g_free (user->object_path);
         g_free (user->user_name);
         g_free (user->real_name);
@@ -1828,6 +2109,9 @@ user_finalize (GObject *object)
         g_free (user->x_session);
         g_free (user->location);
         g_free (user->password_hint);
+
+	if (user->login_history)
+		g_variant_unref (user->login_history);
 
         if (G_OBJECT_CLASS (user_parent_class)->finalize)
                 (*G_OBJECT_CLASS (user_parent_class)->finalize) (object);
@@ -1861,6 +2145,8 @@ user_set_property (GObject      *object,
                 user->login_time = g_value_get_int64 (value);
                 break;
         case PROP_LOGIN_HISTORY:
+                if (user->login_history)
+                        g_variant_unref (user->login_history);
                 user->login_history = g_variant_ref (g_value_get_variant (value));
                 break;
         case PROP_AUTOMATIC_LOGIN:
@@ -2031,4 +2317,5 @@ user_init (User *user)
         user->automatic_login = FALSE;
         user->system_account = FALSE;
         user->login_history = NULL;
+        user->keyfile = g_key_file_new ();
 }
