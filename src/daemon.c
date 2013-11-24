@@ -1,6 +1,7 @@
 /* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 8 -*-
  *
  * Copyright (C) 2009-2010 Red Hat, Inc.
+ * Copyright (c) 2013 Canonical Limited
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,48 +43,17 @@
 #include <gio/gio.h>
 #include <polkit/polkit.h>
 
+#include "user-classify.h"
 #include "daemon.h"
 #include "util.h"
 
 #define PATH_PASSWD "/etc/passwd"
 #define PATH_SHADOW "/etc/shadow"
-#define PATH_NOLOGIN "/sbin/nologin"
-#define PATH_FALSE "/bin/false"
+#define PATH_GROUP "/etc/group"
 #define PATH_GDM_CUSTOM "/etc/gdm/custom.conf"
 #ifdef HAVE_UTMPX_H
 #define PATH_WTMP _PATH_WTMPX
 #endif
-
-static const char *default_excludes[] = {
-        "bin",
-        "root",
-        "daemon",
-        "adm",
-        "lp",
-        "sync",
-        "shutdown",
-        "halt",
-        "mail",
-        "news",
-        "uucp",
-        "operator",
-        "nobody",
-        "nobody4",
-        "noaccess",
-        "postgres",
-        "pvm",
-        "rpm",
-        "nfsnobody",
-        "pcap",
-        "mysql",
-        "ftp",
-        "games",
-        "man",
-        "at",
-        "gdm",
-        "gnome-initial-setup",
-        NULL
-};
 
 enum {
         PROP_0,
@@ -95,12 +65,12 @@ struct DaemonPrivate {
         GDBusProxy *bus_proxy;
 
         GHashTable *users;
-        GHashTable *exclusions;
 
         User *autologin;
 
         GFileMonitor *passwd_monitor;
         GFileMonitor *shadow_monitor;
+        GFileMonitor *group_monitor;
         GFileMonitor *gdm_monitor;
 #ifdef HAVE_UTMPX_H
         GFileMonitor *wtmp_monitor;
@@ -110,6 +80,7 @@ struct DaemonPrivate {
         guint autologin_id;
 
         PolkitAuthority *authority;
+        GHashTable *extension_ifaces;
 };
 
 typedef struct passwd * (* EntryGeneratorFunc) (GHashTable *, gpointer *);
@@ -165,78 +136,6 @@ error_get_type (void)
   return etype;
 }
 
-gboolean
-daemon_local_user_is_excluded (Daemon      *daemon,
-                               const gchar *username,
-                               const gchar *shell,
-                               const gchar *password_hash)
-{
-        int ret;
-
-        if (g_hash_table_lookup (daemon->priv->exclusions, username)) {
-                return TRUE;
-        }
-
-        ret = FALSE;
-
-        if (shell != NULL) {
-                char *basename, *nologin_basename, *false_basename;
-
-#ifdef HAVE_GETUSERSHELL
-                char *valid_shell;
-
-                ret = TRUE;
-                setusershell ();
-                while ((valid_shell = getusershell ()) != NULL) {
-                        if (g_strcmp0 (shell, valid_shell) != 0)
-                                continue;
-                        ret = FALSE;
-                }
-                endusershell ();
-#endif
-
-                basename = g_path_get_basename (shell);
-                nologin_basename = g_path_get_basename (PATH_NOLOGIN);
-                false_basename = g_path_get_basename (PATH_FALSE);
-
-                if (shell[0] == '\0') {
-                        ret = TRUE;
-                } else if (g_strcmp0 (basename, nologin_basename) == 0) {
-                        ret = TRUE;
-                } else if (g_strcmp0 (basename, false_basename) == 0) {
-                        ret = TRUE;
-                }
-
-                g_free (basename);
-                g_free (nologin_basename);
-                g_free (false_basename);
-        }
-
-        if (password_hash != NULL) {
-                /* skip over the account-is-locked '!' prefix if present */
-                if (password_hash[0] == '!')
-                    password_hash++;
-
-                if (password_hash[0] != '\0') {
-                        /* modern hashes start with "$n$" */
-                        if (password_hash[0] == '$') {
-                                if (strlen (password_hash) < 4)
-                                    ret = TRUE;
-
-                        /* DES crypt is base64 encoded [./A-Za-z0-9]*
-                         */
-                        } else if (!g_ascii_isalnum (password_hash[0]) &&
-                                   password_hash[0] != '.' &&
-                                   password_hash[0] != '/') {
-                                ret = TRUE;
-                        }
-                }
-
-        }
-
-        return ret;
-}
-
 #ifdef HAVE_UTMPX_H
 
 typedef struct {
@@ -255,6 +154,13 @@ typedef struct {
         GHashTable *login_hash;
         GHashTable *logout_hash;
 } WTmpGeneratorState;
+
+static void
+user_previous_login_free (UserPreviousLogin *previous_login)
+{
+        g_free (previous_login->id);
+        g_free (previous_login);
+}
 
 static struct passwd *
 entry_generator_wtmp (GHashTable *users,
@@ -365,11 +271,7 @@ entry_generator_wtmp (GHashTable *users,
 
                 user = g_hash_table_lookup (users, key);
                 if (user == NULL) {
-                        for (l = accounting->previous_logins; l != NULL; l = l->next) {
-                                previous_login = l->data;
-                                g_free (previous_login->id);
-                        }
-                        g_list_free (accounting->previous_logins);
+                        g_list_free_full (accounting->previous_logins, (GDestroyNotify) user_previous_login_free);
                         continue;
                 }
 
@@ -384,11 +286,10 @@ entry_generator_wtmp (GHashTable *users,
                         g_variant_builder_add (builder2, "{sv}", "type", g_variant_new_string (previous_login->id));
                         g_variant_builder_add (builder, "(xxa{sv})", previous_login->login_time, previous_login->logout_time, builder2);
                         g_variant_builder_unref (builder2);
-                        g_free (previous_login->id);
                 }
                 g_object_set (user, "login-history", g_variant_new ("a(xxa{sv})", builder), NULL);
                 g_variant_builder_unref (builder);
-                g_list_free (accounting->previous_logins);
+                g_list_free_full (accounting->previous_logins, (GDestroyNotify) user_previous_login_free);
 
                 user_changed (user);
         }
@@ -491,7 +392,7 @@ entry_generator_cachedir (GHashTable *users,
                 key_file = g_key_file_new ();
                 if (g_key_file_load_from_file (key_file, filename, 0, NULL))
                         user_update_from_keyfile (user, key_file);
-                g_key_file_free (key_file);
+                g_key_file_unref (key_file);
                 g_free (filename);
         }
 
@@ -516,7 +417,7 @@ load_entries (Daemon             *daemon,
                         break;
 
                 /* Skip system users... */
-                if (daemon_local_user_is_excluded (daemon, pwent->pw_name, pwent->pw_shell, NULL)) {
+                if (!user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell, NULL)) {
                         g_debug ("skipping user: %s", pwent->pw_name);
                         continue;
                 }
@@ -743,93 +644,68 @@ on_gdm_monitor_changed (GFileMonitor      *monitor,
         queue_reload_autologin (daemon);
 }
 
+typedef void FileChangeCallback (GFileMonitor      *monitor,
+                                 GFile             *file,
+                                 GFile             *other_file,
+                                 GFileMonitorEvent  event_type,
+                                 Daemon            *daemon);
+
+static GFileMonitor *
+setup_monitor (Daemon             *daemon,
+               const gchar        *path,
+               FileChangeCallback *callback)
+{
+        GError *error = NULL;
+        GFile *file;
+        GFileMonitor *monitor;
+
+        file = g_file_new_for_path (path);
+        monitor = g_file_monitor_file (file,
+                                       G_FILE_MONITOR_NONE,
+                                       NULL,
+                                       &error);
+        if (monitor != NULL) {
+                g_signal_connect (monitor,
+                                  "changed",
+                                  G_CALLBACK (callback),
+                                  daemon);
+        } else {
+                g_warning ("Unable to monitor %s: %s", path, error->message);
+                g_error_free (error);
+        }
+        g_object_unref (file);
+
+        return monitor;
+}
+
 static void
 daemon_init (Daemon *daemon)
 {
-        gint i;
-        GFile *file;
-        GError *error;
-
         daemon->priv = DAEMON_GET_PRIVATE (daemon);
 
-        daemon->priv->exclusions = g_hash_table_new_full (g_str_hash,
-                                                          g_str_equal,
-                                                          g_free,
-                                                          NULL);
-
-        for (i = 0; default_excludes[i] != NULL; i++) {
-                g_hash_table_insert (daemon->priv->exclusions,
-                                     g_strdup (default_excludes[i]),
-                                     GUINT_TO_POINTER (TRUE));
-        }
+        daemon->priv->extension_ifaces = daemon_read_extension_ifaces ();
 
         daemon->priv->users = create_users_hash_table ();
 
-        file = g_file_new_for_path (PATH_PASSWD);
-        daemon->priv->passwd_monitor = g_file_monitor_file (file,
-                                                            G_FILE_MONITOR_NONE,
-                                                            NULL,
-                                                            &error);
-        if (daemon->priv->passwd_monitor != NULL) {
-                g_signal_connect (daemon->priv->passwd_monitor,
-                                  "changed",
-                                  G_CALLBACK (on_users_monitor_changed),
-                                  daemon);
-        } else {
-                g_warning ("Unable to monitor %s: %s", PATH_PASSWD, error->message);
-                g_error_free (error);
-        }
-        g_object_unref (file);
-
-        file = g_file_new_for_path (PATH_SHADOW);
-        daemon->priv->shadow_monitor = g_file_monitor_file (file,
-                                                            G_FILE_MONITOR_NONE,
-                                                            NULL,
-                                                            &error);
-        if (daemon->priv->shadow_monitor != NULL) {
-                g_signal_connect (daemon->priv->shadow_monitor,
-                                  "changed",
-                                  G_CALLBACK (on_users_monitor_changed),
-                                  daemon);
-        } else {
-                g_warning ("Unable to monitor %s: %s", PATH_SHADOW, error->message);
-                g_error_free (error);
-        }
-        g_object_unref (file);
+        daemon->priv->passwd_monitor = setup_monitor (daemon,
+                                                      PATH_PASSWD,
+                                                      on_users_monitor_changed);
+        daemon->priv->shadow_monitor = setup_monitor (daemon,
+                                                      PATH_SHADOW,
+                                                      on_users_monitor_changed);
+        daemon->priv->group_monitor = setup_monitor (daemon,
+                                                     PATH_GROUP,
+                                                     on_users_monitor_changed);
 
 #ifdef HAVE_UTMPX_H
-        file = g_file_new_for_path (PATH_WTMP);
-        daemon->priv->wtmp_monitor = g_file_monitor_file (file,
-                                                           G_FILE_MONITOR_NONE,
-                                                           NULL,
-                                                           &error);
-        if (daemon->priv->wtmp_monitor != NULL) {
-                g_signal_connect (daemon->priv->wtmp_monitor,
-                                  "changed",
-                                  G_CALLBACK (on_users_monitor_changed),
-                                  daemon);
-        } else {
-                g_warning ("Unable to monitor %s: %s", PATH_WTMP, error->message);
-                g_error_free (error);
-        }
-        g_object_unref (file);
+        daemon->priv->wtmp_monitor = setup_monitor (daemon,
+                                                    PATH_WTMP,
+                                                    on_users_monitor_changed);
 #endif
 
-        file = g_file_new_for_path (PATH_GDM_CUSTOM);
-        daemon->priv->gdm_monitor = g_file_monitor_file (file,
-                                                         G_FILE_MONITOR_NONE,
-                                                         NULL,
-                                                         &error);
-        if (daemon->priv->gdm_monitor != NULL) {
-                g_signal_connect (daemon->priv->gdm_monitor,
-                                  "changed",
-                                  G_CALLBACK (on_gdm_monitor_changed),
-                                  daemon);
-        } else {
-                g_warning ("Unable to monitor %s: %s", PATH_GDM_CUSTOM, error->message);
-                g_error_free (error);
-        }
-        g_object_unref (file);
+        daemon->priv->gdm_monitor = setup_monitor (daemon,
+                                                   PATH_GDM_CUSTOM,
+                                                   on_gdm_monitor_changed);
 
         queue_reload_users (daemon);
         queue_reload_autologin (daemon);
@@ -851,6 +727,8 @@ daemon_finalize (GObject *object)
                 g_object_unref (daemon->priv->bus_connection);
 
         g_hash_table_destroy (daemon->priv->users);
+
+        g_hash_table_unref (daemon->priv->extension_ifaces);
 
         G_OBJECT_CLASS (daemon_parent_class)->finalize (object);
 }
@@ -1084,7 +962,7 @@ finish_list_cached_users (gpointer user_data)
                 uid = user_get_uid (user);
                 shell = user_get_shell (user);
 
-                if (daemon_local_user_is_excluded (data->daemon, name, shell, NULL)) {
+                if (!user_classify_is_human (uid, name, shell, NULL)) {
                         g_debug ("user %s %ld excluded", name, (long) uid);
                         continue;
                 }
@@ -1673,6 +1551,12 @@ daemon_local_set_automatic_login (Daemon    *daemon,
         }
 
         return TRUE;
+}
+
+GHashTable *
+daemon_get_extension_ifaces (Daemon *daemon)
+{
+  return daemon->priv->extension_ifaces;
 }
 
 static void

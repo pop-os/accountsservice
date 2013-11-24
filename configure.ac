@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.34])
+AC_INIT([AccountsService],[0.6.35])
 AM_INIT_AUTOMAKE(no-dist-gzip dist-xz tar-ustar foreign)
 
 GETTEXT_PACKAGE=accounts-service
@@ -25,7 +25,7 @@ AC_SUBST(LT_CURRENT)
 AC_SUBST(LT_REVISION)
 AC_SUBST(LT_AGE)
 
-PKG_CHECK_MODULES(GIO, gio-unix-2.0)
+PKG_CHECK_MODULES(GIO, gio-2.0 >= 2.37.3 gio-unix-2.0)
 PKG_CHECK_MODULES(POLKIT, gio-unix-2.0 polkit-gobject-1)
 
 AM_MAINTAINER_MODE([enable])
@@ -37,8 +37,6 @@ LIBACCOUNTSSERVICE_CFLAGS="$GIO_CFLAGS"
 AC_SUBST(LIBACCOUNTSSERVICE_CFLAGS)
 
 GOBJECT_INTROSPECTION_CHECK([0.9.12])
-
-VAPIGEN_CHECK
 
 dnl ---------------------------------------------------------------------------
 dnl - Core configuration
@@ -55,6 +53,32 @@ AS_IF([test x$enable_admin_group = xauto], [
   ])
 ])
 AC_DEFINE_UNQUOTED([ADMIN_GROUP], ["$enable_admin_group"], [Define to the group for administrator users])
+
+AC_ARG_ENABLE(user-heuristics,
+        [AS_HELP_STRING([--enable-user-heuristics],[Enable heuristics for guessing system vs. human users])],
+        [if test "$enableval" = yes; then
+           AC_DEFINE([ENABLE_USER_HEURISTICS], , [System vs. human user heuristics enabled])
+        fi])
+
+dnl ---------------------------------------------------------------------------
+dnl - coverage
+dnl ---------------------------------------------------------------------------
+
+AC_MSG_CHECKING([whether to build with gcov testing])
+AC_ARG_ENABLE([coverage],
+              AS_HELP_STRING([--enable-coverage],
+                             [Whether to enable gcov code coverage]),
+              [], [enable_coverage=no])
+AC_MSG_RESULT([$enable_coverage])
+
+if test "$enable_coverage" = "yes"; then
+	if test "$GCC" != "yes"; then
+		AC_MSG_ERROR(Coverage testing requires GCC)
+	fi
+	CFLAGS="$CFLAGS -O0 -g --coverage"
+fi
+
+AM_CONDITIONAL([WITH_COVERAGE], [test "$enable_coverage" = "yes"])
 
 dnl ---------------------------------------------------------------------------
 dnl - Warnings

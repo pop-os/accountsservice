@@ -4,6 +4,8 @@
 *-enum-types.h
 *-generated.c
 *-generated.h
+*.gcda
+*.gcno
 *.gir
 *.gmo
 *.la
