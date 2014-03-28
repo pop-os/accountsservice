@@ -437,6 +437,7 @@ save_extra_data (User *user)
                                              NULL);
                 g_file_set_contents (filename, data, -1, &error);
                 g_free (filename);
+                g_free (data);
         }
         if (error) {
                 g_warning ("Saving data for user %s failed: %s",

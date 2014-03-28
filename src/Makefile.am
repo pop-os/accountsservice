@@ -41,11 +41,17 @@ accounts_daemon_SOURCES = 	\
 	user.c			\
 	util.h			\
 	util.c			\
+	wtmp-helper.h		\
+	wtmp-helper.c		\
 	main.c
 
 accounts_daemon_LDADD = 	\
 	libaccounts-generated.la	\
 	$(POLKIT_LIBS)
+
+EXTRA_DIST = \
+	fgetpwent.c	\
+	$(NULL)
 
 CLEANFILES = \
 	$(BUILT_SOURCES) \
