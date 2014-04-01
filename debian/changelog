@@ -1,3 +1,14 @@
+accountsservice (0.6.37-1) unstable; urgency=low
+
+  * New upstream release.
+  * Refresh patches.
+  * Drop 9001-memory_leaks.patch, no longer needed.
+  * Disable 2001-filtering_out_users.patch, no longer applicable.
+  * Update debian/copyright.
+  * Bump Standards.
+
+ -- Alessio Treglia <alessio@debian.org>  Tue, 01 Apr 2014 14:41:18 +0100
+
 accountsservice (0.6.34-2) unstable; urgency=low
 
   * Re-enable systemd support (Closes: #723857):
