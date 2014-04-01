@@ -19,7 +19,7 @@ Build-Depends:
  xmlto
 Build-Depends-Indep:
  gtk-doc-tools
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Homepage: http://cgit.freedesktop.org/accountsservice/
 Vcs-Git: git://anonscm.debian.org/collab-maint/accountsservice.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/accountsservice.git
