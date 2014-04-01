@@ -4,6 +4,7 @@ accountsservice (0.6.37-1) unstable; urgency=low
   * Refresh patches.
   * Drop 9001-memory_leaks.patch, no longer needed.
   * Disable 2001-filtering_out_users.patch, no longer applicable.
+  * Update libaccountsservice0.symbols file.
   * Update debian/copyright.
   * Bump Standards.
 
