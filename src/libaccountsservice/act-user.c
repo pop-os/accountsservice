@@ -86,6 +86,7 @@ enum {
         PROP_LOCKED,
         PROP_AUTOMATIC_LOGIN,
         PROP_SYSTEM_ACCOUNT,
+        PROP_NONEXISTENT,
         PROP_LOCAL_ACCOUNT,
         PROP_LOGIN_FREQUENCY,
         PROP_LOGIN_TIME,
@@ -138,6 +139,7 @@ struct _ActUser {
         guint           automatic_login : 1;
         guint           system_account : 1;
         guint           local_account : 1;
+        guint           nonexistent : 1;
 };
 
 struct _ActUserClass
@@ -238,6 +240,9 @@ act_user_get_num_sessions (ActUser    *user)
  * Get the number of sessions for a user on any seat of any type.
  * See also act_user_get_num_sessions().
  *
+ * (Currently, this function is only implemented for systemd-logind.
+ * For ConsoleKit, it is equivalent to act_user_get_num_sessions.)
+ *
  * Returns: the number of sessions
  */
 guint
@@ -317,6 +322,9 @@ act_user_get_property (GObject    *object,
                 break;
         case PROP_LOCAL_ACCOUNT:
                 g_value_set_boolean (value, user->local_account);
+                break;
+        case PROP_NONEXISTENT:
+                g_value_set_boolean (value, user->nonexistent);
                 break;
         case PROP_IS_LOADED:
                 g_value_set_boolean (value, user->is_loaded);
@@ -467,6 +475,13 @@ act_user_class_init (ActUserClass *class)
                                          g_param_spec_boolean ("is-loaded",
                                                                "Is loaded",
                                                                "Determines whether or not the user object is loaded and ready to read from.",
+                                                               FALSE,
+                                                               G_PARAM_READABLE));
+        g_object_class_install_property (gobject_class,
+                                         PROP_NONEXISTENT,
+                                         g_param_spec_boolean ("nonexistent",
+                                                               "Doesn't exist",
+                                                               "Determines whether or not the user object represents a valid user account.",
                                                                FALSE,
                                                                G_PARAM_READABLE));
         g_object_class_install_property (gobject_class,
@@ -918,6 +933,9 @@ act_user_is_logged_in (ActUser *user)
  * Returns whether or not #ActUser is currently logged in in any way
  * whatsoever.  See also act_user_is_logged_in().
  *
+ * (Currently, this function is only implemented for systemd-logind.
+ * For ConsoleKit, it is equivalent to act_user_is_logged_in.)
+ *
  * Returns: %TRUE or %FALSE
  */
 gboolean
@@ -983,6 +1001,22 @@ act_user_is_local_account (ActUser   *user)
         g_return_val_if_fail (ACT_IS_USER (user), FALSE);
 
         return user->local_account;
+}
+
+/**
+ * act_user_is_nonexistent:
+ * @user: the user object to examine.
+ *
+ * Retrieves whether the user is nonexistent or not.
+ *
+ * Returns: (transfer none): %TRUE if the user is nonexistent
+ **/
+gboolean
+act_user_is_nonexistent (ActUser   *user)
+{
+        g_return_val_if_fail (ACT_IS_USER (user), FALSE);
+
+        return user->nonexistent;
 }
 
 /**
@@ -1343,6 +1377,26 @@ changed_handler (AccountsUser *object,
 }
 
 /**
+ * _act_user_update_as_nonexistent:
+ * @user: the user object to update.
+ *
+ * Set's the 'non-existent' property of @user to #TRUE
+ * Can only be called before the user is loaded.
+ **/
+void
+_act_user_update_as_nonexistent (ActUser *user)
+{
+        g_return_if_fail (ACT_IS_USER (user));
+        g_return_if_fail (!act_user_is_loaded (user));
+        g_return_if_fail (user->object_path == NULL);
+
+        user->nonexistent = TRUE;
+        g_object_notify (G_OBJECT (user), "nonexistent");
+
+        set_is_loaded (user, TRUE);
+}
+
+/**
  * _act_user_update_from_object_path:
  * @user: the user object to update.
  * @object_path: the object path of the user to use.
@@ -1499,6 +1553,9 @@ _act_user_load_from_user (ActUser    *user,
 
         user->password_mode = user_to_copy->password_mode;
         g_object_notify (G_OBJECT (user), "password-mode");
+
+        user->nonexistent = user_to_copy->nonexistent;
+        g_object_notify (G_OBJECT (user), "nonexistent");
 
         set_is_loaded (user, TRUE);
 }

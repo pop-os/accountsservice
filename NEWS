@@ -1,3 +1,27 @@
+Changes in 0.6.37
+=================
+* BSD fixes
+
+Changes in 0.6.36
+=================
+
+* Fixes for deleting users
+* Leak fix
+* Change user classification logic
+* BSD fixes
+
+Changes in 0.6.35
+=================
+
+* handle non-existent users better
+* misc bug fixes
+* misc clean ups
+* emit "changed" signal when account type changes for user
+* stop shipping vapi files
+* avoid connecting to ConsoleKit on logind systems
+* add extension interface
+* add --enable-coverage option for gcov support
+
 Changes in 0.6.34
 =================
 

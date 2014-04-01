@@ -34,17 +34,30 @@ accounts_daemon_SOURCES = 	\
 	types.h			\
 	daemon.h		\
 	daemon.c		\
+	extensions.c		\
+	user-classify.h		\
+	user-classify.c		\
 	user.h			\
 	user.c			\
 	util.h			\
 	util.c			\
+	wtmp-helper.h		\
+	wtmp-helper.c		\
 	main.c
 
 accounts_daemon_LDADD = 	\
 	libaccounts-generated.la	\
 	$(POLKIT_LIBS)
 
-CLEANFILES = $(BUILT_SOURCES)
+EXTRA_DIST = \
+	fgetpwent.c	\
+	$(NULL)
+
+CLEANFILES = \
+	$(BUILT_SOURCES) \
+	*.gcda \
+	*.gcno \
+	$(NULL)
 
 install-data-hook:
 	$(MKDIR_P) "$(DESTDIR)$(localstatedir)/lib/AccountsService/users"

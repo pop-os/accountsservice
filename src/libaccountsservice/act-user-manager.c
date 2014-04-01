@@ -1178,6 +1178,28 @@ get_current_session_id (ActUserManager *manager)
                 return;
         }
 #endif
+
+        if (manager->priv->ck_manager_proxy == NULL) {
+                GError *error = NULL;
+
+                manager->priv->ck_manager_proxy = console_kit_manager_proxy_new_sync (manager->priv->connection,
+                                                                                      G_DBUS_PROXY_FLAGS_NONE,
+                                                                                      CK_NAME,
+                                                                                      CK_MANAGER_PATH,
+                                                                                      NULL,
+                                                                                      &error);
+                if (manager->priv->ck_manager_proxy == NULL) {
+                        if (error != NULL) {
+                                g_warning ("Failed to create ConsoleKit proxy: %s", error->message);
+                                g_error_free (error);
+                        } else {
+                                g_warning ("Failed to create_ConsoleKit_proxy");
+                        }
+                        unload_seat (manager);
+                        return;
+                }
+        }
+
         console_kit_manager_call_get_current_session (manager->priv->ck_manager_proxy, NULL,
                                                       on_get_current_session_finished,
                                                       g_object_ref (manager));
@@ -1933,12 +1955,13 @@ reload_systemd_sessions (ActUserManager *manager)
 }
 
 #endif
-static void
+static gboolean
 on_session_monitor_event (GPollableInputStream *stream,
                           ActUserManager       *manager)
 {
         sd_login_monitor_flush (manager->priv->seat.session_monitor);
         reload_systemd_sessions (manager);
+        return TRUE;
 }
 
 static void
@@ -2147,6 +2170,9 @@ give_up (ActUserManager                 *manager,
         g_debug ("ActUserManager: account service unavailable, "
                  "giving up");
         request->state = ACT_USER_MANAGER_GET_USER_STATE_UNFETCHED;
+
+        if (request->user)
+                _act_user_update_as_nonexistent (request->user);
 }
 
 static void
@@ -2535,9 +2561,13 @@ load_seat_incrementally (ActUserManager *manager)
 static gboolean
 load_idle (ActUserManager *manager)
 {
+        /* The order below is important: load_seat_incrementally might
+           set "is-loaded" immediately and we thus need to call
+           load_users before it.
+        */
+        load_users (manager);
         manager->priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_UNLOADED + 1;
         load_seat_incrementally (manager);
-        load_users (manager);
         manager->priv->load_id = 0;
 
         return FALSE;
@@ -2804,22 +2834,6 @@ act_user_manager_init (ActUserManager *manager)
                           "user-deleted",
                           G_CALLBACK (on_user_removed_in_accounts_service),
                           manager);
-
-        manager->priv->ck_manager_proxy = console_kit_manager_proxy_new_sync (manager->priv->connection,
-                                                                              G_DBUS_PROXY_FLAGS_NONE,
-                                                                              CK_NAME,
-                                                                              CK_MANAGER_PATH,
-                                                                              NULL,
-                                                                              &error);
-        if (manager->priv->ck_manager_proxy == NULL) {
-                if (error != NULL) {
-                        g_warning ("Failed to create ConsoleKit proxy: %s", error->message);
-                        g_error_free (error);
-                } else {
-                        g_warning ("Failed to create_ConsoleKit_proxy");
-                }
-                return;
-        }
 
         manager->priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_UNLOADED;
 }

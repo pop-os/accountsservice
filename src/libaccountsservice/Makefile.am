@@ -1,7 +1,10 @@
 END_OF_LIST =
 
 BUILT_SOURCES = $(END_OF_LIST)
-CLEANFILES = $(END_OF_LIST)
+CLEANFILES = \
+	*.gcda \
+	*.gcno \
+	$(END_OF_LIST)
 
 AM_CPPFLAGS = \
         -I.                                                                   \
@@ -131,22 +134,3 @@ endif
 
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = org.freedesktop.ConsoleKit.Manager.xml org.freedesktop.ConsoleKit.Seat.xml org.freedesktop.ConsoleKit.Session.xml
-
-if ENABLE_VAPIGEN
--include $(VAPIGEN_MAKEFILE)
-
-accountsservice.vapi: AccountsService-1.0.gir accountsservice.deps
-
-VAPIGEN_VAPIS = accountsservice.vapi
-
-accountsservice_vapi_METADATADIRS = $(srcdir)
-accountsservice_vapi_FILES = AccountsService-1.0.gir
-
-vapidir = $(VAPIGEN_VAPIDIR)
-vapi_DATA = $(VAPIGEN_VAPIS) $(VAPIGEN_VAPIS:.vapi=.deps)
-
-EXTRA_DIST += accountsservice.deps accountsservice.vapi
-CLEANFILES += accountsservice.vapi
-
-
-endif

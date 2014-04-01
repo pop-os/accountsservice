@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<policyconfig>
+
+        <action id="org.mydm.MyDisplayManager.ModifyWallpaper">
+                <description>Set wallpaper of any user</description>
+                <message>Authentication is required to set another user's wallpaper.</message>
+                <defaults>
+                        <allow_any>auth_admin_keep</allow_any>
+                        <allow_inactive>auth_admin_keep</allow_inactive>
+                        <allow_active>auth_admin_keep</allow_active>
+                </defaults>
+        </action>
+</policyconfig>

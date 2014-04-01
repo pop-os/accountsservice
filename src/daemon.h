@@ -76,10 +76,6 @@ User *daemon_local_find_user_by_id   (Daemon                *daemon,
 User *daemon_local_find_user_by_name (Daemon                *daemon,
                                       const gchar           *name);
 User *daemon_local_get_automatic_login_user (Daemon         *daemon);
-gboolean daemon_local_user_is_excluded (Daemon              *daemon,
-                                        const gchar         *name,
-                                        const gchar         *shell,
-                                        const gchar         *password_hash);
 
 typedef void (*AuthorizedCallback)   (Daemon                *daemon,
                                       User                  *user,
@@ -99,6 +95,9 @@ gboolean   daemon_local_set_automatic_login (Daemon         *daemon,
                                              User           *user,
                                              gboolean        enabled,
                                              GError        **error);
+
+GHashTable * daemon_read_extension_ifaces (void);
+GHashTable * daemon_get_extension_ifaces (Daemon *daemon);
 
 G_END_DECLS
 

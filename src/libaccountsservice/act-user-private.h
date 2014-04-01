@@ -32,6 +32,7 @@ G_BEGIN_DECLS
 
 void           _act_user_update_from_object_path   (ActUser    *user,
                                                     const char *object_path);
+void           _act_user_update_as_nonexistent     (ActUser    *user);
 void           _act_user_update_login_frequency    (ActUser    *user,
                                                     int         login_frequency);
 void           _act_user_load_from_user          (ActUser    *user,
