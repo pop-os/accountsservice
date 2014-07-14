@@ -3,3 +3,4 @@
 0006-adduser_instead_of_useradd.patch
 0007-add-lightdm-support.patch
 1001-buildsystem.patch
+1002-dont-override-standardoutput.patch
