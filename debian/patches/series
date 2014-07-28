@@ -2,5 +2,6 @@
 0005-gdm_config_file_path.patch
 0006-adduser_instead_of_useradd.patch
 0007-add-lightdm-support.patch
+0009-language-tools.patch
 1001-buildsystem.patch
 1002-dont-override-standardoutput.patch
