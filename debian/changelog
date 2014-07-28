@@ -1,3 +1,13 @@
+accountsservice (0.6.37-3) unstable; urgency=medium
+
+  * Do not override DefaultStandardOutput, it could be helpful for sysadmins
+    to determine how output gets logged. Thanks to Josh Triplett for
+    reporting this. (Closes: #741124)
+  * Refresh 0009-language-tools.patch.
+  * Enable 0009-language-tools.patch. (Closes: #756259)
+
+ -- Alessio Treglia <alessio@debian.org>  Mon, 28 Jul 2014 11:43:01 +0100
+
 accountsservice (0.6.37-2) unstable; urgency=medium
 
   * Point libglib2 build dependency at the proper version.
