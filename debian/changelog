@@ -1,3 +1,20 @@
+accountsservice (0.6.40-1) UNRELEASED; urgency=medium
+
+  * New upstream release:
+    - Fix SIGSEGV with UID numbers larger than 2^31. (Closes: #759563)
+  * Update patchset against new sources:
+    - Refresh patches.
+    - Drop 1001-buildsystem.patch, seems unnecessary.
+  * Refresh libaccountsservice0.symbols.
+  * Revert "Use ./autogen.sh in dh_autoreconf to fix binary-arch build
+    failure".
+  * Remove debian/clean to avoid deletion of gtk-doc.make.
+  * Update debian/watch
+  * Update Homepage
+  * Bump Standards
+
+ -- Alessio Treglia <alessio@debian.org>  Wed, 03 Jun 2015 08:26:31 +0100
+
 accountsservice (0.6.37-3) unstable; urgency=medium
 
   * Do not override DefaultStandardOutput, it could be helpful for sysadmins
