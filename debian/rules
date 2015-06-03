@@ -12,7 +12,10 @@ LDFLAGS+=-Wl,--as-needed
 	dh $@ --parallel --with=autoreconf,systemd
 
 override_dh_autoreconf:
-	dh_autoreconf ./autogen.sh
+ifneq (,$(findstring libaccountsservice-doc,$(shell dh_listpackages)))
+	gtkdocize
+endif
+	dh_autoreconf
 
 override_dh_shlibdeps:
 	dh_shlibdeps
