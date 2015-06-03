@@ -7,7 +7,7 @@ Forwarded: no
 
 --- accountsservice.orig/data/accounts-daemon.service.in
 +++ accountsservice/data/accounts-daemon.service.in
-@@ -5,7 +5,6 @@ Description=Accounts Service
+@@ -11,7 +11,6 @@ Wants=nss-user-lookup.target
  Type=dbus
  BusName=org.freedesktop.Accounts
  ExecStart=@libexecdir@/accounts-daemon

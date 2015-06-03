@@ -109,7 +109,7 @@ struct _ActUser {
         GDBusConnection *connection;
         AccountsUser    *accounts_proxy;
         GDBusProxy      *object_proxy;
-        GCancellable    *get_all_call;
+        GCancellable    *get_all_cancellable;
         char            *object_path;
 
         uid_t           uid;
@@ -592,8 +592,8 @@ act_user_finalize (GObject *object)
                 g_object_unref (user->object_proxy);
         }
 
-        if (user->get_all_call != NULL) {
-                g_object_unref (user->get_all_call);
+        if (user->get_all_cancellable != NULL) {
+                g_object_unref (user->get_all_cancellable);
         }
 
         if (user->connection != NULL) {
@@ -1316,6 +1316,8 @@ on_get_all_finished (GObject        *object,
         error = NULL;
         res = g_dbus_proxy_call_finish (proxy, result, &error);
 
+        g_clear_object (&user->get_all_cancellable);
+
         if (! res) {
                 g_debug ("Error calling GetAll() when retrieving properties for %s: %s",
                          user->object_path, error->message);
@@ -1326,9 +1328,6 @@ on_get_all_finished (GObject        *object,
                 }
                 return;
         }
-
-        g_object_unref (user->get_all_call);
-        user->get_all_call = NULL;
 
         g_variant_get (res, "(a{sv})", &iter);
         while (g_variant_iter_next (iter, "{sv}", &key, &value)) {
@@ -1351,18 +1350,18 @@ update_info (ActUser *user)
 {
         g_assert (G_IS_DBUS_PROXY (user->object_proxy));
 
-        if (user->get_all_call != NULL) {
-                g_cancellable_cancel (user->get_all_call);
-                g_object_unref (user->get_all_call);
+        if (user->get_all_cancellable != NULL) {
+                g_cancellable_cancel (user->get_all_cancellable);
+                g_clear_object (&user->get_all_cancellable);
         }
 
-        user->get_all_call = g_cancellable_new ();
+        user->get_all_cancellable = g_cancellable_new ();
         g_dbus_proxy_call (user->object_proxy,
                            "GetAll",
                            g_variant_new ("(s)", ACCOUNTS_USER_INTERFACE),
                            G_DBUS_CALL_FLAGS_NONE,
                            -1,
-                           user->get_all_call,
+                           user->get_all_cancellable,
                            on_get_all_finished,
                            user);
 }
