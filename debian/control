@@ -10,6 +10,7 @@ Build-Depends:
  gir1.2-glib-2.0 (>= 1.34),
  gnome-doc-utils,
  gobject-introspection (>= 0.9.12-4~),
+ gtk-doc-tools,
  intltool,
  libgirepository1.0-dev (>= 0.9.12),
  libglib2.0-dev (>= 2.37.3),
@@ -17,8 +18,6 @@ Build-Depends:
  libsystemd-daemon-dev (>= 186) [linux-any],
  libsystemd-login-dev (>= 186) [linux-any],
  xmlto
-Build-Depends-Indep:
- gtk-doc-tools
 Standards-Version: 3.9.6
 Homepage: http://www.freedesktop.org/wiki/Software/AccountsService/
 Vcs-Git: git://anonscm.debian.org/collab-maint/accountsservice.git
