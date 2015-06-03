@@ -1,3 +1,22 @@
+Changes in 0.6.40
+=================
+* Support large UIDs better
+* don't require X11 display to fetch user with X11 session
+* ensure accountsservice doesn't start before NSS works
+
+Changes in 0.6.39
+=================
+* Fix ListCachedUsers race at startup
+* Add new api for uncaching user
+* Fix memory corruption bug
+* Build goo changes
+
+Changes in 0.6.38
+=================
+* Fix polkit policy for non-desktop cases
+* Fix for a race when new user appears
+* Some clearer log and debug messages
+
 Changes in 0.6.37
 =================
 * BSD fixes
