@@ -10,7 +10,7 @@ Last-Update: 2012-04-30
 
 --- accountsservice.orig/src/daemon.c
 +++ accountsservice/src/daemon.c
-@@ -1264,10 +1264,10 @@ daemon_local_check_auth (Daemon
+@@ -1263,10 +1263,10 @@ daemon_local_check_auth (Daemon
  }
  
  gboolean
@@ -25,7 +25,7 @@ Last-Update: 2012-04-30
  {
          GKeyFile *keyfile;
          GError *local_error;
-@@ -1310,23 +1310,89 @@ load_autologin (Daemon      *daemon,
+@@ -1309,23 +1309,89 @@ load_autologin (Daemon      *daemon,
          return TRUE;
  }
  
@@ -122,7 +122,7 @@ Last-Update: 2012-04-30
          }
  
          g_key_file_set_string (keyfile, "daemon", "AutomaticLoginEnable", enabled ? "True" : "False");
-@@ -1341,6 +1407,61 @@ save_autologin (Daemon      *daemon,
+@@ -1340,6 +1406,61 @@ save_autologin (Daemon      *daemon,
          return result;
  }
  
