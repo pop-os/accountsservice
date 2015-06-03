@@ -1,6 +1,6 @@
-accountsservice (0.6.40-1) UNRELEASED; urgency=medium
+accountsservice (0.6.40-1) unstable; urgency=medium
 
-  * New upstream release:
+  * New upstream release (Closes: #787581):
     - Fix SIGSEGV with UID numbers larger than 2^31. (Closes: #759563)
   * Update patchset against new sources:
     - Refresh patches.
@@ -13,7 +13,7 @@ accountsservice (0.6.40-1) UNRELEASED; urgency=medium
   * Update Homepage
   * Bump Standards
 
- -- Alessio Treglia <alessio@debian.org>  Wed, 03 Jun 2015 08:26:31 +0100
+ -- Alessio Treglia <alessio@debian.org>  Wed, 03 Jun 2015 08:28:07 +0100
 
 accountsservice (0.6.37-3) unstable; urgency=medium
 
