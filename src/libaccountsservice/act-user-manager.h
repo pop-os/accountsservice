@@ -122,6 +122,14 @@ ActUser *           act_user_manager_cache_user_finish     (ActUserManager     *
 gboolean            act_user_manager_uncache_user          (ActUserManager     *manager,
                                                             const char         *username,
                                                             GError            **error);
+void                act_user_manager_uncache_user_async    (ActUserManager     *manager,
+                                                            const gchar        *username,
+                                                            GCancellable       *cancellable,
+                                                            GAsyncReadyCallback callback,
+                                                            gpointer            user_data);
+gboolean            act_user_manager_uncache_user_finish   (ActUserManager     *manager,
+                                                            GAsyncResult       *result,
+                                                            GError            **error);
 
 gboolean            act_user_manager_delete_user           (ActUserManager     *manager,
                                                             ActUser            *user,

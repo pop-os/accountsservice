@@ -537,8 +537,7 @@ daemon_init (Daemon *daemon)
         daemon->priv->gdm_monitor = setup_monitor (daemon,
                                                    PATH_GDM_CUSTOM,
                                                    on_gdm_monitor_changed);
-
-        queue_reload_users (daemon);
+        reload_users_timeout (daemon);
         queue_reload_autologin (daemon);
 }
 

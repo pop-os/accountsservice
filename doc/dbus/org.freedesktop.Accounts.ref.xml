@@ -1,0 +1,136 @@
+<refentry id="Accounts">
+  <refmeta>
+    <refentrytitle role="top_of_page">org.freedesktop.Accounts</refentrytitle>
+  </refmeta>
+  <refnamediv>
+    <refname>org.freedesktop.Accounts</refname>
+    <refpurpose>Accounts interface</refpurpose>
+  </refnamediv>
+  <refsynopsisdiv role="synopsis">
+    <title role="synopsis.title">Methods</title>
+    <synopsis><link linkend="Accounts.ListCachedUsers">ListCachedUsers</link>(out'ao'users)
+<link linkend="Accounts.FindUserById">FindUserById</link>(in'x'id,
+out'o'user)
+<link linkend="Accounts.FindUserByName">FindUserByName</link>(in's'name,
+out'o'user)
+<link linkend="Accounts.CreateUser">CreateUser</link>(in's'name,
+in's'fullname,
+out'o'user,
+in'i'accountType)
+<link linkend="Accounts.CacheUser">CacheUser</link>(in's'name,
+out'o'user)
+<link linkend="Accounts.UncacheUser">UncacheUser</link>(in's'name)
+<link linkend="Accounts.DeleteUser">DeleteUser</link>(in'x'id,
+in'b'removeFiles)
+</synopsis>
+  </refsynopsisdiv>
+  <refsect1 role="signal_proto">
+    <title role="signal_proto.title">Signals</title>
+    <synopsis><link linkend="Accounts::UserAdded">UserAdded</link>('o'user)
+<link linkend="Accounts::UserDeleted">UserDeleted</link>('o'user)
+</synopsis>
+  </refsect1>
+  <refsect1 role="impl_interfaces">
+    <title role="impl_interfaces.title">Implemented Interfaces</title>
+    <para>
+    Objects implementing org.freedesktop.Accounts also implements
+    org.freedesktop.DBus.Introspectable,
+    org.freedesktop.DBus.Properties
+    </para>
+  </refsect1>
+  <refsect1 role="properties">
+    <title role="properties.title">Properties</title>
+    <synopsis><link linkend="Accounts:DaemonVersion">'DaemonVersion'</link>read's'
+</synopsis>
+  </refsect1>
+  <refsect1 role="desc">
+    <title role="desc.title">Description</title>
+    <para/>
+  </refsect1>
+  <refsect1 role="details">
+    <title role="details.title">Details</title>
+    <refsect2><title><anchor role="function" id="Accounts.ListCachedUsers"/>ListCachedUsers ()</title><indexterm><primary>ListCachedUsers</primary><secondary>Accounts</secondary></indexterm><programlisting>ListCachedUsers (out'ao'users)</programlisting>
+          <para>
+            Lists users which have logged into the system locally before.
+            This is not meant to return an exhaustive list of all users.
+            It is possible for <link linkend="Accounts.FindUserByName"><function>FindUserByName()</function></link>
+            to return a user that's not on the list.
+          </para>
+        <variablelist role="params"><varlistentry><term><parameter>users</parameter>:</term><listitem><para>Object paths of cached users</para></listitem></varlistentry></variablelist></refsect2>
+    <refsect2><title><anchor role="function" id="Accounts.FindUserById"/>FindUserById ()</title><indexterm><primary>FindUserById</primary><secondary>Accounts</secondary></indexterm><programlisting>FindUserById (in'x'id,
+out'o'user)</programlisting>
+          <para>
+            Finds a user by uid.
+          </para>
+        <variablelist role="params"><varlistentry><term><parameter>id</parameter>:</term><listitem><para>The uid to look up</para></listitem></varlistentry><varlistentry><term><parameter>user</parameter>:</term><listitem><para>Object path of user</para></listitem></varlistentry></variablelist><note><title>Errors</title><variablelist role="errors"><varlistentry><term><parameter>org.freedesktop.Accounts.Error.Failed</parameter>:</term><listitem><simpara>if no user with the given uid exists</simpara></listitem></varlistentry></variablelist></note></refsect2>
+    <refsect2><title><anchor role="function" id="Accounts.FindUserByName"/>FindUserByName ()</title><indexterm><primary>FindUserByName</primary><secondary>Accounts</secondary></indexterm><programlisting>FindUserByName (in's'name,
+out'o'user)</programlisting>
+          <para>
+            Finds a user by its username.
+          </para>
+        <variablelist role="params"><varlistentry><term><parameter>name</parameter>:</term><listitem><para>The username to look up</para></listitem></varlistentry><varlistentry><term><parameter>user</parameter>:</term><listitem><para>Object path of user</para></listitem></varlistentry></variablelist><note><title>Errors</title><variablelist role="errors"><varlistentry><term><parameter>org.freedesktop.Accounts.Error.Failed</parameter>:</term><listitem><simpara>if no user with the given username exists</simpara></listitem></varlistentry></variablelist></note></refsect2>
+    <refsect2><title><anchor role="function" id="Accounts.CreateUser"/>CreateUser ()</title><indexterm><primary>CreateUser</primary><secondary>Accounts</secondary></indexterm><programlisting>CreateUser (in's'name,
+in's'fullname,
+out'o'user,
+in'i'accountType)</programlisting>
+          <para>
+            Creates a new user account.
+          </para>
+          <para>
+          The accountType argument can take the following values:
+          </para>
+            <itemizedlist><listitem><para><emphasis role="bold">0: </emphasis>Standard user</para></listitem><listitem><para><emphasis role="bold">1: </emphasis>Administrator</para></listitem></itemizedlist>
+        <variablelist role="params"><varlistentry><term><parameter>name</parameter>:</term><listitem><para>The username for the new user</para></listitem></varlistentry><varlistentry><term><parameter>fullname</parameter>:</term><listitem><para>The real name for the new user</para></listitem></varlistentry><varlistentry><term><parameter>user</parameter>:</term><listitem><para>Object path of the new user</para></listitem></varlistentry><varlistentry><term><parameter>accountType</parameter>:</term><listitem><para>The account type, encoded as an integer</para></listitem></varlistentry></variablelist><note><title>Errors</title><variablelist role="errors"><varlistentry><term><parameter>org.freedesktop.Accounts.Error.PermissionDenied</parameter>:</term><listitem><simpara>if the caller lacks the appropriate PolicyKit authorization</simpara></listitem></varlistentry><varlistentry><term><parameter>org.freedesktop.Accounts.Error.Failed</parameter>:</term><listitem><simpara>if the operation failed</simpara></listitem></varlistentry></variablelist></note><note><title>Permissions</title><para role="permission">
+          The caller needs the org.freedesktop.accounts.user-administration PolicyKit authorization.
+        </para></note></refsect2>
+    <refsect2><title><anchor role="function" id="Accounts.CacheUser"/>CacheUser ()</title><indexterm><primary>CacheUser</primary><secondary>Accounts</secondary></indexterm><programlisting>CacheUser (in's'name,
+out'o'user)</programlisting>
+          <para>
+            Caches a user account, so that it shows up in ListCachedUsers() output.
+            The user name may be a remote user, but the system must be able to lookup
+            the user name and resolve the user information.
+          </para>
+        <variablelist role="params"><varlistentry><term><parameter>name</parameter>:</term><listitem><para>The username for the user</para></listitem></varlistentry><varlistentry><term><parameter>user</parameter>:</term><listitem><para>Object path of user</para></listitem></varlistentry></variablelist><note><title>Errors</title><variablelist role="errors"><varlistentry><term><parameter>org.freedesktop.Accounts.Error.PermissionDenied</parameter>:</term><listitem><simpara>if the caller lacks the appropriate PolicyKit authorization</simpara></listitem></varlistentry><varlistentry><term><parameter>org.freedesktop.Accounts.Error.UserDoesNotExist</parameter>:</term><listitem><simpara>if the user name cannot be resolved</simpara></listitem></varlistentry></variablelist></note><note><title>Permissions</title><para role="permission">
+          The caller needs the org.freedesktop.accounts.user-administration PolicyKit authorization.
+        </para></note></refsect2>
+    <refsect2><title><anchor role="function" id="Accounts.UncacheUser"/>UncacheUser ()</title><indexterm><primary>UncacheUser</primary><secondary>Accounts</secondary></indexterm><programlisting>UncacheUser (in's'name)</programlisting>
+          <para>
+            Releases all metadata about a user account, including icon, language and session. If the user account is
+            from a remote server and the user has never logged in before, then that account will no longer show up
+            in ListCachedUsers() output.
+          </para>
+        <variablelist role="params"><varlistentry><term><parameter>name</parameter>:</term><listitem><para>The username for the user</para></listitem></varlistentry></variablelist><note><title>Errors</title><variablelist role="errors"><varlistentry><term><parameter>org.freedesktop.Accounts.Error.PermissionDenied</parameter>:</term><listitem><simpara>if the caller lacks the appropriate PolicyKit authorization</simpara></listitem></varlistentry><varlistentry><term><parameter>org.freedesktop.Accounts.Error.UserDoesNotExist</parameter>:</term><listitem><simpara>if the user name cannot be resolved</simpara></listitem></varlistentry></variablelist></note><note><title>Permissions</title><para role="permission">
+          The caller needs the org.freedesktop.accounts.user-administration PolicyKit authorization.
+        </para></note></refsect2>
+    <refsect2><title><anchor role="function" id="Accounts.DeleteUser"/>DeleteUser ()</title><indexterm><primary>DeleteUser</primary><secondary>Accounts</secondary></indexterm><programlisting>DeleteUser (in'x'id,
+in'b'removeFiles)</programlisting>
+          <para>
+            Deletes a user account.
+          </para>
+        <variablelist role="params"><varlistentry><term><parameter>id</parameter>:</term><listitem><para>The uid to delete</para></listitem></varlistentry><varlistentry><term><parameter>removeFiles</parameter>:</term><listitem><para>Whether to remove the users files</para></listitem></varlistentry></variablelist><note><title>Errors</title><variablelist role="errors"><varlistentry><term><parameter>org.freedesktop.Accounts.Error.PermissionDenied</parameter>:</term><listitem><simpara>if the caller lacks the appropriate PolicyKit authorization</simpara></listitem></varlistentry><varlistentry><term><parameter>org.freedesktop.Accounts.Error.Failed</parameter>:</term><listitem><simpara>if the operation failed</simpara></listitem></varlistentry></variablelist></note><note><title>Permissions</title><para role="permission">
+          The caller needs the org.freedesktop.accounts.user-administration PolicyKit authorization.
+        </para></note></refsect2>
+  </refsect1>
+  <refsect1 role="signals">
+    <title role="signals.title">Signal Details</title>
+    <refsect2><title><anchor role="function" id="Accounts::UserAdded"/>The UserAdded signal</title><indexterm><primary>UserAdded</primary><secondary>Accounts</secondary></indexterm><programlisting>UserAdded ('o'user)</programlisting>
+          <para>
+            Emitted when a user is added.
+          </para>
+        <variablelist role="params"><varlistentry><term><parameter>user</parameter>:</term><listitem><simpara>Object path of the user that was added.</simpara></listitem></varlistentry></variablelist></refsect2>
+    <refsect2><title><anchor role="function" id="Accounts::UserDeleted"/>The UserDeleted signal</title><indexterm><primary>UserDeleted</primary><secondary>Accounts</secondary></indexterm><programlisting>UserDeleted ('o'user)</programlisting>
+          <para>
+            Emitted when a user is deleted.
+          </para>
+        <variablelist role="params"><varlistentry><term><parameter>user</parameter>:</term><listitem><simpara>Object path of the user that was deleted.</simpara></listitem></varlistentry></variablelist></refsect2>
+  </refsect1>
+  <refsect1 role="property_details">
+    <title role="property_details.title">Property Details</title>
+    <refsect2><title><anchor role="function" id="Accounts:DaemonVersion"/>The "DaemonVersion" property</title><indexterm><primary>DaemonVersion</primary><secondary>Accounts</secondary></indexterm><programlisting>'DaemonVersion'read's'
+</programlisting>
+         <para>
+           The version of the running daemon.
+         </para>
+       </refsect2>
+  </refsect1>
+</refentry>
