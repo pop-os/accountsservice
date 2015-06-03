@@ -1,3 +1,9 @@
+accountsservice (0.6.40-2) unstable; urgency=medium
+
+  * Build docs unconditionally to prevent FTBFS.
+
+ -- Alessio Treglia <alessio@debian.org>  Wed, 03 Jun 2015 11:56:11 +0100
+
 accountsservice (0.6.40-1) unstable; urgency=medium
 
   * New upstream release (Closes: #787581):
