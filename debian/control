@@ -40,6 +40,7 @@ Description: query and manipulate user account information
 Package: libaccountsservice0
 Section: libs
 Architecture: any
+Multi-Arch: same
 Depends:
  ${misc:Depends},
  ${shlibs:Depends}
@@ -57,6 +58,7 @@ Description: query and manipulate user account information - shared libraries
 Package: libaccountsservice-dev
 Section: libdevel
 Architecture: any
+Multi-Arch: same
 Depends:
  gir1.2-accountsservice-1.0 (= ${binary:Version}),
  libaccountsservice0 (= ${binary:Version}),
@@ -75,6 +77,7 @@ Description: query and manipulate user account information - header files
 Package: gir1.2-accountsservice-1.0
 Section: introspection
 Architecture: any
+Multi-Arch: foreign
 Depends:
  ${gir:Depends},
  ${misc:Depends},
