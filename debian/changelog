@@ -1,3 +1,16 @@
+accountsservice (0.6.40-3) unstable; urgency=medium
+
+  * Team upload.
+
+  [ Alessio Treglia ]
+  * Update b-d according to libsystemd transition.
+  * libaccountsservice-dev dependencies fix.
+
+  [ Michael Biebl ]
+  * Transition to libsystemd. (Closes: #779740)
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 27 Aug 2015 02:45:14 +0200
+
 accountsservice (0.6.40-2) unstable; urgency=medium
 
   * Build docs unconditionally to prevent FTBFS.
