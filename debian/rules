@@ -31,7 +31,7 @@ override_dh_auto_test:
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS
 
-override_dh_install:
+override_dh_install-arch:
 	cat debian/accountsservice.install debian/accountsservice.install.linux.in > debian/accountsservice.install.linux
 	dh_install
 	# patch is only applied conditionally, only install when present
