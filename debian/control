@@ -1,7 +1,7 @@
 Source: accountsservice
 Section: admin
 Priority: optional
-Maintainer: Alessio Treglia <alessio@debian.org>
+Maintainer: Debian QA Group <packages@qa.debian.org>
 Build-Depends:
  debhelper (>= 10),
  dh-autoreconf,
