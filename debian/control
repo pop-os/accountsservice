@@ -98,6 +98,7 @@ Description: GObject introspection data for AccountService
 Package: libaccountsservice-doc
 Section: doc
 Architecture: all
+Multi-Arch: foreign
 Depends:
  ${misc:Depends}
 Description: query and manipulate user account information - documentation
