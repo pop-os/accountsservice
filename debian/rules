@@ -23,6 +23,7 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		--enable-gtk-doc \
 		--enable-static=no \
+		--libexecdir=/usr/lib/accountsservice \
 		--with-systemdsystemunitdir=/lib/systemd/system
 
 # Disabled to avoid FTBFS
@@ -31,7 +32,7 @@ override_dh_auto_test:
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS
 
-override_dh_install:
+override_dh_install-arch:
 	cat debian/accountsservice.install debian/accountsservice.install.linux.in > debian/accountsservice.install.linux
 	dh_install
 	# patch is only applied conditionally, only install when present
@@ -40,5 +41,5 @@ override_dh_install:
 	fi
 
 override_dh_strip:
-	dh_strip -plibaccountsservice0 --dbg-package=libaccountsservice-dbg
+	dh_strip -plibaccountsservice0 --dbgsym-migration='libaccountsservice-dbg (<< 0.6.40-4~)'
 	dh_strip --remaining-packages

@@ -1,3 +1,26 @@
+accountsservice (0.6.40-4) unstable; urgency=medium
+
+  [ Dr. Tobias Quathamer ]
+  * QA upload.
+  * Use debhelper v10
+  * Add Multi-Arch: foreign to -doc package
+  * Set maintainer to Debian QA Group <packages@qa.debian.org>
+  * Update Vcs-Browser URL
+
+  [ Laurent Bigonville ]
+  * debian/rules: Fix FTBFS when building arch:all packages only.
+    Thanks to Santiago Vila <sanvila@unex.es> (Closes: #805989)
+  * 0015-debian-nologin-path.patch: Use debian specific path for nologin executable
+    (Closes: #805086)
+  * Drop the -dbg package and rely on the automatically built -dbgsym one
+  * debian/control: Use https for the Vcs-* and Homepage URL's
+  * debian/control: Bump Standards-Version to 3.9.8 (no further changes)
+
+  [ Alessio Treglia ]
+  * Multiarchify-ication.
+
+ -- Dr. Tobias Quathamer <toddy@debian.org>  Sat, 26 Nov 2016 22:28:05 +0100
+
 accountsservice (0.6.40-3) unstable; urgency=medium
 
   * Team upload.
