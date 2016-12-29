@@ -22,6 +22,7 @@
 <link linkend="User.SetPasswordMode">SetPasswordMode</link>(in'i'mode)
 <link linkend="User.SetPassword">SetPassword</link>(in's'password,
 in's'hint)
+<link linkend="User.SetPasswordHint">SetPasswordHint</link>(in's'hint)
 <link linkend="User.SetAutomaticLogin">SetAutomaticLogin</link>(in'b'enabled)
 </synopsis>
   </refsynopsisdiv>
@@ -236,6 +237,16 @@ in's'hint)</programlisting>
         </para></listitem></varlistentry></variablelist><note><title>Errors</title><variablelist role="errors"><varlistentry><term><parameter>org.freedesktop.Accounts.Error.PermissionDenied</parameter>:</term><listitem><simpara>if the caller lacks the appropriate PolicyKit authorization</simpara></listitem></varlistentry><varlistentry><term><parameter>org.freedesktop.Accounts.Error.Failed</parameter>:</term><listitem><simpara>if the operation failed</simpara></listitem></varlistentry></variablelist></note><note><title>Permissions</title><para role="permission">
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the password of a user</para></listitem></itemizedlist>
+      </para></note></refsect2>
+    <refsect2><title><anchor role="function" id="User.SetPasswordHint"/>SetPasswordHint ()</title><indexterm><primary>SetPasswordHint</primary><secondary>User</secondary></indexterm><programlisting>SetPasswordHint (in's'hint)</programlisting>
+        <para>
+          Sets the users password hint.
+        </para>
+      <variablelist role="params"><varlistentry><term><parameter>hint</parameter>:</term><listitem><para>
+          The password hint.
+        </para></listitem></varlistentry></variablelist><note><title>Errors</title><variablelist role="errors"><varlistentry><term><parameter>org.freedesktop.Accounts.Error.PermissionDenied</parameter>:</term><listitem><simpara>if the caller lacks the appropriate PolicyKit authorization</simpara></listitem></varlistentry><varlistentry><term><parameter>org.freedesktop.Accounts.Error.Failed</parameter>:</term><listitem><simpara>if the operation failed</simpara></listitem></varlistentry></variablelist></note><note><title>Permissions</title><para role="permission">
+        The caller needs one of the following PolicyKit authorizations:
+        <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.change-own-user-data: </emphasis>To change his own language</para></listitem><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the language of another user</para></listitem></itemizedlist>
       </para></note></refsect2>
     <refsect2><title><anchor role="function" id="User.SetAutomaticLogin"/>SetAutomaticLogin ()</title><indexterm><primary>SetAutomaticLogin</primary><secondary>User</secondary></indexterm><programlisting>SetAutomaticLogin (in'b'enabled)</programlisting>
         <para>

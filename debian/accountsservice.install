@@ -1,6 +1,9 @@
+#!/usr/bin/dh-exec
 etc
+lib				[linux-any]
 usr/lib/accountsservice
 usr/share/dbus-1
+usr/share/language-tools
 usr/share/locale
 usr/share/polkit-1
 var

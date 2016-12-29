@@ -121,6 +121,8 @@ on_log_debug (const gchar *log_domain,
                                 message ? message : "(NULL) message");
 
         ret = write (1, string->str, string->len);
+
+        g_string_free (string, TRUE);
 }
 
 static void

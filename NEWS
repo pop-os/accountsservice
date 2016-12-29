@@ -1,3 +1,18 @@
+Changes in 0.6.43
+=================
+* Fix logout times in login-history
+* increase performance in large deployments
+* memory leak fix
+* exclude nologin users from user list
+
+Changes in 0.6.42
+=================
+* wtmp fixes on solaris
+* allow a user to change his own data even if he's remote
+* add way to set password hint independent of password
+* conform to modern systemd library naming scheme
+* disable GVFS support in service, since it's not needed and has bad side effects
+
 Changes in 0.6.40
 =================
 * Support large UIDs better

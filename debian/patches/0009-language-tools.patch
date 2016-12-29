@@ -15,9 +15,9 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
  data/langtools/update-langlist          |   48 +++++++++++++++++++
  11 files changed, 378 insertions(+)
 
---- accountsservice.orig/configure.ac
-+++ accountsservice/configure.ac
-@@ -294,6 +294,7 @@ AC_CONFIG_FILES([
+--- a/configure.ac
++++ b/configure.ac
+@@ -323,6 +323,7 @@
  Makefile
  po/Makefile.in
  data/Makefile
@@ -26,7 +26,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
  src/libaccountsservice/Makefile
  src/libaccountsservice/accountsservice.pc
 --- /dev/null
-+++ accountsservice/data/langtools/del-profile-env-settings
++++ b/data/langtools/del-profile-env-settings
 @@ -0,0 +1,13 @@
 +#!/bin/sh -e
 +
@@ -42,7 +42,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +}
 +
 --- /dev/null
-+++ accountsservice/data/langtools/language2locale
++++ b/data/langtools/language2locale
 @@ -0,0 +1,65 @@
 +#!/bin/sh -e
 +#
@@ -110,7 +110,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +echo $locale_name
 +
 --- /dev/null
-+++ accountsservice/data/langtools/language-options
++++ b/data/langtools/language-options
 @@ -0,0 +1,66 @@
 +#!/usr/bin/perl
 +use strict;
@@ -179,7 +179,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +print join("\n", sort keys %intersection) || 'en';
 +
 --- /dev/null
-+++ accountsservice/data/langtools/language-validate
++++ b/data/langtools/language-validate
 @@ -0,0 +1,78 @@
 +#!/bin/sh -e
 +
@@ -260,7 +260,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +echo $validated_language
 +
 --- /dev/null
-+++ accountsservice/data/langtools/main-countries
++++ b/data/langtools/main-countries
 @@ -0,0 +1,28 @@
 +# If multiple country codes are present among the available locales for
 +# a language, we may want to map the language code to the language's
@@ -291,7 +291,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +tr	tr_TR
 +
 --- /dev/null
-+++ accountsservice/data/langtools/Makefile.am
++++ b/data/langtools/Makefile.am
 @@ -0,0 +1,17 @@
 +langtoolsdir = ${datadir}/language-tools
 +
@@ -311,7 +311,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +	$(INSTALL_SCRIPT)  update-langlist           $(DESTDIR)$(langtoolsdir)/update-langlist
 +
 --- /dev/null
-+++ accountsservice/data/langtools/save-to-pam-env
++++ b/data/langtools/save-to-pam-env
 @@ -0,0 +1,36 @@
 +#!/bin/sh -e
 +#
@@ -350,7 +350,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +exit 0
 +
 --- /dev/null
-+++ accountsservice/data/langtools/set-language-helper
++++ b/data/langtools/set-language-helper
 @@ -0,0 +1,25 @@
 +#!/bin/sh -e
 +
@@ -378,7 +378,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +echo $validated_language
 +
 --- /dev/null
-+++ accountsservice/data/langtools/update-langlist
++++ b/data/langtools/update-langlist
 @@ -0,0 +1,48 @@
 +#!/bin/sh -e
 +#
@@ -428,8 +428,8 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $renewed_langlist
 +
---- accountsservice.orig/data/Makefile.am
-+++ accountsservice/data/Makefile.am
+--- a/data/Makefile.am
++++ b/data/Makefile.am
 @@ -1,3 +1,4 @@
 +SUBDIRS = langtools
  

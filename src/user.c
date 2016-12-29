@@ -122,9 +122,6 @@ static gint
 account_type_from_pwent (struct passwd *pwent)
 {
         struct group *grp;
-        gid_t wheel;
-        gid_t *groups;
-        gint ngroups;
         gint i;
 
         if (pwent->pw_uid == 0) {
@@ -137,29 +134,21 @@ account_type_from_pwent (struct passwd *pwent)
                 g_debug (ADMIN_GROUP " group not found");
                 return ACCOUNT_TYPE_STANDARD;
         }
-        wheel = grp->gr_gid;
 
-        ngroups = get_user_groups (pwent->pw_name, pwent->pw_gid, &groups);
-
-        for (i = 0; i < ngroups; i++) {
-                if (groups[i] == wheel) {
-                        g_free (groups);
+        for (i = 0; grp->gr_mem[i] != NULL; i++) {
+                if (g_strcmp0 (grp->gr_mem[i], pwent->pw_name) == 0) {
                         return ACCOUNT_TYPE_ADMINISTRATOR;
                 }
         }
-
-        g_free (groups);
 
         return ACCOUNT_TYPE_STANDARD;
 }
 
 void
 user_update_from_pwent (User          *user,
-                        struct passwd *pwent)
+                        struct passwd *pwent,
+                        struct spwd   *spent)
 {
-#ifdef HAVE_SHADOW_H
-        struct spwd *spent;
-#endif
         gchar *real_name;
         gboolean changed;
         const gchar *passwd;
@@ -258,11 +247,8 @@ user_update_from_pwent (User          *user,
         }
 
         passwd = NULL;
-#ifdef HAVE_SHADOW_H
-        spent = getspnam (pwent->pw_name);
         if (spent)
                 passwd = spent->sp_pwdp;
-#endif
 
         if (passwd && passwd[0] == '!') {
                 locked = TRUE;
@@ -284,13 +270,11 @@ user_update_from_pwent (User          *user,
                 mode = PASSWORD_MODE_NONE;
         }
 
-#ifdef HAVE_SHADOW_H
         if (spent) {
                 if (spent->sp_lstchg == 0) {
                         mode = PASSWORD_MODE_SET_AT_LOGIN;
                 }
         }
-#endif
 
         if (user->password_mode != mode) {
                 user->password_mode = mode;
@@ -1928,6 +1912,63 @@ user_set_password (AccountsUser          *auser,
 }
 
 static void
+user_change_password_hint_authorized_cb (Daemon                *daemon,
+                                         User                  *user,
+                                         GDBusMethodInvocation *context,
+                                         gpointer               data)
+{
+        gchar *hint = data;
+
+        sys_log (context,
+                 "set password hint of user '%s' (%d)'",
+                 user->user_name, user->uid);
+
+        if (g_strcmp0 (user->password_hint, hint) != 0) {
+                g_free (user->password_hint);
+                user->password_hint = g_strdup (hint);
+
+                save_extra_data (user);
+
+                accounts_user_emit_changed (ACCOUNTS_USER (user));
+
+                g_object_notify (G_OBJECT (user), "password-hint");
+        }
+
+        accounts_user_complete_set_password_hint (ACCOUNTS_USER (user), context);
+}
+
+static gboolean
+user_set_password_hint (AccountsUser          *auser,
+                        GDBusMethodInvocation *context,
+                        const gchar           *hint)
+{
+        User *user = (User*)auser;
+        int uid;
+        const gchar *action_id;
+
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return FALSE;
+        }
+
+        if (user->uid == (uid_t) uid)
+                action_id = "org.freedesktop.accounts.change-own-user-data";
+        else
+                action_id = "org.freedesktop.accounts.user-administration";
+
+        daemon_local_check_auth (user->daemon,
+                                 user,
+                                 action_id,
+                                 TRUE,
+                                 user_change_password_hint_authorized_cb,
+                                 context,
+                                 g_strdup (hint),
+                                 (GDestroyNotify)g_free);
+
+        return TRUE;
+}
+
+static void
 user_change_automatic_login_authorized_cb (Daemon                *daemon,
                                            User                  *user,
                                            GDBusMethodInvocation *context,
@@ -2271,6 +2312,7 @@ user_accounts_user_iface_init (AccountsUserIface *iface)
         iface->handle_set_locked = user_set_locked;
         iface->handle_set_password = user_set_password;
         iface->handle_set_password_mode = user_set_password_mode;
+        iface->handle_set_password_hint = user_set_password_hint;
         iface->handle_set_real_name = user_set_real_name;
         iface->handle_set_shell = user_set_shell;
         iface->handle_set_user_name = user_set_user_name;

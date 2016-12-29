@@ -29,6 +29,9 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <pwd.h>
+#ifdef HAVE_SHADOW_H
+#include <shadow.h>
+#endif
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -57,7 +60,6 @@ enum {
 
 struct DaemonPrivate {
         GDBusConnection *bus_connection;
-        GDBusProxy *bus_proxy;
 
         GHashTable *users;
 
@@ -76,7 +78,7 @@ struct DaemonPrivate {
         GHashTable *extension_ifaces;
 };
 
-typedef struct passwd * (* EntryGeneratorFunc) (GHashTable *, gpointer *);
+typedef struct passwd * (* EntryGeneratorFunc) (GHashTable *, gpointer *, struct spwd **shadow_entry);
 
 static void daemon_accounts_accounts_iface_init (AccountsAccountsIface *iface);
 
@@ -133,38 +135,107 @@ error_get_type (void)
 #include "fgetpwent.c"
 #endif
 
+#ifndef MAX_LOCAL_USERS
+#define MAX_LOCAL_USERS 50
+#endif
+
 static struct passwd *
-entry_generator_fgetpwent (GHashTable *users,
-                           gpointer   *state)
+entry_generator_fgetpwent (GHashTable   *users,
+                           gpointer     *state,
+                           struct spwd **spent)
 {
         struct passwd *pwent;
-        FILE *fp;
+
+        struct {
+                struct spwd spbuf;
+                char buf[1024];
+        } *shadow_entry_buffers;
+
+        struct {
+                FILE *fp;
+                GHashTable *users;
+        } *generator_state;
 
         /* First iteration */
         if (*state == NULL) {
-                *state = fp = fopen (PATH_PASSWD, "r");
+                GHashTable *shadow_users = NULL;
+                FILE *fp;
+                struct spwd *shadow_entry;
+
+                fp = fopen (PATH_SHADOW, "r");
                 if (fp == NULL) {
+                        g_warning ("Unable to open %s: %s", PATH_SHADOW, g_strerror (errno));
+                        return NULL;
+                }
+
+                shadow_users = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_free);
+
+                do {
+                        int ret = 0;
+
+                        shadow_entry_buffers = g_malloc0 (sizeof (*shadow_entry_buffers));
+
+                        ret = fgetspent_r (fp, &shadow_entry_buffers->spbuf, shadow_entry_buffers->buf, sizeof (shadow_entry_buffers->buf), &shadow_entry);
+                        if (ret == 0) {
+                                g_hash_table_insert (shadow_users, g_strdup (shadow_entry->sp_namp), shadow_entry_buffers);
+                        } else {
+                                g_free (shadow_entry_buffers);
+
+                                if (errno != EINTR) {
+                                        break;
+                                }
+                        }
+                } while (shadow_entry != NULL);
+
+                fclose (fp);
+
+                if (g_hash_table_size (shadow_users) == 0) {
+                        g_clear_pointer (&shadow_users, g_hash_table_unref);
+                        return NULL;
+                }
+
+                fp = fopen (PATH_PASSWD, "r");
+                if (fp == NULL) {
+                        g_clear_pointer (&shadow_users, g_hash_table_unref);
                         g_warning ("Unable to open %s: %s", PATH_PASSWD, g_strerror (errno));
                         return NULL;
                 }
+
+                generator_state = g_malloc0 (sizeof (*generator_state));
+                generator_state->fp = fp;
+                generator_state->users = shadow_users;
+
+                *state = generator_state;
         }
 
         /* Every iteration */
-        fp = *state;
-        pwent = fgetpwent (fp);
-        if (pwent != NULL) {
-                return pwent;
+        generator_state = *state;
+
+        if (g_hash_table_size (users) < MAX_LOCAL_USERS) {
+                pwent = fgetpwent (generator_state->fp);
+                if (pwent != NULL) {
+                        shadow_entry_buffers = g_hash_table_lookup (generator_state->users, pwent->pw_name);
+
+                        if (shadow_entry_buffers != NULL) {
+                            *spent = &shadow_entry_buffers->spbuf;
+                            return pwent;
+                        }
+                }
         }
 
         /* Last iteration */
-        fclose (fp);
+        fclose (generator_state->fp);
+        g_hash_table_unref (generator_state->users);
+        g_free (generator_state);
         *state = NULL;
+
         return NULL;
 }
 
 static struct passwd *
-entry_generator_cachedir (GHashTable *users,
-                          gpointer   *state)
+entry_generator_cachedir (GHashTable   *users,
+                          gpointer     *state,
+                          struct spwd **shadow_entry)
 {
         struct passwd *pwent;
         const gchar *name;
@@ -206,10 +277,13 @@ entry_generator_cachedir (GHashTable *users,
 
                 if (regular) {
                         pwent = getpwnam (name);
-                        if (pwent == NULL)
+                        if (pwent == NULL) {
                                 g_debug ("user '%s' in cache dir but not present on system", name);
-                        else
+                        } else {
+                                *shadow_entry = getspnam (pwent->pw_name);
+
                                 return pwent;
+                        }
                 }
         }
 
@@ -238,17 +312,19 @@ load_entries (Daemon             *daemon,
 {
         gpointer generator_state = NULL;
         struct passwd *pwent;
+        struct spwd *spent = NULL;
         User *user = NULL;
 
         g_assert (entry_generator != NULL);
 
         for (;;) {
-                pwent = entry_generator (users, &generator_state);
+                spent = NULL;
+                pwent = entry_generator (users, &generator_state, &spent);
                 if (pwent == NULL)
                         break;
 
                 /* Skip system users... */
-                if (!user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell, NULL)) {
+                if (!user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell, spent? spent->sp_pwdp : NULL)) {
                         g_debug ("skipping user: %s", pwent->pw_name);
                         continue;
                 }
@@ -267,7 +343,7 @@ load_entries (Daemon             *daemon,
 
                 /* freeze & update users not already in the new list */
                 g_object_freeze_notify (G_OBJECT (user));
-                user_update_from_pwent (user, pwent);
+                user_update_from_pwent (user, pwent, spent);
 
                 g_hash_table_insert (users, g_strdup (user_get_user_name (user)), user);
                 g_debug ("loaded user: %s", user_get_user_name (user));
@@ -313,8 +389,9 @@ reload_users (Daemon *daemon)
                 g_hash_table_add (local, name);
 
         /* Now add/update users from other sources, possibly non-local */
-        load_entries (daemon, users, wtmp_helper_entry_generator);
         load_entries (daemon, users, entry_generator_cachedir);
+
+        wtmp_helper_update_login_frequencies (users);
 
         /* Mark which users are local, which are not */
         g_hash_table_iter_init (&iter, users);
@@ -550,9 +627,6 @@ daemon_finalize (GObject *object)
 
         daemon = DAEMON (object);
 
-        if (daemon->priv->bus_proxy != NULL)
-                g_object_unref (daemon->priv->bus_proxy);
-
         if (daemon->priv->bus_connection != NULL)
                 g_object_unref (daemon->priv->bus_connection);
 
@@ -642,12 +716,13 @@ throw_error (GDBusMethodInvocation *context,
 
 static User *
 add_new_user_for_pwent (Daemon        *daemon,
-                        struct passwd *pwent)
+                        struct passwd *pwent,
+                        struct spwd   *spent)
 {
         User *user;
 
         user = user_new (daemon, pwent->pw_uid);
-        user_update_from_pwent (user, pwent);
+        user_update_from_pwent (user, pwent, spent);
         user_register (user);
 
         g_hash_table_insert (daemon->priv->users,
@@ -674,8 +749,11 @@ daemon_local_find_user_by_id (Daemon *daemon,
 
         user = g_hash_table_lookup (daemon->priv->users, pwent->pw_name);
 
-        if (user == NULL)
-                user = add_new_user_for_pwent (daemon, pwent);
+        if (user == NULL) {
+                struct spwd *spent;
+                spent = getspnam (pwent->pw_name);
+                user = add_new_user_for_pwent (daemon, pwent, spent);
+        }
 
         return user;
 }
@@ -695,8 +773,11 @@ daemon_local_find_user_by_name (Daemon      *daemon,
 
         user = g_hash_table_lookup (daemon->priv->users, pwent->pw_name);
 
-        if (user == NULL)
-                user = add_new_user_for_pwent (daemon, pwent);
+        if (user == NULL) {
+                struct spwd *spent;
+                spent = getspnam (pwent->pw_name);
+                user = add_new_user_for_pwent (daemon, pwent, spent);
+        }
 
         return user;
 }

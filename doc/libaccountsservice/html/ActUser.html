@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>libaccountsservice Reference Manual: ActUser</title>
+<title>ActUser: libaccountsservice Reference Manual</title>
 <meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
 <link rel="home" href="index.html" title="libaccountsservice Reference Manual">
 <link rel="up" href="ch01.html" title="libaccountsservice">
 <link rel="prev" href="ch01.html" title="libaccountsservice">
 <link rel="next" href="ActUserManager.html" title="ActUserManager">
-<meta name="generator" content="GTK-Doc V1.21 (XML mode)">
+<meta name="generator" content="GTK-Doc V1.25.1 (XML mode)">
 <link rel="stylesheet" href="style.css" type="text/css">
 </head>
 <body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
@@ -306,6 +306,14 @@
 <span class="returnvalue">void</span>
 </td>
 <td class="function_name">
+<a class="link" href="ActUser.html#act-user-set-password-hint" title="act_user_set_password_hint ()">act_user_set_password_hint</a> <span class="c_punctuation">()</span>
+</td>
+</tr>
+<tr>
+<td class="function_type">
+<span class="returnvalue">void</span>
+</td>
+<td class="function_name">
 <a class="link" href="ActUser.html#act-user-set-password-mode" title="act_user_set_password_mode ()">act_user_set_password_mode</a> <span class="c_punctuation">()</span>
 </td>
 </tr>
@@ -516,7 +524,7 @@
 </div>
 <div class="refsect1">
 <a name="ActUser.object-hierarchy"></a><h2>Object Hierarchy</h2>
-<pre class="screen">    <a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#GObject">GObject</a>
+<pre class="screen">    <a href="https://developer.gnome.org/gobject/unstable/gobject-The-Base-Object-Type.html#GObject-struct">GObject</a>
     <span class="lineart">╰──</span> ActUser
 </pre>
 </div>
@@ -533,7 +541,7 @@ act_user_collate (<em class="parameter"><code><a class="link" href="ActUser.html
                   <em class="parameter"><code><a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> *user2</code></em>);</pre>
 <p>Organize the user by login frequency and names.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.2.5"></a><h4>Parameters</h4>
+<a name="act-user-collate.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -555,14 +563,13 @@ act_user_collate (<em class="parameter"><code><a class="link" href="ActUser.html
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.2.6"></a><h4>Returns</h4>
+<a name="act-user-collate.returns"></a><h4>Returns</h4>
 <p> negative if <em class="parameter"><code>user1</code></em>
 is before <em class="parameter"><code>user2</code></em>
 , zero if equal
 or positive if <em class="parameter"><code>user1</code></em>
 is after <em class="parameter"><code>user2</code></em>
 </p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -573,7 +580,7 @@ act_user_get_account_type (<em class="parameter"><code><a class="link" href="Act
 <p>Retrieves the account type of <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.3.5"></a><h4>Parameters</h4>
+<a name="act-user-get-account-type.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -588,9 +595,8 @@ act_user_get_account_type (<em class="parameter"><code><a class="link" href="Act
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.3.6"></a><h4>Returns</h4>
+<a name="act-user-get-account-type.returns"></a><h4>Returns</h4>
 <p> a <a class="link" href="ActUser.html#ActUserAccountType" title="enum ActUserAccountType"><span class="type">ActUserAccountType</span></a></p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -600,7 +606,7 @@ act_user_get_account_type (<em class="parameter"><code><a class="link" href="Act
 act_user_get_automatic_login (<em class="parameter"><code><a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> *user</code></em>);</pre>
 <p>Returns whether or not <a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> is automatically logged in at boot time.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.4.5"></a><h4>Parameters</h4>
+<a name="act-user-get-automatic-login.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -615,9 +621,8 @@ act_user_get_automatic_login (<em class="parameter"><code><a class="link" href="
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.4.6"></a><h4>Returns</h4>
+<a name="act-user-get-automatic-login.returns"></a><h4>Returns</h4>
 <p> <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a></p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -628,7 +633,7 @@ act_user_get_email (<em class="parameter"><code><a class="link" href="ActUser.ht
 <p>Retrieves the email address set by <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.5.5"></a><h4>Parameters</h4>
+<a name="act-user-get-email.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -643,9 +648,9 @@ act_user_get_email (<em class="parameter"><code><a class="link" href="ActUser.ht
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.5.6"></a><h4>Returns</h4>
+<a name="act-user-get-email.returns"></a><h4>Returns</h4>
 <p> a pointer to an array of characters which must not be modified or
-freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
+freed, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
 </div>
@@ -657,7 +662,7 @@ act_user_get_home_dir (<em class="parameter"><code><a class="link" href="ActUser
 <p>Retrieves the home directory for <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.6.5"></a><h4>Parameters</h4>
+<a name="act-user-get-home-dir.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -672,9 +677,9 @@ act_user_get_home_dir (<em class="parameter"><code><a class="link" href="ActUser
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.6.6"></a><h4>Returns</h4>
+<a name="act-user-get-home-dir.returns"></a><h4>Returns</h4>
 <p> a pointer to an array of characters which must not be modified or
-freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
+freed, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
 </div>
@@ -686,7 +691,7 @@ act_user_get_icon_file (<em class="parameter"><code><a class="link" href="ActUse
 <p>Returns the path to the account icon belonging to <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.7.5"></a><h4>Parameters</h4>
+<a name="act-user-get-icon-file.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -701,7 +706,7 @@ act_user_get_icon_file (<em class="parameter"><code><a class="link" href="ActUse
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.7.6"></a><h4>Returns</h4>
+<a name="act-user-get-icon-file.returns"></a><h4>Returns</h4>
 <p> a path to an icon. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -714,7 +719,7 @@ act_user_get_language (<em class="parameter"><code><a class="link" href="ActUser
 <p>Returns the path to the configured locale of <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.8.5"></a><h4>Parameters</h4>
+<a name="act-user-get-language.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -729,7 +734,7 @@ act_user_get_language (<em class="parameter"><code><a class="link" href="ActUser
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.8.6"></a><h4>Returns</h4>
+<a name="act-user-get-language.returns"></a><h4>Returns</h4>
 <p> a path to an icon. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -742,7 +747,7 @@ act_user_get_location (<em class="parameter"><code><a class="link" href="ActUser
 <p>Retrieves the location set by <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.9.5"></a><h4>Parameters</h4>
+<a name="act-user-get-location.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -757,9 +762,9 @@ act_user_get_location (<em class="parameter"><code><a class="link" href="ActUser
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.9.6"></a><h4>Returns</h4>
+<a name="act-user-get-location.returns"></a><h4>Returns</h4>
 <p> a pointer to an array of characters which must not be modified or
-freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
+freed, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
 </div>
@@ -770,7 +775,7 @@ freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macro
 act_user_get_locked (<em class="parameter"><code><a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> *user</code></em>);</pre>
 <p>Returns whether or not the <a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> account is locked.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.10.5"></a><h4>Parameters</h4>
+<a name="act-user-get-locked.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -785,9 +790,8 @@ act_user_get_locked (<em class="parameter"><code><a class="link" href="ActUser.h
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.10.6"></a><h4>Returns</h4>
+<a name="act-user-get-locked.returns"></a><h4>Returns</h4>
 <p> <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a></p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -798,7 +802,7 @@ act_user_get_login_frequency (<em class="parameter"><code><a class="link" href="
 <p>Returns the number of times <em class="parameter"><code>user</code></em>
  has logged in.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.11.5"></a><h4>Parameters</h4>
+<a name="act-user-get-login-frequency.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -813,9 +817,8 @@ act_user_get_login_frequency (<em class="parameter"><code><a class="link" href="
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.11.6"></a><h4>Returns</h4>
+<a name="act-user-get-login-frequency.returns"></a><h4>Returns</h4>
 <p> the login frequency</p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -826,7 +829,7 @@ act_user_get_login_history (<em class="parameter"><code><a class="link" href="Ac
 <p>Returns the login history for <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.12.5"></a><h4>Parameters</h4>
+<a name="act-user-get-login-history.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -841,9 +844,9 @@ act_user_get_login_history (<em class="parameter"><code><a class="link" href="Ac
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.12.6"></a><h4>Returns</h4>
+<a name="act-user-get-login-history.returns"></a><h4>Returns</h4>
 <p> a pointer to GVariant of type "a(xxa{sv})"
-which must not be modified or freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
+which must not be modified or freed, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
 </div>
@@ -855,7 +858,7 @@ act_user_get_login_time (<em class="parameter"><code><a class="link" href="ActUs
 <p>Returns the last login time for <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.13.5"></a><h4>Parameters</h4>
+<a name="act-user-get-login-time.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -870,7 +873,7 @@ act_user_get_login_time (<em class="parameter"><code><a class="link" href="ActUs
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.13.6"></a><h4>Returns</h4>
+<a name="act-user-get-login-time.returns"></a><h4>Returns</h4>
 <p> the login time. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -883,7 +886,7 @@ act_user_get_num_sessions (<em class="parameter"><code><a class="link" href="Act
 <p>Get the number of sessions for a user that are graphical and on the
 same seat as the session of the calling process.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.14.5"></a><h4>Parameters</h4>
+<a name="act-user-get-num-sessions.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -898,9 +901,8 @@ same seat as the session of the calling process.</p>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.14.6"></a><h4>Returns</h4>
+<a name="act-user-get-num-sessions.returns"></a><h4>Returns</h4>
 <p> the number of sessions</p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -910,11 +912,11 @@ same seat as the session of the calling process.</p>
 act_user_get_object_path (<em class="parameter"><code><a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> *user</code></em>);</pre>
 <p>Returns the user accounts service object path of <em class="parameter"><code>user</code></em>
 ,
-or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a> if <em class="parameter"><code>user</code></em>
+or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a> if <em class="parameter"><code>user</code></em>
  doesn't have an object path associated
 with it.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.15.5"></a><h4>Parameters</h4>
+<a name="act-user-get-object-path.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -929,7 +931,7 @@ with it.</p>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.15.6"></a><h4>Returns</h4>
+<a name="act-user-get-object-path.returns"></a><h4>Returns</h4>
 <p> the object path of the user. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -942,7 +944,7 @@ act_user_get_password_hint (<em class="parameter"><code><a class="link" href="Ac
 <p>Retrieves the password hint set by <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.16.5"></a><h4>Parameters</h4>
+<a name="act-user-get-password-hint.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -957,9 +959,9 @@ act_user_get_password_hint (<em class="parameter"><code><a class="link" href="Ac
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.16.6"></a><h4>Returns</h4>
+<a name="act-user-get-password-hint.returns"></a><h4>Returns</h4>
 <p> a pointer to an array of characters which must not be modified or
-freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
+freed, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
 </div>
@@ -971,7 +973,7 @@ act_user_get_password_mode (<em class="parameter"><code><a class="link" href="Ac
 <p>Retrieves the password mode of <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.17.5"></a><h4>Parameters</h4>
+<a name="act-user-get-password-mode.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -986,9 +988,8 @@ act_user_get_password_mode (<em class="parameter"><code><a class="link" href="Ac
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.17.6"></a><h4>Returns</h4>
+<a name="act-user-get-password-mode.returns"></a><h4>Returns</h4>
 <p> a <a class="link" href="ActUser.html#ActUserPasswordMode" title="enum ActUserPasswordMode"><span class="type">ActUserPasswordMode</span></a></p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -997,13 +998,13 @@ act_user_get_password_mode (<em class="parameter"><code><a class="link" href="Ac
 <pre class="programlisting">const <span class="returnvalue">char</span> *
 act_user_get_primary_session_id (<em class="parameter"><code><a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> *user</code></em>);</pre>
 <p>Returns the id of the primary session of <em class="parameter"><code>user</code></em>
-, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a> if <em class="parameter"><code>user</code></em>
+, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a> if <em class="parameter"><code>user</code></em>
 
 has no primary session.  The primary session will always be
 graphical and will be chosen from the sessions on the same seat as
 the seat of the session of the calling process.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.18.5"></a><h4>Parameters</h4>
+<a name="act-user-get-primary-session-id.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1018,7 +1019,7 @@ the seat of the session of the calling process.</p>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.18.6"></a><h4>Returns</h4>
+<a name="act-user-get-primary-session-id.returns"></a><h4>Returns</h4>
 <p> the id of the primary session of the user. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -1031,7 +1032,7 @@ act_user_get_real_name (<em class="parameter"><code><a class="link" href="ActUse
 <p>Retrieves the display name of <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.19.5"></a><h4>Parameters</h4>
+<a name="act-user-get-real-name.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1046,9 +1047,9 @@ act_user_get_real_name (<em class="parameter"><code><a class="link" href="ActUse
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.19.6"></a><h4>Returns</h4>
+<a name="act-user-get-real-name.returns"></a><h4>Returns</h4>
 <p> a pointer to an array of characters which must not be modified or
-freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
+freed, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
 </div>
@@ -1060,7 +1061,7 @@ act_user_get_shell (<em class="parameter"><code><a class="link" href="ActUser.ht
 <p>Retrieves the shell assigned to <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.20.5"></a><h4>Parameters</h4>
+<a name="act-user-get-shell.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1075,9 +1076,9 @@ act_user_get_shell (<em class="parameter"><code><a class="link" href="ActUser.ht
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.20.6"></a><h4>Returns</h4>
+<a name="act-user-get-shell.returns"></a><h4>Returns</h4>
 <p> a pointer to an array of characters which must not be modified or
-freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
+freed, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
 </div>
@@ -1089,7 +1090,7 @@ act_user_get_uid (<em class="parameter"><code><a class="link" href="ActUser.html
 <p>Retrieves the ID of <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.21.5"></a><h4>Parameters</h4>
+<a name="act-user-get-uid.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1104,9 +1105,9 @@ act_user_get_uid (<em class="parameter"><code><a class="link" href="ActUser.html
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.21.6"></a><h4>Returns</h4>
+<a name="act-user-get-uid.returns"></a><h4>Returns</h4>
 <p> a pointer to an array of characters which must not be modified or
-freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
+freed, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
 </div>
@@ -1118,7 +1119,7 @@ act_user_get_user_name (<em class="parameter"><code><a class="link" href="ActUse
 <p>Retrieves the login name of <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.22.5"></a><h4>Parameters</h4>
+<a name="act-user-get-user-name.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1133,9 +1134,9 @@ act_user_get_user_name (<em class="parameter"><code><a class="link" href="ActUse
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.22.6"></a><h4>Returns</h4>
+<a name="act-user-get-user-name.returns"></a><h4>Returns</h4>
 <p> a pointer to an array of characters which must not be modified or
-freed, or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
+freed, or <a href="/usr/share/gtk-doc/html/liboil/liboil-liboiljunk.html#NULL:CAPS"><code class="literal">NULL</code></a>. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
 </div>
@@ -1147,7 +1148,7 @@ act_user_get_x_session (<em class="parameter"><code><a class="link" href="ActUse
 <p>Returns the path to the configured X session for <em class="parameter"><code>user</code></em>
 .</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.23.5"></a><h4>Parameters</h4>
+<a name="act-user-get-x-session.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1162,7 +1163,7 @@ act_user_get_x_session (<em class="parameter"><code><a class="link" href="ActUse
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.23.6"></a><h4>Returns</h4>
+<a name="act-user-get-x-session.returns"></a><h4>Returns</h4>
 <p> a path to an icon. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -1176,7 +1177,7 @@ act_user_is_loaded (<em class="parameter"><code><a class="link" href="ActUser.ht
 <a class="link" href="ActUserManager.html#ActUserManager--is-loaded" title="The “is-loaded” property"><span class="type">“is-loaded”</span></a> property must be <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> before calling
 <a class="link" href="ActUserManager.html#act-user-manager-list-users" title="act_user_manager_list_users ()"><code class="function">act_user_manager_list_users()</code></a></p>
 <div class="refsect3">
-<a name="id-1.2.2.9.24.5"></a><h4>Parameters</h4>
+<a name="act-user-is-loaded.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1191,9 +1192,8 @@ act_user_is_loaded (<em class="parameter"><code><a class="link" href="ActUser.ht
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.24.6"></a><h4>Returns</h4>
+<a name="act-user-is-loaded.returns"></a><h4>Returns</h4>
 <p> <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a></p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -1203,7 +1203,7 @@ act_user_is_loaded (<em class="parameter"><code><a class="link" href="ActUser.ht
 act_user_is_local_account (<em class="parameter"><code><a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> *user</code></em>);</pre>
 <p>Retrieves whether the user is a local account or not.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.25.5"></a><h4>Parameters</h4>
+<a name="act-user-is-local-account.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1218,7 +1218,7 @@ act_user_is_local_account (<em class="parameter"><code><a class="link" href="Act
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.25.6"></a><h4>Returns</h4>
+<a name="act-user-is-local-account.returns"></a><h4>Returns</h4>
 <p> <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> if the user is local. </p>
 <p><span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span></p>
 </div>
@@ -1231,7 +1231,7 @@ act_user_is_logged_in (<em class="parameter"><code><a class="link" href="ActUser
 <p>Returns whether or not <a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> is currently graphically logged in
 on the same seat as the seat of the session of the calling process.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.26.5"></a><h4>Parameters</h4>
+<a name="act-user-is-logged-in.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1246,9 +1246,8 @@ on the same seat as the seat of the session of the calling process.</p>
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.26.6"></a><h4>Returns</h4>
+<a name="act-user-is-logged-in.returns"></a><h4>Returns</h4>
 <p> <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a></p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -1259,7 +1258,7 @@ act_user_is_system_account (<em class="parameter"><code><a class="link" href="Ac
 <p>Returns whether or not <a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> represents a 'system account' like
 'root' or 'nobody'.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.27.5"></a><h4>Parameters</h4>
+<a name="act-user-is-system-account.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1274,9 +1273,8 @@ act_user_is_system_account (<em class="parameter"><code><a class="link" href="Ac
 </table></div>
 </div>
 <div class="refsect3">
-<a name="id-1.2.2.9.27.6"></a><h4>Returns</h4>
+<a name="act-user-is-system-account.returns"></a><h4>Returns</h4>
 <p> <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#TRUE:CAPS"><code class="literal">TRUE</code></a> or <a href="https://developer.gnome.org/glib/unstable/glib-Standard-Macros.html#FALSE:CAPS"><code class="literal">FALSE</code></a></p>
-<p></p>
 </div>
 </div>
 <hr>
@@ -1289,7 +1287,7 @@ act_user_set_account_type (<em class="parameter"><code><a class="link" href="Act
 .</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.28.6"></a><h4>Parameters</h4>
+<a name="act-user-set-account-type.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1323,7 +1321,7 @@ time, so subsequent calls to <a class="link" href="ActUser.html#act-user-set-aut
 calls.</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.29.6"></a><h4>Parameters</h4>
+<a name="act-user-set-automatic-login.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1355,7 +1353,7 @@ act_user_set_email (<em class="parameter"><code><a class="link" href="ActUser.ht
 .</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.30.6"></a><h4>Parameters</h4>
+<a name="act-user-set-email.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1387,7 +1385,7 @@ act_user_set_icon_file (<em class="parameter"><code><a class="link" href="ActUse
 .</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.31.6"></a><h4>Parameters</h4>
+<a name="act-user-set-icon-file.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1419,7 +1417,7 @@ act_user_set_language (<em class="parameter"><code><a class="link" href="ActUser
 .</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.32.6"></a><h4>Parameters</h4>
+<a name="act-user-set-language.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1451,7 +1449,7 @@ act_user_set_location (<em class="parameter"><code><a class="link" href="ActUser
 .</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.33.6"></a><h4>Parameters</h4>
+<a name="act-user-set-location.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1481,7 +1479,7 @@ act_user_set_locked (<em class="parameter"><code><a class="link" href="ActUser.h
                      <em class="parameter"><code><a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gboolean"><span class="type">gboolean</span></a> locked</code></em>);</pre>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.34.5"></a><h4>Parameters</h4>
+<a name="act-user-set-locked.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1517,7 +1515,7 @@ act_user_set_password (<em class="parameter"><code><a class="link" href="ActUser
  is displayed to the user if they forget the password.</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.35.6"></a><h4>Parameters</h4>
+<a name="act-user-set-password.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1546,6 +1544,13 @@ act_user_set_password (<em class="parameter"><code><a class="link" href="ActUser
 </div>
 <hr>
 <div class="refsect2">
+<a name="act-user-set-password-hint"></a><h3>act_user_set_password_hint ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>
+act_user_set_password_hint (<em class="parameter"><code><a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> *user</code></em>,
+                            <em class="parameter"><code>const <a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gchar"><span class="type">gchar</span></a> *hint</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
 <a name="act-user-set-password-mode"></a><h3>act_user_set_password_mode ()</h3>
 <pre class="programlisting"><span class="returnvalue">void</span>
 act_user_set_password_mode (<em class="parameter"><code><a class="link" href="ActUser.html" title="ActUser"><span class="type">ActUser</span></a> *user</code></em>,
@@ -1560,7 +1565,7 @@ is ACT_USER_PASSWORD_MODE_NONE then the user will not require
 a password to log in.</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.36.6"></a><h4>Parameters</h4>
+<a name="act-user-set-password-mode.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1592,7 +1597,7 @@ act_user_set_real_name (<em class="parameter"><code><a class="link" href="ActUse
 .</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.37.6"></a><h4>Parameters</h4>
+<a name="act-user-set-real-name.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1624,7 +1629,7 @@ act_user_set_user_name (<em class="parameter"><code><a class="link" href="ActUse
 .</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.38.6"></a><h4>Parameters</h4>
+<a name="act-user-set-user-name.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1656,7 +1661,7 @@ act_user_set_x_session (<em class="parameter"><code><a class="link" href="ActUse
 .</p>
 <p>Note this function is synchronous and ignores errors.</p>
 <div class="refsect3">
-<a name="id-1.2.2.9.39.6"></a><h4>Parameters</h4>
+<a name="act-user-set-x-session.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1691,7 +1696,7 @@ act_user_set_x_session (<em class="parameter"><code><a class="link" href="ActUse
 <a name="ActUserAccountType"></a><h3>enum ActUserAccountType</h3>
 <p>Type of user account</p>
 <div class="refsect3">
-<a name="id-1.2.2.10.3.4"></a><h4>Members</h4>
+<a name="ActUserAccountType.members"></a><h4>Members</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="300px" class="enum_members_name">
@@ -1722,7 +1727,7 @@ act_user_set_x_session (<em class="parameter"><code><a class="link" href="ActUse
 <a name="ActUserPasswordMode"></a><h3>enum ActUserPasswordMode</h3>
 <p>Mode for setting the user's password.</p>
 <div class="refsect3">
-<a name="id-1.2.2.10.4.4"></a><h4>Members</h4>
+<a name="ActUserPasswordMode.members"></a><h4>Members</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="300px" class="enum_members_name">
@@ -1949,7 +1954,7 @@ user_function (<a class="link" href="ActUser.html" title="ActUser"><span class="
                <a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gpointer"><span class="type">gpointer</span></a> user_data)</pre>
 <p>Emitted when the user accounts changes in some way.</p>
 <div class="refsect3">
-<a name="id-1.2.2.12.2.5"></a><h4>Parameters</h4>
+<a name="ActUser-changed.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1973,7 +1978,7 @@ user_function (<a class="link" href="ActUser.html" title="ActUser"><span class="
                <a href="https://developer.gnome.org/glib/unstable/glib-Basic-Types.html#gpointer"><span class="type">gpointer</span></a> user_data)</pre>
 <p>Emitted when the list of sessions for this user changes.</p>
 <div class="refsect3">
-<a name="id-1.2.2.12.3.5"></a><h4>Parameters</h4>
+<a name="ActUser-sessions-changed.parameters"></a><h4>Parameters</h4>
 <div class="informaltable"><table width="100%" border="0">
 <colgroup>
 <col width="150px" class="parameters_name">
@@ -1992,7 +1997,6 @@ user_function (<a class="link" href="ActUser.html" title="ActUser"><span class="
 </div>
 </div>
 <div class="footer">
-<hr>
-          Generated by GTK-Doc V1.21</div>
+<hr>Generated by GTK-Doc V1.25.1</div>
 </body>
 </html>

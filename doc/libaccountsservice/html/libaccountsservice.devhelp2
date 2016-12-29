@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
-<!DOCTYPE book PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "">
 <book xmlns="http://www.devhelp.net/book" title="libaccountsservice Reference Manual" link="index.html" author="" name="libaccountsservice" version="2" language="c">
   <chapters>
     <sub name="libaccountsservice" link="ch01.html">
@@ -44,6 +43,7 @@
     <keyword type="function" name="act_user_set_location ()" link="ActUser.html#act-user-set-location"/>
     <keyword type="function" name="act_user_set_locked ()" link="ActUser.html#act-user-set-locked"/>
     <keyword type="function" name="act_user_set_password ()" link="ActUser.html#act-user-set-password"/>
+    <keyword type="function" name="act_user_set_password_hint ()" link="ActUser.html#act-user-set-password-hint"/>
     <keyword type="function" name="act_user_set_password_mode ()" link="ActUser.html#act-user-set-password-mode"/>
     <keyword type="function" name="act_user_set_real_name ()" link="ActUser.html#act-user-set-real-name"/>
     <keyword type="function" name="act_user_set_user_name ()" link="ActUser.html#act-user-set-user-name"/>
@@ -104,5 +104,15 @@
     <keyword type="signal" name="The “user-changed” signal" link="ActUserManager.html#ActUserManager-user-changed"/>
     <keyword type="signal" name="The “user-is-logged-in-changed” signal" link="ActUserManager.html#ActUserManager-user-is-logged-in-changed"/>
     <keyword type="signal" name="The “user-removed” signal" link="ActUserManager.html#ActUserManager-user-removed"/>
+    <keyword type="constant" name="ACT_USER_ACCOUNT_TYPE_STANDARD" link="ActUser.html#ACT-USER-ACCOUNT-TYPE-STANDARD:CAPS"/>
+    <keyword type="constant" name="ACT_USER_ACCOUNT_TYPE_ADMINISTRATOR" link="ActUser.html#ACT-USER-ACCOUNT-TYPE-ADMINISTRATOR:CAPS"/>
+    <keyword type="constant" name="ACT_USER_PASSWORD_MODE_REGULAR" link="ActUser.html#ACT-USER-PASSWORD-MODE-REGULAR:CAPS"/>
+    <keyword type="constant" name="ACT_USER_PASSWORD_MODE_SET_AT_LOGIN" link="ActUser.html#ACT-USER-PASSWORD-MODE-SET-AT-LOGIN:CAPS"/>
+    <keyword type="constant" name="ACT_USER_PASSWORD_MODE_NONE" link="ActUser.html#ACT-USER-PASSWORD-MODE-NONE:CAPS"/>
+    <keyword type="constant" name="ACT_USER_MANAGER_ERROR_FAILED" link="ActUserManager.html#ACT-USER-MANAGER-ERROR-FAILED:CAPS"/>
+    <keyword type="constant" name="ACT_USER_MANAGER_ERROR_USER_EXISTS" link="ActUserManager.html#ACT-USER-MANAGER-ERROR-USER-EXISTS:CAPS"/>
+    <keyword type="constant" name="ACT_USER_MANAGER_ERROR_USER_DOES_NOT_EXIST" link="ActUserManager.html#ACT-USER-MANAGER-ERROR-USER-DOES-NOT-EXIST:CAPS"/>
+    <keyword type="constant" name="ACT_USER_MANAGER_ERROR_PERMISSION_DENIED" link="ActUserManager.html#ACT-USER-MANAGER-ERROR-PERMISSION-DENIED:CAPS"/>
+    <keyword type="constant" name="ACT_USER_MANAGER_ERROR_NOT_SUPPORTED" link="ActUserManager.html#ACT-USER-MANAGER-ERROR-NOT-SUPPORTED:CAPS"/>
   </functions>
 </book>

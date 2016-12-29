@@ -25,6 +25,7 @@
 #include "user-classify.h"
 
 #include <string.h>
+#include <unistd.h>
 
 static const char *default_excludes[] = {
         "bin",
@@ -84,43 +85,9 @@ user_classify_is_blacklisted (const char *username)
 #ifdef ENABLE_USER_HEURISTICS
 static gboolean
 user_classify_is_excluded_by_heuristics (const gchar *username,
-                                         const gchar *shell,
                                          const gchar *password_hash)
 {
         gboolean ret = FALSE;
-
-        if (shell != NULL) {
-                char *basename, *nologin_basename, *false_basename;
-
-#ifdef HAVE_GETUSERSHELL
-                char *valid_shell;
-
-                ret = TRUE;
-                setusershell ();
-                while ((valid_shell = getusershell ()) != NULL) {
-                        if (g_strcmp0 (shell, valid_shell) != 0)
-                                continue;
-                        ret = FALSE;
-                }
-                endusershell ();
-#endif
-
-                basename = g_path_get_basename (shell);
-                nologin_basename = g_path_get_basename (PATH_NOLOGIN);
-                false_basename = g_path_get_basename (PATH_FALSE);
-
-                if (shell[0] == '\0') {
-                        ret = TRUE;
-                } else if (g_strcmp0 (basename, nologin_basename) == 0) {
-                        ret = TRUE;
-                } else if (g_strcmp0 (basename, false_basename) == 0) {
-                        ret = TRUE;
-                }
-
-                g_free (basename);
-                g_free (nologin_basename);
-                g_free (false_basename);
-        }
 
         if (password_hash != NULL) {
                 /* skip over the account-is-locked '!' prefix if present */
@@ -148,6 +115,43 @@ user_classify_is_excluded_by_heuristics (const gchar *username,
 }
 #endif /* ENABLE_USER_HEURISTICS */
 
+static gboolean
+is_invalid_shell (const char *shell)
+{
+        char *basename, *nologin_basename, *false_basename;
+        int ret = FALSE;
+
+#ifdef HAVE_GETUSERSHELL
+        char *valid_shell;
+
+        setusershell ();
+        while ((valid_shell = getusershell ()) != NULL) {
+                if (g_strcmp0 (shell, valid_shell) != 0)
+                        continue;
+                ret = FALSE;
+        }
+        endusershell ();
+#endif
+
+        basename = g_path_get_basename (shell);
+        nologin_basename = g_path_get_basename (PATH_NOLOGIN);
+        false_basename = g_path_get_basename (PATH_FALSE);
+
+        if (shell[0] == '\0') {
+                ret = TRUE;
+        } else if (g_strcmp0 (basename, nologin_basename) == 0) {
+                ret = TRUE;
+        } else if (g_strcmp0 (basename, false_basename) == 0) {
+                ret = TRUE;
+        }
+
+        g_free (basename);
+        g_free (nologin_basename);
+        g_free (false_basename);
+
+        return ret;
+}
+
 gboolean
 user_classify_is_human (uid_t        uid,
                         const gchar *username,
@@ -157,10 +161,13 @@ user_classify_is_human (uid_t        uid,
         if (user_classify_is_blacklisted (username))
                 return FALSE;
 
+        if (shell != NULL && is_invalid_shell (shell))
+                return FALSE;
+
 #ifdef ENABLE_USER_HEURISTICS
         /* only do heuristics on the range 500-1000 to catch one off migration problems in Fedora */
         if (uid >= 500 && uid < MINIMUM_UID) {
-                if (!user_classify_is_excluded_by_heuristics (username, shell, password_hash))
+                if (!user_classify_is_excluded_by_heuristics (username, password_hash))
                         return TRUE;
         }
 #endif

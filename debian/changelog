@@ -1,3 +1,25 @@
+accountsservice (0.6.43-1) unstable; urgency=medium
+
+  * Adopt package under pkg-freedesktop. Closes: #842851.
+  * Add myself to Uploaders.
+  * New upstream release. Closes: #841672.
+  * debian/patches/0002-create-and-manage-groups-like-on-a-debian-system.patch,
+    debian/patches/1002-dont-override-standardoutput.patch:
+    + Updated to apply with the new version.
+  * debian/patches/0014-libsystemd.patch:
+    + Removed, applied upstream.
+  * Refreshed all patches.
+  * debian/rules: Fail the build if the symbols file is outdated.
+  * debian/libaccountsservice0.symbols: Updated for new symbols.
+  * Use dh-exec to install linux-only files.
+  * Unconditionally install language-tools.
+  * debhelper enables autoreconf, systemd and parallel builds by default
+    in compat 10, no need to set those anymore.
+  * debian/rules: Don't call dh_girepository directly. Use dh gir sequence
+    instead.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 29 Dec 2016 16:17:42 +0100
+
 accountsservice (0.6.40-4) unstable; urgency=medium
 
   [ Dr. Tobias Quathamer ]

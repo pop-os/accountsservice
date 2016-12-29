@@ -352,7 +352,7 @@ act_user_class_init (ActUserClass *class)
                                                               "Real Name",
                                                               "The real name to display for this user.",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
         g_object_class_install_property (gobject_class,
                                          PROP_ACCOUNT_TYPE,
@@ -362,7 +362,7 @@ act_user_class_init (ActUserClass *class)
                                                            ACT_USER_ACCOUNT_TYPE_STANDARD,
                                                            ACT_USER_ACCOUNT_TYPE_ADMINISTRATOR,
                                                            ACT_USER_ACCOUNT_TYPE_STANDARD,
-                                                           G_PARAM_READABLE));
+                                                           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_PASSWORD_MODE,
                                          g_param_spec_int ("password-mode",
@@ -371,7 +371,7 @@ act_user_class_init (ActUserClass *class)
                                                            ACT_USER_PASSWORD_MODE_REGULAR,
                                                            ACT_USER_PASSWORD_MODE_NONE,
                                                            ACT_USER_PASSWORD_MODE_REGULAR,
-                                                           G_PARAM_READABLE));
+                                                           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
         g_object_class_install_property (gobject_class,
                                          PROP_PASSWORD_HINT,
@@ -379,7 +379,7 @@ act_user_class_init (ActUserClass *class)
                                                               "Password Hint",
                                                               "Hint to help this user remember his password",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
         g_object_class_install_property (gobject_class,
                                          PROP_UID,
@@ -387,42 +387,42 @@ act_user_class_init (ActUserClass *class)
                                                            "User ID",
                                                            "The UID for this user.",
                                                            0, G_MAXINT, 0,
-                                                           G_PARAM_READABLE));
+                                                           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_USER_NAME,
                                          g_param_spec_string ("user-name",
                                                               "User Name",
                                                               "The login name for this user.",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_HOME_DIR,
                                          g_param_spec_string ("home-directory",
                                                               "Home Directory",
                                                               "The home directory for this user.",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_SHELL,
                                          g_param_spec_string ("shell",
                                                               "Shell",
                                                               "The shell for this user.",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_EMAIL,
                                          g_param_spec_string ("email",
                                                               "Email",
                                                               "The email address for this user.",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_LOCATION,
                                          g_param_spec_string ("location",
                                                               "Location",
                                                               "The location of this user.",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_LOGIN_FREQUENCY,
                                          g_param_spec_int ("login-frequency",
@@ -431,7 +431,7 @@ act_user_class_init (ActUserClass *class)
                                                            0,
                                                            G_MAXINT,
                                                            0,
-                                                           G_PARAM_READABLE));
+                                                           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_LOGIN_TIME,
                                          g_param_spec_int64 ("login-time",
@@ -440,7 +440,7 @@ act_user_class_init (ActUserClass *class)
                                                              0,
                                                              G_MAXINT64,
                                                              0,
-                                                             G_PARAM_READABLE));
+                                                             G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_LOGIN_HISTORY,
                                          g_param_spec_variant ("login-history",
@@ -448,49 +448,49 @@ act_user_class_init (ActUserClass *class)
                                                                "The login history for this user.",
                                                                G_VARIANT_TYPE ("a(xxa{sv})"),
                                                                NULL,
-                                                               G_PARAM_READABLE));
+                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_ICON_FILE,
                                          g_param_spec_string ("icon-file",
                                                               "Icon File",
                                                               "The path to an icon for this user.",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_LANGUAGE,
                                          g_param_spec_string ("language",
                                                               "Language",
                                                               "User's locale.",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_X_SESSION,
                                          g_param_spec_string ("x-session",
                                                               "X session",
                                                               "User's X session.",
                                                               NULL,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_IS_LOADED,
                                          g_param_spec_boolean ("is-loaded",
                                                                "Is loaded",
                                                                "Determines whether or not the user object is loaded and ready to read from.",
                                                                FALSE,
-                                                               G_PARAM_READABLE));
+                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_NONEXISTENT,
                                          g_param_spec_boolean ("nonexistent",
                                                                "Doesn't exist",
                                                                "Determines whether or not the user object represents a valid user account.",
                                                                FALSE,
-                                                               G_PARAM_READABLE));
+                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (gobject_class,
                                          PROP_LOCKED,
                                          g_param_spec_boolean ("locked",
                                                                "Locked",
                                                                "Locked",
                                                                FALSE,
-                                                              G_PARAM_READABLE));
+                                                              G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
         g_object_class_install_property (gobject_class,
                                          PROP_AUTOMATIC_LOGIN,
@@ -498,7 +498,7 @@ act_user_class_init (ActUserClass *class)
                                                                "Automatic Login",
                                                                "Automatic Login",
                                                                FALSE,
-                                                               G_PARAM_READABLE));
+                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
         g_object_class_install_property (gobject_class,
                                          PROP_LOCAL_ACCOUNT,
@@ -506,7 +506,7 @@ act_user_class_init (ActUserClass *class)
                                                                "Local Account",
                                                                "Local Account",
                                                                FALSE,
-                                                               G_PARAM_READABLE));
+                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
         g_object_class_install_property (gobject_class,
                                          PROP_SYSTEM_ACCOUNT,
@@ -514,7 +514,7 @@ act_user_class_init (ActUserClass *class)
                                                                "System Account",
                                                                "System Account",
                                                                FALSE,
-                                                               G_PARAM_READABLE));
+                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
 
         /**
@@ -1507,7 +1507,7 @@ _act_user_load_from_user (ActUser    *user,
         g_object_notify (G_OBJECT (user), "real-name");
 
         g_free (user->password_hint);
-        user->password_hint = g_strdup (user_to_copy->real_name);
+        user->password_hint = g_strdup (user_to_copy->password_hint);
         g_object_notify (G_OBJECT (user), "password-hint");
 
         g_free (user->home_dir);
@@ -1627,7 +1627,7 @@ act_user_set_language (ActUser    *user,
                                                    language,
                                                    NULL,
                                                    &error)) {
-                g_warning ("SetLanguage call failed: %s", error->message);
+                g_warning ("SetLanguage for language %s failed: %s", language, error->message);
                 g_error_free (error);
                 return;
         }
@@ -1877,6 +1877,34 @@ act_user_set_password (ActUser             *user,
         }
         memset (crypted, 0, strlen (crypted));
         g_free (crypted);
+}
+
+/**
+ * act_uset_set_password_hint:
+ * @user: the user object to alter.
+ * @hint: a hint to help user recall password
+ *
+ * Sets the password hint of @user.
+ * @hint is displayed to the user if they forget the password.
+ *
+ * Note this function is synchronous and ignores errors.
+ **/
+void
+act_user_set_password_hint (ActUser     *user,
+                            const gchar *hint)
+{
+        GError *error = NULL;
+
+        g_return_if_fail (ACT_IS_USER (user));
+        g_return_if_fail (ACCOUNTS_IS_USER (user->accounts_proxy));
+
+        if (!accounts_user_call_set_password_hint_sync (user->accounts_proxy,
+                                                        hint,
+                                                        NULL,
+                                                        &error)) {
+                g_warning ("SetPasswordHint call failed: %s", error->message);
+                g_error_free (error);
+        }
 }
 
 /**

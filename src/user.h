@@ -22,6 +22,7 @@
 
 #include <sys/types.h>
 #include <pwd.h>
+#include <shadow.h>
 
 #include <glib.h>
 #include <gio/gio.h>
@@ -54,7 +55,8 @@ User *         user_new                     (Daemon        *daemon,
                                              uid_t          uid);
 
 void           user_update_from_pwent       (User          *user,
-                                             struct passwd *pwent);
+                                             struct passwd *pwent,
+                                             struct spwd   *spent);
 void           user_update_from_keyfile     (User          *user,
                                              GKeyFile      *keyfile);
 void           user_update_local_account_property (User          *user,
