@@ -11,8 +11,8 @@
     <_description>Change your own user data</_description>
     <_message>Authentication is required to change your own user data</_message>
     <defaults>
-      <allow_any>auth_self</allow_any>
-      <allow_inactive>auth_self</allow_inactive>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
       <allow_active>yes</allow_active>
     </defaults>
   </action>
