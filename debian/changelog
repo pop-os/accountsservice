@@ -1,4 +1,4 @@
-accountsservice (0.6.43-1) UNRELEASED; urgency=medium
+accountsservice (0.6.43-1) unstable; urgency=medium
 
   * Adopt package under pkg-freedesktop. Closes: #842851.
   * Add myself to Uploaders.
@@ -18,7 +18,7 @@ accountsservice (0.6.43-1) UNRELEASED; urgency=medium
   * debian/rules: Don't call dh_girepository directly. Use dh gir sequence
     instead.
 
- -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 29 Dec 2016 10:32:46 +0100
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 29 Dec 2016 16:17:42 +0100
 
 accountsservice (0.6.40-4) unstable; urgency=medium
 
