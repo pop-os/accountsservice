@@ -5,6 +5,7 @@ Maintainer: Debian freedesktop.org maintainers <pkg-freedesktop-maintainers@list
 Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>
 Build-Depends:
  debhelper (>= 10),
+ dh-exec (>= 0.13),
  dh-autoreconf,
  dh-systemd,
  gir1.2-freedesktop,

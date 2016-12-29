@@ -11,6 +11,7 @@ accountsservice (0.6.43-1) UNRELEASED; urgency=medium
   * Refreshed all patches.
   * debian/rules: Fail the build if the symbols file is outdated.
   * debian/libaccountsservice0.symbols: Updated for new symbols.
+  * Use dh-exec to install linux-only files.
 
  -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 29 Dec 2016 10:32:46 +0100
 
