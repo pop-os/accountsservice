@@ -2,6 +2,7 @@ Source: accountsservice
 Section: admin
 Priority: optional
 Maintainer: Debian freedesktop.org maintainers <pkg-freedesktop-maintainers@lists.alioth.debian.org>
+Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>
 Build-Depends:
  debhelper (>= 10),
  dh-autoreconf,
