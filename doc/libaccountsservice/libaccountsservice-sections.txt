@@ -37,6 +37,7 @@ act_user_set_language
 act_user_set_location
 act_user_set_locked
 act_user_set_password
+act_user_set_password_hint
 act_user_set_password_mode
 act_user_set_real_name
 act_user_set_user_name

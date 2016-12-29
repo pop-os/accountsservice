@@ -103,6 +103,8 @@ void           act_user_set_account_type          (ActUser    *user,
 void           act_user_set_password              (ActUser     *user,
                                                    const gchar *password,
                                                    const gchar *hint);
+void           act_user_set_password_hint         (ActUser             *user,
+                                                   const gchar *hint);
 void           act_user_set_password_mode         (ActUser             *user,
                                                    ActUserPasswordMode  password_mode);
 void           act_user_set_locked                (ActUser    *user,

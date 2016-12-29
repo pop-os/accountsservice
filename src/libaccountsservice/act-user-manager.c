@@ -2117,8 +2117,6 @@ on_console_kit_session_proxy_gotten (GObject *object, GAsyncResult *result, gpoi
 static void
 get_session_proxy (ActUserManager *manager)
 {
-        g_debug ("get_session_proxy");
-
 #ifdef WITH_SYSTEMD
         if (LOGIND_RUNNING()) {
                 manager->priv->seat.state++;
@@ -2126,6 +2124,8 @@ get_session_proxy (ActUserManager *manager)
                 return;
         }
 #endif
+
+        g_debug ("ActUserManager: fetching user proxy");
 
         g_assert (manager->priv->seat.session_proxy == NULL);
 
@@ -2212,9 +2212,11 @@ static void
 give_up (ActUserManager                 *manager,
          ActUserManagerFetchUserRequest *request)
 {
+        if (request->type == ACT_USER_MANAGER_FETCH_USER_FROM_USERNAME_REQUEST)
+                g_debug ("ActUserManager: failed to load user %s", request->username);
+        else
+                g_debug ("ActUserManager: failed to load user %lu", (gulong) request->uid);
 
-        g_debug ("ActUserManager: account service unavailable, "
-                 "giving up");
         request->state = ACT_USER_MANAGER_GET_USER_STATE_UNFETCHED;
 
         if (request->user)
@@ -2719,27 +2721,27 @@ act_user_manager_class_init (ActUserManagerClass *klass)
                                                                "Is loaded",
                                                                "Determines whether or not the manager object is loaded and ready to read from.",
                                                                FALSE,
-                                                               G_PARAM_READABLE));
+                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (object_class,
                                          PROP_HAS_MULTIPLE_USERS,
                                          g_param_spec_boolean ("has-multiple-users",
                                                                "Has multiple users",
                                                                "Whether more than one normal user is present",
                                                                FALSE,
-                                                               G_PARAM_READABLE));
+                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (object_class,
                                          PROP_INCLUDE_USERNAMES_LIST,
                                          g_param_spec_pointer ("include-usernames-list",
                                                                "Include usernames list",
                                                                "Usernames who are specifically included",
-                                                               G_PARAM_READWRITE));
+                                                               G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         g_object_class_install_property (object_class,
                                          PROP_EXCLUDE_USERNAMES_LIST,
                                          g_param_spec_pointer ("exclude-usernames-list",
                                                                "Exclude usernames list",
                                                                "Usernames who are specifically excluded",
-                                                               G_PARAM_READWRITE));
+                                                               G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
         /**
          * ActUserManager::user-added:
