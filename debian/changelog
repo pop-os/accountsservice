@@ -2,7 +2,7 @@ accountsservice (0.6.43-1) UNRELEASED; urgency=medium
 
   * Adopt package under pkg-freedesktop. Closes: #842851.
   * Add myself to Uploaders.
-  * New upstream release.
+  * New upstream release. Closes: #841672.
   * debian/patches/0002-create-and-manage-groups-like-on-a-debian-system.patch,
     debian/patches/1002-dont-override-standardoutput.patch:
     + Updated to apply with the new version.
