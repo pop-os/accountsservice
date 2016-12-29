@@ -9,6 +9,7 @@ accountsservice (0.6.43-1) UNRELEASED; urgency=medium
   * debian/patches/0014-libsystemd.patch:
     + Removed, applied upstream.
   * Refreshed all patches.
+  * debian/rules: Fail the build if the symbols file is outdated.
 
  -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 29 Dec 2016 10:32:46 +0100
 
