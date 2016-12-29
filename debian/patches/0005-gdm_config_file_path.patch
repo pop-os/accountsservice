@@ -7,9 +7,9 @@ Bug: https://bugs.freedesktop.org/show_bug.cgi?id=49993
  src/daemon.c |    4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
---- accountsservice.orig/src/daemon.c
-+++ accountsservice/src/daemon.c
-@@ -48,7 +48,7 @@
+--- a/src/daemon.c
++++ b/src/daemon.c
+@@ -51,7 +51,7 @@
  #define PATH_PASSWD "/etc/passwd"
  #define PATH_SHADOW "/etc/shadow"
  #define PATH_GROUP "/etc/group"
@@ -18,7 +18,7 @@ Bug: https://bugs.freedesktop.org/show_bug.cgi?id=49993
  
  enum {
          PROP_0,
-@@ -376,7 +376,7 @@ reload_autologin_timeout (Daemon *daemon
+@@ -453,7 +453,7 @@
          daemon->priv->autologin_id = 0;
  
          if (!load_autologin (daemon, &name, &enabled, &error)) {

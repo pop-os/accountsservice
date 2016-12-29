@@ -6,7 +6,7 @@ Bug-Debian: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=805086
 
 --- a/src/user-classify.c
 +++ b/src/user-classify.c
-@@ -78,7 +78,7 @@ user_classify_is_blacklisted (const char
+@@ -79,7 +79,7 @@
          return FALSE;
  }
  
