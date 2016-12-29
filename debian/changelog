@@ -1,3 +1,9 @@
+accountsservice (0.6.40-4.1) UNRELEASED; urgency=medium
+
+  * Adopt package under pkg-freedesktop. Closes: #842851.
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 29 Dec 2016 10:32:46 +0100
+
 accountsservice (0.6.40-4) unstable; urgency=medium
 
   [ Dr. Tobias Quathamer ]

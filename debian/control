@@ -1,7 +1,7 @@
 Source: accountsservice
 Section: admin
 Priority: optional
-Maintainer: Debian QA Group <packages@qa.debian.org>
+Maintainer: Debian freedesktop.org maintainers <pkg-freedesktop-maintainers@lists.alioth.debian.org>
 Build-Depends:
  debhelper (>= 10),
  dh-autoreconf,
