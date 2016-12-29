@@ -35,13 +35,6 @@ override_dh_auto_test:
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS
 
-override_dh_install-arch:
-	dh_install
-	# patch is only applied conditionally, only install when present
-	if [ -d debian/tmp/usr/share/language-tools ]; then \
-	    cp -r debian/tmp/usr/share/language-tools debian/accountsservice/usr/share/; \
-	fi
-
 override_dh_strip:
 	dh_strip -plibaccountsservice0 --dbgsym-migration='libaccountsservice-dbg (<< 0.6.40-4~)'
 	dh_strip --remaining-packages
