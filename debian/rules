@@ -9,7 +9,7 @@ export LDFLAGS:=$(shell dpkg-buildflags --get LDFLAGS)
 LDFLAGS+=-Wl,--as-needed
 
 %:
-	dh $@ --parallel --with=autoreconf,systemd
+	dh $@
 
 override_dh_autoreconf:
 	gtkdocize

@@ -13,6 +13,8 @@ accountsservice (0.6.43-1) UNRELEASED; urgency=medium
   * debian/libaccountsservice0.symbols: Updated for new symbols.
   * Use dh-exec to install linux-only files.
   * Unconditionally install language-tools.
+  * debhelper enables autoreconf, systemd and parallel builds by default
+    in compat 10, no need to set those anymore.
 
  -- Emilio Pozuelo Monfort <pochu@debian.org>  Thu, 29 Dec 2016 10:32:46 +0100
 
