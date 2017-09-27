@@ -8,27 +8,33 @@
   </refnamediv>
   <refsynopsisdiv role="synopsis">
     <title role="synopsis.title">Methods</title>
-    <synopsis><link linkend="User.SetUserName">SetUserName</link>(in's'name)
-<link linkend="User.SetRealName">SetRealName</link>(in's'name)
-<link linkend="User.SetEmail">SetEmail</link>(in's'email)
-<link linkend="User.SetLanguage">SetLanguage</link>(in's'language)
-<link linkend="User.SetXSession">SetXSession</link>(in's'x_session)
-<link linkend="User.SetLocation">SetLocation</link>(in's'location)
-<link linkend="User.SetHomeDirectory">SetHomeDirectory</link>(in's'homedir)
-<link linkend="User.SetShell">SetShell</link>(in's'shell)
-<link linkend="User.SetIconFile">SetIconFile</link>(in's'filename)
-<link linkend="User.SetLocked">SetLocked</link>(in'b'locked)
-<link linkend="User.SetAccountType">SetAccountType</link>(in'i'accountType)
-<link linkend="User.SetPasswordMode">SetPasswordMode</link>(in'i'mode)
-<link linkend="User.SetPassword">SetPassword</link>(in's'password,
-in's'hint)
-<link linkend="User.SetPasswordHint">SetPasswordHint</link>(in's'hint)
-<link linkend="User.SetAutomaticLogin">SetAutomaticLogin</link>(in'b'enabled)
+    <synopsis><link linkend="User.SetUserName">SetUserName</link>                 (in  's' name)
+<link linkend="User.SetRealName">SetRealName</link>                 (in  's' name)
+<link linkend="User.SetEmail">SetEmail</link>                    (in  's' email)
+<link linkend="User.SetLanguage">SetLanguage</link>                 (in  's' language)
+<link linkend="User.SetXSession">SetXSession</link>                 (in  's' x_session)
+<link linkend="User.SetLocation">SetLocation</link>                 (in  's' location)
+<link linkend="User.SetHomeDirectory">SetHomeDirectory</link>            (in  's' homedir)
+<link linkend="User.SetShell">SetShell</link>                    (in  's' shell)
+<link linkend="User.SetIconFile">SetIconFile</link>                 (in  's' filename)
+<link linkend="User.SetLocked">SetLocked</link>                   (in  'b' locked)
+<link linkend="User.SetAccountType">SetAccountType</link>              (in  'i' accountType)
+<link linkend="User.SetPasswordMode">SetPasswordMode</link>             (in  'i' mode)
+<link linkend="User.SetPassword">SetPassword</link>                 (in  's' password,
+                             in  's' hint)
+<link linkend="User.SetPasswordHint">SetPasswordHint</link>             (in  's' hint)
+<link linkend="User.SetAutomaticLogin">SetAutomaticLogin</link>           (in  'b' enabled)
+<link linkend="User.GetPasswordExpirationPolicy">GetPasswordExpirationPolicy</link> (out 'x' expiration_time,
+                             out 'x' last_change_time,
+                             out 'x' min_days_between_changes,
+                             out 'x' max_days_between_changes,
+                             out 'x' days_to_warn,
+                             out 'x' days_after_expiration_until_lock)
 </synopsis>
   </refsynopsisdiv>
   <refsect1 role="signal_proto">
     <title role="signal_proto.title">Signals</title>
-    <synopsis><link linkend="User::Changed">Changed</link>()
+    <synopsis><link linkend="User::Changed">Changed</link> ()
 </synopsis>
   </refsect1>
   <refsect1 role="impl_interfaces">
@@ -41,26 +47,26 @@ in's'hint)
   </refsect1>
   <refsect1 role="properties">
     <title role="properties.title">Properties</title>
-    <synopsis><link linkend="User:Uid">'Uid'</link>read't'
-<link linkend="User:UserName">'UserName'</link>read's'
-<link linkend="User:RealName">'RealName'</link>read's'
-<link linkend="User:AccountType">'AccountType'</link>read'i'
-<link linkend="User:HomeDirectory">'HomeDirectory'</link>read's'
-<link linkend="User:Shell">'Shell'</link>read's'
-<link linkend="User:Email">'Email'</link>read's'
-<link linkend="User:Language">'Language'</link>read's'
-<link linkend="User:XSession">'XSession'</link>read's'
-<link linkend="User:Location">'Location'</link>read's'
-<link linkend="User:LoginFrequency">'LoginFrequency'</link>read't'
-<link linkend="User:LoginTime">'LoginTime'</link>read'x'
-<link linkend="User:LoginHistory">'LoginHistory'</link>read'a(xxa{sv})'
-<link linkend="User:IconFile">'IconFile'</link>read's'
-<link linkend="User:Locked">'Locked'</link>read'b'
-<link linkend="User:PasswordMode">'PasswordMode'</link>read'i'
-<link linkend="User:PasswordHint">'PasswordHint'</link>read's'
-<link linkend="User:AutomaticLogin">'AutomaticLogin'</link>read'b'
-<link linkend="User:SystemAccount">'SystemAccount'</link>read'b'
-<link linkend="User:LocalAccount">'LocalAccount'</link>read'b'
+    <synopsis><link linkend="User:Uid">'Uid'</link>            read      't'
+<link linkend="User:UserName">'UserName'</link>       read      's'
+<link linkend="User:RealName">'RealName'</link>       read      's'
+<link linkend="User:AccountType">'AccountType'</link>    read      'i'
+<link linkend="User:HomeDirectory">'HomeDirectory'</link>  read      's'
+<link linkend="User:Shell">'Shell'</link>          read      's'
+<link linkend="User:Email">'Email'</link>          read      's'
+<link linkend="User:Language">'Language'</link>       read      's'
+<link linkend="User:XSession">'XSession'</link>       read      's'
+<link linkend="User:Location">'Location'</link>       read      's'
+<link linkend="User:LoginFrequency">'LoginFrequency'</link> read      't'
+<link linkend="User:LoginTime">'LoginTime'</link>      read      'x'
+<link linkend="User:LoginHistory">'LoginHistory'</link>   read      'a(xxa{sv})'
+<link linkend="User:IconFile">'IconFile'</link>       read      's'
+<link linkend="User:Locked">'Locked'</link>         read      'b'
+<link linkend="User:PasswordMode">'PasswordMode'</link>   read      'i'
+<link linkend="User:PasswordHint">'PasswordHint'</link>   read      's'
+<link linkend="User:AutomaticLogin">'AutomaticLogin'</link> read      'b'
+<link linkend="User:SystemAccount">'SystemAccount'</link>  read      'b'
+<link linkend="User:LocalAccount">'LocalAccount'</link>   read      'b'
 </synopsis>
   </refsect1>
   <refsect1 role="desc">
@@ -69,7 +75,7 @@ in's'hint)
   </refsect1>
   <refsect1 role="details">
     <title role="details.title">Details</title>
-    <refsect2><title><anchor role="function" id="User.SetUserName"/>SetUserName ()</title><indexterm><primary>SetUserName</primary><secondary>User</secondary></indexterm><programlisting>SetUserName (in's'name)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetUserName"/>SetUserName ()</title><indexterm><primary>SetUserName</primary><secondary>User</secondary></indexterm><programlisting>SetUserName (in  's' name)</programlisting>
         <para>
           Sets the users username. Note that it is usually not allowed
           to have multiple users with the same username.
@@ -80,7 +86,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the username of any user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetRealName"/>SetRealName ()</title><indexterm><primary>SetRealName</primary><secondary>User</secondary></indexterm><programlisting>SetRealName (in's'name)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetRealName"/>SetRealName ()</title><indexterm><primary>SetRealName</primary><secondary>User</secondary></indexterm><programlisting>SetRealName (in  's' name)</programlisting>
         <para>
           Sets the users real name.
         </para>
@@ -90,7 +96,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.change-own-user-data: </emphasis>To change his own name</para></listitem><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the name of another user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetEmail"/>SetEmail ()</title><indexterm><primary>SetEmail</primary><secondary>User</secondary></indexterm><programlisting>SetEmail (in's'email)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetEmail"/>SetEmail ()</title><indexterm><primary>SetEmail</primary><secondary>User</secondary></indexterm><programlisting>SetEmail (in  's' email)</programlisting>
         <para>
           Sets the users email address.
         </para>
@@ -105,7 +111,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.change-own-user-data: </emphasis>To change his own email address</para></listitem><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the email address of another user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetLanguage"/>SetLanguage ()</title><indexterm><primary>SetLanguage</primary><secondary>User</secondary></indexterm><programlisting>SetLanguage (in's'language)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetLanguage"/>SetLanguage ()</title><indexterm><primary>SetLanguage</primary><secondary>User</secondary></indexterm><programlisting>SetLanguage (in  's' language)</programlisting>
         <para>
           Sets the users language.
         </para>
@@ -119,7 +125,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.change-own-user-data: </emphasis>To change his own language</para></listitem><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the language of another user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetXSession"/>SetXSession ()</title><indexterm><primary>SetXSession</primary><secondary>User</secondary></indexterm><programlisting>SetXSession (in's'x_session)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetXSession"/>SetXSession ()</title><indexterm><primary>SetXSession</primary><secondary>User</secondary></indexterm><programlisting>SetXSession (in  's' x_session)</programlisting>
         <para>
           Sets the users x session.
         </para>
@@ -133,7 +139,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.change-own-user-data: </emphasis>To change his own language</para></listitem><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the language of another user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetLocation"/>SetLocation ()</title><indexterm><primary>SetLocation</primary><secondary>User</secondary></indexterm><programlisting>SetLocation (in's'location)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetLocation"/>SetLocation ()</title><indexterm><primary>SetLocation</primary><secondary>User</secondary></indexterm><programlisting>SetLocation (in  's' location)</programlisting>
         <para>
           Sets the users location.
         </para>
@@ -143,7 +149,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.change-own-user-data: </emphasis>To change his own location</para></listitem><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the location of another user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetHomeDirectory"/>SetHomeDirectory ()</title><indexterm><primary>SetHomeDirectory</primary><secondary>User</secondary></indexterm><programlisting>SetHomeDirectory (in's'homedir)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetHomeDirectory"/>SetHomeDirectory ()</title><indexterm><primary>SetHomeDirectory</primary><secondary>User</secondary></indexterm><programlisting>SetHomeDirectory (in  's' homedir)</programlisting>
         <para>
           Sets the users home directory.
         </para>
@@ -158,7 +164,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the home directory of a user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetShell"/>SetShell ()</title><indexterm><primary>SetShell</primary><secondary>User</secondary></indexterm><programlisting>SetShell (in's'shell)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetShell"/>SetShell ()</title><indexterm><primary>SetShell</primary><secondary>User</secondary></indexterm><programlisting>SetShell (in  's' shell)</programlisting>
         <para>
           Sets the users shell.
         </para>
@@ -172,7 +178,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the shell of a user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetIconFile"/>SetIconFile ()</title><indexterm><primary>SetIconFile</primary><secondary>User</secondary></indexterm><programlisting>SetIconFile (in's'filename)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetIconFile"/>SetIconFile ()</title><indexterm><primary>SetIconFile</primary><secondary>User</secondary></indexterm><programlisting>SetIconFile (in  's' filename)</programlisting>
         <para>
           Sets the users icon.
         </para>
@@ -182,7 +188,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.change-own-user-data: </emphasis>To change his own icon</para></listitem><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the icon of another user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetLocked"/>SetLocked ()</title><indexterm><primary>SetLocked</primary><secondary>User</secondary></indexterm><programlisting>SetLocked (in'b'locked)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetLocked"/>SetLocked ()</title><indexterm><primary>SetLocked</primary><secondary>User</secondary></indexterm><programlisting>SetLocked (in  'b' locked)</programlisting>
         <para>
           Locks or unlocks a users account.
         </para>
@@ -195,7 +201,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To lock or unlock user accounts</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetAccountType"/>SetAccountType ()</title><indexterm><primary>SetAccountType</primary><secondary>User</secondary></indexterm><programlisting>SetAccountType (in'i'accountType)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetAccountType"/>SetAccountType ()</title><indexterm><primary>SetAccountType</primary><secondary>User</secondary></indexterm><programlisting>SetAccountType (in  'i' accountType)</programlisting>
         <para>
           Changes the users account type.
         </para>
@@ -206,7 +212,7 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change an account type</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetPasswordMode"/>SetPasswordMode ()</title><indexterm><primary>SetPasswordMode</primary><secondary>User</secondary></indexterm><programlisting>SetPasswordMode (in'i'mode)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetPasswordMode"/>SetPasswordMode ()</title><indexterm><primary>SetPasswordMode</primary><secondary>User</secondary></indexterm><programlisting>SetPasswordMode (in  'i' mode)</programlisting>
         <para>
           Changes the users password mode.
         </para>
@@ -221,8 +227,8 @@ in's'hint)
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change a users password mode</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetPassword"/>SetPassword ()</title><indexterm><primary>SetPassword</primary><secondary>User</secondary></indexterm><programlisting>SetPassword (in's'password,
-in's'hint)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetPassword"/>SetPassword ()</title><indexterm><primary>SetPassword</primary><secondary>User</secondary></indexterm><programlisting>SetPassword (in  's' password,
+             in  's' hint)</programlisting>
         <para>
           Sets a new password for this user.
         </para>
@@ -238,7 +244,7 @@ in's'hint)</programlisting>
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the password of a user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetPasswordHint"/>SetPasswordHint ()</title><indexterm><primary>SetPasswordHint</primary><secondary>User</secondary></indexterm><programlisting>SetPasswordHint (in's'hint)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetPasswordHint"/>SetPasswordHint ()</title><indexterm><primary>SetPasswordHint</primary><secondary>User</secondary></indexterm><programlisting>SetPasswordHint (in  's' hint)</programlisting>
         <para>
           Sets the users password hint.
         </para>
@@ -248,7 +254,7 @@ in's'hint)</programlisting>
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.change-own-user-data: </emphasis>To change his own language</para></listitem><listitem><para><emphasis role="bold">org.freedesktop.accounts.user-administration: </emphasis>To change the language of another user</para></listitem></itemizedlist>
       </para></note></refsect2>
-    <refsect2><title><anchor role="function" id="User.SetAutomaticLogin"/>SetAutomaticLogin ()</title><indexterm><primary>SetAutomaticLogin</primary><secondary>User</secondary></indexterm><programlisting>SetAutomaticLogin (in'b'enabled)</programlisting>
+    <refsect2><title><anchor role="function" id="User.SetAutomaticLogin"/>SetAutomaticLogin ()</title><indexterm><primary>SetAutomaticLogin</primary><secondary>User</secondary></indexterm><programlisting>SetAutomaticLogin (in  'b' enabled)</programlisting>
         <para>
           Enables or disables automatic login for a user.
         </para>
@@ -263,6 +269,57 @@ in's'hint)</programlisting>
         The caller needs one of the following PolicyKit authorizations:
         <itemizedlist><listitem><para><emphasis role="bold">org.freedesktop.accounts.set-login-option: </emphasis>To change the login screen configuration</para></listitem></itemizedlist>
       </para></note></refsect2>
+    <refsect2>
+      <title><anchor role="function" id="User.GetPasswordExpirationPolicy"/>GetPasswordExpirationPolicy ()</title>
+      <indexterm>
+        <primary>GetPasswordExpirationPolicy</primary>
+        <secondary>User</secondary>
+      </indexterm>
+      <programlisting>GetPasswordExpirationPolicy (out 'x' expiration_time,
+                             out 'x' last_change_time,
+                             out 'x' min_days_between_changes,
+                             out 'x' max_days_between_changes,
+                             out 'x' days_to_warn,
+                             out 'x' days_after_expiration_until_lock)</programlisting>
+      <variablelist role="params">
+        <varlistentry>
+          <term><parameter>expiration_time</parameter>:</term>
+          <listitem>
+            <para/>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><parameter>last_change_time</parameter>:</term>
+          <listitem>
+            <para/>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><parameter>min_days_between_changes</parameter>:</term>
+          <listitem>
+            <para/>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><parameter>max_days_between_changes</parameter>:</term>
+          <listitem>
+            <para/>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><parameter>days_to_warn</parameter>:</term>
+          <listitem>
+            <para/>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><parameter>days_after_expiration_until_lock</parameter>:</term>
+          <listitem>
+            <para/>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </refsect2>
   </refsect1>
   <refsect1 role="signals">
     <title role="signals.title">Signal Details</title>
@@ -274,80 +331,80 @@ in's'hint)</programlisting>
   </refsect1>
   <refsect1 role="property_details">
     <title role="property_details.title">Property Details</title>
-    <refsect2><title><anchor role="function" id="User:Uid"/>The "Uid" property</title><indexterm><primary>Uid</primary><secondary>User</secondary></indexterm><programlisting>'Uid'read't'
+    <refsect2><title><anchor role="function" id="User:Uid"/>The "Uid" property</title><indexterm><primary>Uid</primary><secondary>User</secondary></indexterm><programlisting>'Uid'  read      't'
 </programlisting>
         <para>
           The uid of the user.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:UserName"/>The "UserName" property</title><indexterm><primary>UserName</primary><secondary>User</secondary></indexterm><programlisting>'UserName'read's'
+    <refsect2><title><anchor role="function" id="User:UserName"/>The "UserName" property</title><indexterm><primary>UserName</primary><secondary>User</secondary></indexterm><programlisting>'UserName'  read      's'
 </programlisting>
         <para>
           The username of the user.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:RealName"/>The "RealName" property</title><indexterm><primary>RealName</primary><secondary>User</secondary></indexterm><programlisting>'RealName'read's'
+    <refsect2><title><anchor role="function" id="User:RealName"/>The "RealName" property</title><indexterm><primary>RealName</primary><secondary>User</secondary></indexterm><programlisting>'RealName'  read      's'
 </programlisting>
         <para>
           The users real name.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:AccountType"/>The "AccountType" property</title><indexterm><primary>AccountType</primary><secondary>User</secondary></indexterm><programlisting>'AccountType'read'i'
+    <refsect2><title><anchor role="function" id="User:AccountType"/>The "AccountType" property</title><indexterm><primary>AccountType</primary><secondary>User</secondary></indexterm><programlisting>'AccountType'  read      'i'
 </programlisting>
         <para>
           The users account type, encoded as an integer:
           <itemizedlist><listitem><para><emphasis role="bold">0: </emphasis>Standard user</para></listitem><listitem><para><emphasis role="bold">1: </emphasis>Administrator</para></listitem></itemizedlist>
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:HomeDirectory"/>The "HomeDirectory" property</title><indexterm><primary>HomeDirectory</primary><secondary>User</secondary></indexterm><programlisting>'HomeDirectory'read's'
+    <refsect2><title><anchor role="function" id="User:HomeDirectory"/>The "HomeDirectory" property</title><indexterm><primary>HomeDirectory</primary><secondary>User</secondary></indexterm><programlisting>'HomeDirectory'  read      's'
 </programlisting>
         <para>
           The users home directory.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:Shell"/>The "Shell" property</title><indexterm><primary>Shell</primary><secondary>User</secondary></indexterm><programlisting>'Shell'read's'
+    <refsect2><title><anchor role="function" id="User:Shell"/>The "Shell" property</title><indexterm><primary>Shell</primary><secondary>User</secondary></indexterm><programlisting>'Shell'  read      's'
 </programlisting>
         <para>
           The users shell.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:Email"/>The "Email" property</title><indexterm><primary>Email</primary><secondary>User</secondary></indexterm><programlisting>'Email'read's'
+    <refsect2><title><anchor role="function" id="User:Email"/>The "Email" property</title><indexterm><primary>Email</primary><secondary>User</secondary></indexterm><programlisting>'Email'  read      's'
 </programlisting>
         <para>
           The email address.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:Language"/>The "Language" property</title><indexterm><primary>Language</primary><secondary>User</secondary></indexterm><programlisting>'Language'read's'
+    <refsect2><title><anchor role="function" id="User:Language"/>The "Language" property</title><indexterm><primary>Language</primary><secondary>User</secondary></indexterm><programlisting>'Language'  read      's'
 </programlisting>
         <para>
           The users language, as a locale specification like "de_DE.UTF-8".
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:XSession"/>The "XSession" property</title><indexterm><primary>XSession</primary><secondary>User</secondary></indexterm><programlisting>'XSession'read's'
+    <refsect2><title><anchor role="function" id="User:XSession"/>The "XSession" property</title><indexterm><primary>XSession</primary><secondary>User</secondary></indexterm><programlisting>'XSession'  read      's'
 </programlisting>
         <para>
           The users x session.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:Location"/>The "Location" property</title><indexterm><primary>Location</primary><secondary>User</secondary></indexterm><programlisting>'Location'read's'
+    <refsect2><title><anchor role="function" id="User:Location"/>The "Location" property</title><indexterm><primary>Location</primary><secondary>User</secondary></indexterm><programlisting>'Location'  read      's'
 </programlisting>
         <para>
           The users location.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:LoginFrequency"/>The "LoginFrequency" property</title><indexterm><primary>LoginFrequency</primary><secondary>User</secondary></indexterm><programlisting>'LoginFrequency'read't'
+    <refsect2><title><anchor role="function" id="User:LoginFrequency"/>The "LoginFrequency" property</title><indexterm><primary>LoginFrequency</primary><secondary>User</secondary></indexterm><programlisting>'LoginFrequency'  read      't'
 </programlisting>
         <para>
           How often the user has logged in.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:LoginTime"/>The "LoginTime" property</title><indexterm><primary>LoginTime</primary><secondary>User</secondary></indexterm><programlisting>'LoginTime'read'x'
+    <refsect2><title><anchor role="function" id="User:LoginTime"/>The "LoginTime" property</title><indexterm><primary>LoginTime</primary><secondary>User</secondary></indexterm><programlisting>'LoginTime'  read      'x'
 </programlisting>
         <para>
           The last login time.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:LoginHistory"/>The "LoginHistory" property</title><indexterm><primary>LoginHistory</primary><secondary>User</secondary></indexterm><programlisting>'LoginHistory'read'a(xxa{sv})'
+    <refsect2><title><anchor role="function" id="User:LoginHistory"/>The "LoginHistory" property</title><indexterm><primary>LoginHistory</primary><secondary>User</secondary></indexterm><programlisting>'LoginHistory'  read      'a(xxa{sv})'
 </programlisting>
         <para>
           The login history for this user.
@@ -360,38 +417,38 @@ in's'hint)</programlisting>
           about the session. Possible members include 'type' (with values like ':0', 'tty0', 'pts/0' etc).
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:IconFile"/>The "IconFile" property</title><indexterm><primary>IconFile</primary><secondary>User</secondary></indexterm><programlisting>'IconFile'read's'
+    <refsect2><title><anchor role="function" id="User:IconFile"/>The "IconFile" property</title><indexterm><primary>IconFile</primary><secondary>User</secondary></indexterm><programlisting>'IconFile'  read      's'
 </programlisting>
         <para>
            The filename of a png file containing the users icon.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:Locked"/>The "Locked" property</title><indexterm><primary>Locked</primary><secondary>User</secondary></indexterm><programlisting>'Locked'read'b'
+    <refsect2><title><anchor role="function" id="User:Locked"/>The "Locked" property</title><indexterm><primary>Locked</primary><secondary>User</secondary></indexterm><programlisting>'Locked'  read      'b'
 </programlisting>
         <para>
            Whether the users account is locked.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:PasswordMode"/>The "PasswordMode" property</title><indexterm><primary>PasswordMode</primary><secondary>User</secondary></indexterm><programlisting>'PasswordMode'read'i'
+    <refsect2><title><anchor role="function" id="User:PasswordMode"/>The "PasswordMode" property</title><indexterm><primary>PasswordMode</primary><secondary>User</secondary></indexterm><programlisting>'PasswordMode'  read      'i'
 </programlisting>
         <para>
           The password mode for the user account, encoded as an integer:
           <itemizedlist><listitem><para><emphasis role="bold">0: </emphasis>Regular password</para></listitem><listitem><para><emphasis role="bold">1: </emphasis>Password must be set at next login</para></listitem><listitem><para><emphasis role="bold">2: </emphasis>No password</para></listitem></itemizedlist>
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:PasswordHint"/>The "PasswordHint" property</title><indexterm><primary>PasswordHint</primary><secondary>User</secondary></indexterm><programlisting>'PasswordHint'read's'
+    <refsect2><title><anchor role="function" id="User:PasswordHint"/>The "PasswordHint" property</title><indexterm><primary>PasswordHint</primary><secondary>User</secondary></indexterm><programlisting>'PasswordHint'  read      's'
 </programlisting>
         <para>
            The password hint for the user.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:AutomaticLogin"/>The "AutomaticLogin" property</title><indexterm><primary>AutomaticLogin</primary><secondary>User</secondary></indexterm><programlisting>'AutomaticLogin'read'b'
+    <refsect2><title><anchor role="function" id="User:AutomaticLogin"/>The "AutomaticLogin" property</title><indexterm><primary>AutomaticLogin</primary><secondary>User</secondary></indexterm><programlisting>'AutomaticLogin'  read      'b'
 </programlisting>
         <para>
            Whether automatic login is enabled for the user.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:SystemAccount"/>The "SystemAccount" property</title><indexterm><primary>SystemAccount</primary><secondary>User</secondary></indexterm><programlisting>'SystemAccount'read'b'
+    <refsect2><title><anchor role="function" id="User:SystemAccount"/>The "SystemAccount" property</title><indexterm><primary>SystemAccount</primary><secondary>User</secondary></indexterm><programlisting>'SystemAccount'  read      'b'
 </programlisting>
         <para>
            Whether this is a 'system' account, like 'root' or 'nobody'.
@@ -399,7 +456,7 @@ in's'hint)</programlisting>
            users, and ListCachedUsers will not include such accounts.
         </para>
       </refsect2>
-    <refsect2><title><anchor role="function" id="User:LocalAccount"/>The "LocalAccount" property</title><indexterm><primary>LocalAccount</primary><secondary>User</secondary></indexterm><programlisting>'LocalAccount'read'b'
+    <refsect2><title><anchor role="function" id="User:LocalAccount"/>The "LocalAccount" property</title><indexterm><primary>LocalAccount</primary><secondary>User</secondary></indexterm><programlisting>'LocalAccount'  read      'b'
 </programlisting>
         <para>
           Whether the user is a local account or not.

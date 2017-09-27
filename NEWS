@@ -1,3 +1,13 @@
+Changes in 0.6.45
+=================
+* wrap password expiration info in libaccountsservice api
+
+Changes in 0.6.44
+=================
+* export password expiration info from shadow file
+* fix user classification logic
+* don't lose track of users when /etc/passwd is reloaded
+
 Changes in 0.6.43
 =================
 * Fix logout times in login-history
