@@ -17,7 +17,7 @@ Build-Depends:
  libpolkit-gobject-1-dev,
  libsystemd-dev (>= 209) [linux-any],
  xmlto
-Standards-Version: 3.9.8
+Standards-Version: 4.1.0
 Homepage: https://www.freedesktop.org/wiki/Software/AccountsService/
 Vcs-Git: https://anonscm.debian.org/git/collab-maint/accountsservice.git
 Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/accountsservice.git
