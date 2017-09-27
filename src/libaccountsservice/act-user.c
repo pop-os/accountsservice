@@ -1576,6 +1576,49 @@ act_user_is_loaded (ActUser *user)
 }
 
 /**
+ * act_user_get_login_history:
+ * @user: the user object to query.
+ * @expiration_time: time users passwor expires
+ * @last_change_time,
+ * @min_days_between_changes,
+ * @max_days_between_changes,
+ * @days_to_warn,
+ * @days_after_expiration_until_lock)
+ *
+ * Assigns a new email to @user.
+ *
+ * Note this function is synchronous and ignores errors.
+ **/
+void
+act_user_get_password_expiration_policy (ActUser *user,
+                                         gint64  *expiration_time,
+                                         gint64  *last_change_time,
+                                         gint64  *min_days_between_changes,
+                                         gint64  *max_days_between_changes,
+                                         gint64  *days_to_warn,
+                                         gint64  *days_after_expiration_until_lock)
+{
+        GError *error = NULL;
+
+        g_return_if_fail (ACT_IS_USER (user));
+        g_return_if_fail (ACCOUNTS_IS_USER (user->accounts_proxy));
+
+        if (!accounts_user_call_get_password_expiration_policy_sync (user->accounts_proxy,
+                                                                     expiration_time,
+                                                                     last_change_time,
+                                                                     min_days_between_changes,
+                                                                     max_days_between_changes,
+                                                                     days_to_warn,
+                                                                     days_after_expiration_until_lock,
+                                                                     NULL,
+                                                                     &error)) {
+                g_warning ("GetPasswordExpirationPolicy call failed: %s", error->message);
+                g_error_free (error);
+                return;
+        }
+}
+
+/**
  * act_user_set_email:
  * @user: the user object to alter.
  * @email: an email address

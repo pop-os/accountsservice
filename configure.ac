@@ -1,4 +1,4 @@
-AC_INIT([AccountsService],[0.6.43])
+AC_INIT([AccountsService],[0.6.45])
 AM_INIT_AUTOMAKE([1.11.2 no-dist-gzip dist-xz tar-ustar foreign])
 
 GETTEXT_PACKAGE=accounts-service
@@ -215,7 +215,7 @@ AC_DEFINE_UNQUOTED([PATH_WTMP], [$wtmpx_found], [Path to wtmpx file])
 
 AC_CHECK_LIB(c, getusershell, have_getusershell=yes, have_getusershell=no)
 if test x$have_getusershell = xyes; then
-  AC_DEFINE(HAVE_GETUSERSHELL, 1, [Define i getusershell() is available])
+  AC_DEFINE(HAVE_GETUSERSHELL, 1, [Define if getusershell() is available])
 fi
 
 dnl ---------------------------------------------------------------------------
