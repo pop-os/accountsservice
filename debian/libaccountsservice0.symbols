@@ -44,6 +44,9 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_accounts_set_daemon_version@Base 0.6.18
  accounts_accounts_skeleton_get_type@Base 0.6.18
  accounts_accounts_skeleton_new@Base 0.6.18
+ accounts_user_call_get_password_expiration_policy@Base 0.6.45
+ accounts_user_call_get_password_expiration_policy_finish@Base 0.6.45
+ accounts_user_call_get_password_expiration_policy_sync@Base 0.6.45
  accounts_user_call_set_account_type@Base 0.6.18
  accounts_user_call_set_account_type_finish@Base 0.6.18
  accounts_user_call_set_account_type_sync@Base 0.6.18
@@ -89,6 +92,7 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_call_set_xsession@Base 0.6.18
  accounts_user_call_set_xsession_finish@Base 0.6.18
  accounts_user_call_set_xsession_sync@Base 0.6.18
+ accounts_user_complete_get_password_expiration_policy@Base 0.6.45
  accounts_user_complete_set_account_type@Base 0.6.18
  accounts_user_complete_set_automatic_login@Base 0.6.18
  accounts_user_complete_set_email@Base 0.6.18
@@ -184,6 +188,7 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_get_num_sessions@Base 0.6.8
  act_user_get_num_sessions_anywhere@Base 0.6.34
  act_user_get_object_path@Base 0.6.8
+ act_user_get_password_expiration_policy@Base 0.6.45
  act_user_get_password_hint@Base 0.6.8
  act_user_get_password_mode@Base 0.6.8
  act_user_get_primary_session_id@Base 0.6.8

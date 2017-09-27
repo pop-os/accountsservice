@@ -1,6 +1,7 @@
 accountsservice (0.6.45-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * debian/libaccountsservice0.symbols: add new symbols.
 
  -- Emilio Pozuelo Monfort <pochu@debian.org>  Wed, 27 Sep 2017 22:57:17 +0200
 
