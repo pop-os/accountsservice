@@ -122,6 +122,9 @@ is_invalid_shell (const char *shell)
         int ret = FALSE;
 
 #ifdef HAVE_GETUSERSHELL
+        /* getusershell returns a whitelist of valid shells.
+         * assume the shell is invalid unless there is a match */
+        ret = TRUE;
         char *valid_shell;
 
         setusershell ();
@@ -129,10 +132,12 @@ is_invalid_shell (const char *shell)
                 if (g_strcmp0 (shell, valid_shell) != 0)
                         continue;
                 ret = FALSE;
+                break;
         }
         endusershell ();
 #endif
 
+        /* always check for false and nologin since they are sometimes included by getusershell */
         basename = g_path_get_basename (shell);
         nologin_basename = g_path_get_basename (PATH_NOLOGIN);
         false_basename = g_path_get_basename (PATH_FALSE);

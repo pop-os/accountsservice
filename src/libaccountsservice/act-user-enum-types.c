@@ -6,6 +6,25 @@
 #include "act-user-enum-types.h"
 #include <glib-object.h>
 
+/* enumerations from "act-user-manager.h" */
+GType
+act_user_manager_error_get_type (void)
+{
+  static GType etype = 0;
+  if (etype == 0) {
+    static const GEnumValue values[] = {
+      { ACT_USER_MANAGER_ERROR_FAILED, "ACT_USER_MANAGER_ERROR_FAILED", "failed" },
+      { ACT_USER_MANAGER_ERROR_USER_EXISTS, "ACT_USER_MANAGER_ERROR_USER_EXISTS", "user-exists" },
+      { ACT_USER_MANAGER_ERROR_USER_DOES_NOT_EXIST, "ACT_USER_MANAGER_ERROR_USER_DOES_NOT_EXIST", "user-does-not-exist" },
+      { ACT_USER_MANAGER_ERROR_PERMISSION_DENIED, "ACT_USER_MANAGER_ERROR_PERMISSION_DENIED", "permission-denied" },
+      { ACT_USER_MANAGER_ERROR_NOT_SUPPORTED, "ACT_USER_MANAGER_ERROR_NOT_SUPPORTED", "not-supported" },
+      { 0, NULL, NULL }
+    };
+    etype = g_enum_register_static ("ActUserManagerError", values);
+  }
+  return etype;
+}
+
 /* enumerations from "act-user.h" */
 GType
 act_user_account_type_get_type (void)
@@ -33,25 +52,6 @@ act_user_password_mode_get_type (void)
       { 0, NULL, NULL }
     };
     etype = g_enum_register_static ("ActUserPasswordMode", values);
-  }
-  return etype;
-}
-
-/* enumerations from "act-user-manager.h" */
-GType
-act_user_manager_error_get_type (void)
-{
-  static GType etype = 0;
-  if (etype == 0) {
-    static const GEnumValue values[] = {
-      { ACT_USER_MANAGER_ERROR_FAILED, "ACT_USER_MANAGER_ERROR_FAILED", "failed" },
-      { ACT_USER_MANAGER_ERROR_USER_EXISTS, "ACT_USER_MANAGER_ERROR_USER_EXISTS", "user-exists" },
-      { ACT_USER_MANAGER_ERROR_USER_DOES_NOT_EXIST, "ACT_USER_MANAGER_ERROR_USER_DOES_NOT_EXIST", "user-does-not-exist" },
-      { ACT_USER_MANAGER_ERROR_PERMISSION_DENIED, "ACT_USER_MANAGER_ERROR_PERMISSION_DENIED", "permission-denied" },
-      { ACT_USER_MANAGER_ERROR_NOT_SUPPORTED, "ACT_USER_MANAGER_ERROR_NOT_SUPPORTED", "not-supported" },
-      { 0, NULL, NULL }
-    };
-    etype = g_enum_register_static ("ActUserManagerError", values);
   }
   return etype;
 }

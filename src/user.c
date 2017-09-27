@@ -97,6 +97,12 @@ struct User {
         gchar        *location;
         guint64       login_frequency;
         gint64        login_time;
+        gint64        expiration_time;
+        gint64        last_change_time;
+        gint64        min_days_between_changes;
+        gint64        max_days_between_changes;
+        gint64        days_to_warn;
+        gint64        days_after_expiration_until_lock;
         GVariant     *login_history;
         gchar        *icon_file;
         gchar        *default_icon_file;
@@ -274,6 +280,13 @@ user_update_from_pwent (User          *user,
                 if (spent->sp_lstchg == 0) {
                         mode = PASSWORD_MODE_SET_AT_LOGIN;
                 }
+
+                user->expiration_time = spent->sp_expire;
+                user->last_change_time  = spent->sp_lstchg;
+                user->min_days_between_changes = spent->sp_min;
+                user->max_days_between_changes = spent->sp_max;
+                user->days_to_warn  = spent->sp_warn;
+                user->days_after_expiration_until_lock = spent->sp_inact;
         }
 
         if (user->password_mode != mode) {
@@ -1143,6 +1156,54 @@ user_set_x_session (AccountsUser          *auser,
 
         return TRUE;
 }
+
+static void
+user_get_password_expiration_policy_authorized_cb (Daemon                *daemon,
+                                                   User                  *user,
+                                                   GDBusMethodInvocation *context,
+                                                   gpointer               data)
+
+{
+        accounts_user_complete_get_password_expiration_policy (ACCOUNTS_USER (user),
+                                                               context,
+                                                               user->expiration_time,
+                                                               user->last_change_time,
+                                                               user->min_days_between_changes,
+                                                               user->max_days_between_changes,
+                                                               user->days_to_warn,
+                                                               user->days_after_expiration_until_lock);
+}
+
+static gboolean
+user_get_password_expiration_policy (AccountsUser          *auser,
+                                     GDBusMethodInvocation *context)
+{
+        User *user = (User*)auser;
+        int uid;
+        const gchar *action_id;
+
+        if (!get_caller_uid (context, &uid)) {
+                throw_error (context, ERROR_FAILED, "identifying caller failed");
+                return FALSE;
+        }
+
+        if (user->uid == (uid_t) uid)
+                action_id = "org.freedesktop.accounts.change-own-user-data";
+        else
+                action_id = "org.freedesktop.accounts.user-administration";
+
+        daemon_local_check_auth (user->daemon,
+                                 user,
+                                 action_id,
+                                 TRUE,
+                                 user_get_password_expiration_policy_authorized_cb,
+                                 context,
+                                 NULL,
+                                 NULL);
+
+        return TRUE;
+}
+
 
 static void
 user_change_location_authorized_cb (Daemon                *daemon,
@@ -2317,6 +2378,7 @@ user_accounts_user_iface_init (AccountsUserIface *iface)
         iface->handle_set_shell = user_set_shell;
         iface->handle_set_user_name = user_set_user_name;
         iface->handle_set_xsession = user_set_x_session;
+        iface->handle_get_password_expiration_policy = user_get_password_expiration_policy;
         iface->get_uid = user_real_get_uid;
         iface->get_user_name = user_real_get_user_name;
         iface->get_real_name = user_real_get_real_name;
