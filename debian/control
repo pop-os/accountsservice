@@ -19,8 +19,8 @@ Build-Depends:
  xmlto
 Standards-Version: 4.1.0
 Homepage: https://www.freedesktop.org/wiki/Software/AccountsService/
-Vcs-Git: https://anonscm.debian.org/git/collab-maint/accountsservice.git
-Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/accountsservice.git
+Vcs-Git: https://salsa.debian.org/freedesktop-team/accountsservice.git
+Vcs-Browser: https://salsa.debian.org/freedesktop-team/accountsservice
 
 Package: accountsservice
 Architecture: any

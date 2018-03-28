@@ -1,9 +1,13 @@
 accountsservice (0.6.45-2) UNRELEASED; urgency=medium
 
+  [ Robert Ancell ]
   * debian/patches/0006-adduser_instead_of_useradd.patch:
     - Merged into 0002-create-and-manage-groups-like-on-a-debian-system.patch
   * debian/patches/*:
     - Removed unused patches.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control: Update Vcs-* for move to salsa.debian.org.
 
  -- Robert Ancell <robert.ancell@canonical.com>  Wed, 20 Dec 2017 14:32:10 +1300
 
