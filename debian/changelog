@@ -1,3 +1,20 @@
+accountsservice (0.6.45-2) unstable; urgency=medium
+
+  [ Robert Ancell ]
+  * debian/patches/0006-adduser_instead_of_useradd.patch:
+    - Merged into 0002-create-and-manage-groups-like-on-a-debian-system.patch
+  * debian/patches/*:
+    - Removed unused patches.
+
+  [ Emilio Pozuelo Monfort ]
+  * debian/control: Update Vcs-* for move to salsa.debian.org.
+
+  [ Salvatore Bonaccorso ]
+  * user: fix insufficient path prefix check (CVE-2018-14036)
+    (Closes: #903828)
+
+ -- Emilio Pozuelo Monfort <pochu@debian.org>  Tue, 05 Mar 2019 11:05:07 +0100
+
 accountsservice (0.6.45-1) unstable; urgency=medium
 
   * New upstream release.

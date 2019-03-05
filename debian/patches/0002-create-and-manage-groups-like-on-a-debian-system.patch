@@ -9,12 +9,18 @@ Description: Create and manage groups like on a debian system.
  src/util.h   |    9 +++++++++
  4 files changed, 65 insertions(+), 24 deletions(-)
 
---- a/src/daemon.c
-+++ b/src/daemon.c
-@@ -976,22 +976,8 @@
-         argv[1] = "-m";
-         argv[2] = "-c";
-         argv[3] = cd->real_name;
+Index: accountsservice/src/daemon.c
+===================================================================
+--- accountsservice.orig/src/daemon.c
++++ accountsservice/src/daemon.c
+@@ -1032,26 +1032,13 @@ daemon_create_user_authorized_cb (Daemon
+ 
+         sys_log (context, "create user '%s'", cd->user_name);
+ 
+-        argv[0] = "/usr/sbin/useradd";
+-        argv[1] = "-m";
+-        argv[2] = "-c";
+-        argv[3] = cd->real_name;
 -        if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
 -                argv[4] = "-G";
 -                argv[5] = ADMIN_GROUP;
@@ -31,12 +37,17 @@ Description: Create and manage groups like on a debian system.
 -                throw_error (context, ERROR_FAILED, "Don't know how to add user of type %d", cd->account_type);
 -                return;
 -        }
-+        argv[4] = cd->user_name;
-+        argv[5] = NULL;
++        argv[0] = "/usr/sbin/adduser";
++        argv[1] = "--quiet";
++        argv[2] = "--disabled-login";
++        argv[3] = "--gecos";
++        argv[4] = cd->real_name;
++        argv[5] = cd->user_name;
++        argv[6] = NULL;
  
          error = NULL;
          if (!spawn_with_login_uid (context, argv, &error)) {
-@@ -1000,6 +986,10 @@
+@@ -1060,6 +1047,10 @@ daemon_create_user_authorized_cb (Daemon
                  return;
          }
  
@@ -47,9 +58,11 @@ Description: Create and manage groups like on a debian system.
          user = daemon_local_find_user_by_name (daemon, cd->user_name);
          user_update_local_account_property (user, TRUE);
          user_update_system_account_property (user, FALSE);
---- a/src/user.c
-+++ b/src/user.c
-@@ -1611,7 +1611,7 @@
+Index: accountsservice/src/user.c
+===================================================================
+--- accountsservice.orig/src/user.c
++++ accountsservice/src/user.c
+@@ -1672,7 +1672,7 @@ user_change_account_type_authorized_cb (
          gid_t *groups;
          gint ngroups;
          GString *str;
@@ -58,7 +71,7 @@ Description: Create and manage groups like on a debian system.
          struct group *grp;
          gint i;
          const gchar *argv[6];
-@@ -1623,22 +1623,22 @@
+@@ -1684,22 +1684,22 @@ user_change_account_type_authorized_cb (
  
                  grp = getgrnam (ADMIN_GROUP);
                  if (grp == NULL) {
@@ -85,9 +98,11 @@ Description: Create and manage groups like on a debian system.
                          break;
                  case ACCOUNT_TYPE_STANDARD:
                  default:
---- a/src/util.c
-+++ b/src/util.c
-@@ -313,3 +313,45 @@
+Index: accountsservice/src/util.c
+===================================================================
+--- accountsservice.orig/src/util.c
++++ accountsservice/src/util.c
+@@ -313,3 +313,45 @@ get_caller_uid (GDBusMethodInvocation *c
  
          return TRUE;
  }
@@ -133,9 +148,11 @@ Description: Create and manage groups like on a debian system.
 +                return;
 +        }
 +}
---- a/src/util.h
-+++ b/src/util.h
-@@ -40,6 +40,15 @@
+Index: accountsservice/src/util.h
+===================================================================
+--- accountsservice.orig/src/util.h
++++ accountsservice/src/util.h
+@@ -40,6 +40,15 @@ gint get_user_groups (const gchar  *user
                        gid_t         group,
                        gid_t       **groups);
  
