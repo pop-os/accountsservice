@@ -9,6 +9,10 @@ accountsservice (0.6.45-2) UNRELEASED; urgency=medium
   [ Emilio Pozuelo Monfort ]
   * debian/control: Update Vcs-* for move to salsa.debian.org.
 
+  [ Salvatore Bonaccorso ]
+  * user: fix insufficient path prefix check (CVE-2018-14036)
+    (Closes: #903828)
+
  -- Robert Ancell <robert.ancell@canonical.com>  Wed, 20 Dec 2017 14:32:10 +1300
 
 accountsservice (0.6.45-1) unstable; urgency=medium
