@@ -27,10 +27,14 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_accounts_complete_find_user_by_name@Base 0.6.18
  accounts_accounts_complete_list_cached_users@Base 0.6.18
  accounts_accounts_complete_uncache_user@Base 0.6.24
+ accounts_accounts_dup_automatic_login_users@Base 0.6.55
  accounts_accounts_dup_daemon_version@Base 0.6.18
  accounts_accounts_emit_user_added@Base 0.6.18
  accounts_accounts_emit_user_deleted@Base 0.6.18
+ accounts_accounts_get_automatic_login_users@Base 0.6.55
  accounts_accounts_get_daemon_version@Base 0.6.18
+ accounts_accounts_get_has_multiple_users@Base 0.6.55
+ accounts_accounts_get_has_no_users@Base 0.6.55
  accounts_accounts_get_type@Base 0.6.18
  accounts_accounts_interface_info@Base 0.6.18
  accounts_accounts_override_properties@Base 0.6.18
@@ -41,7 +45,10 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_accounts_proxy_new_for_bus_finish@Base 0.6.18
  accounts_accounts_proxy_new_for_bus_sync@Base 0.6.18
  accounts_accounts_proxy_new_sync@Base 0.6.18
+ accounts_accounts_set_automatic_login_users@Base 0.6.55
  accounts_accounts_set_daemon_version@Base 0.6.18
+ accounts_accounts_set_has_multiple_users@Base 0.6.55
+ accounts_accounts_set_has_no_users@Base 0.6.55
  accounts_accounts_skeleton_get_type@Base 0.6.18
  accounts_accounts_skeleton_new@Base 0.6.18
  accounts_user_call_get_password_expiration_policy@Base 0.6.45
@@ -83,6 +90,12 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_call_set_real_name@Base 0.6.18
  accounts_user_call_set_real_name_finish@Base 0.6.18
  accounts_user_call_set_real_name_sync@Base 0.6.18
+ accounts_user_call_set_session@Base 0.6.55
+ accounts_user_call_set_session_finish@Base 0.6.55
+ accounts_user_call_set_session_sync@Base 0.6.55
+ accounts_user_call_set_session_type@Base 0.6.55
+ accounts_user_call_set_session_type_finish@Base 0.6.55
+ accounts_user_call_set_session_type_sync@Base 0.6.55
  accounts_user_call_set_shell@Base 0.6.18
  accounts_user_call_set_shell_finish@Base 0.6.18
  accounts_user_call_set_shell_sync@Base 0.6.18
@@ -105,6 +118,8 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_complete_set_password_hint@Base 0.6.43
  accounts_user_complete_set_password_mode@Base 0.6.18
  accounts_user_complete_set_real_name@Base 0.6.18
+ accounts_user_complete_set_session@Base 0.6.55
+ accounts_user_complete_set_session_type@Base 0.6.55
  accounts_user_complete_set_shell@Base 0.6.18
  accounts_user_complete_set_user_name@Base 0.6.18
  accounts_user_complete_set_xsession@Base 0.6.18
@@ -116,6 +131,8 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_dup_login_history@Base 0.6.29
  accounts_user_dup_password_hint@Base 0.6.18
  accounts_user_dup_real_name@Base 0.6.18
+ accounts_user_dup_session@Base 0.6.55
+ accounts_user_dup_session_type@Base 0.6.55
  accounts_user_dup_shell@Base 0.6.18
  accounts_user_dup_user_name@Base 0.6.18
  accounts_user_dup_xsession@Base 0.6.18
@@ -135,6 +152,9 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_get_password_hint@Base 0.6.18
  accounts_user_get_password_mode@Base 0.6.18
  accounts_user_get_real_name@Base 0.6.18
+ accounts_user_get_saved@Base 0.6.55
+ accounts_user_get_session@Base 0.6.55
+ accounts_user_get_session_type@Base 0.6.55
  accounts_user_get_shell@Base 0.6.18
  accounts_user_get_system_account@Base 0.6.18
  accounts_user_get_type@Base 0.6.18
@@ -165,6 +185,9 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_set_password_hint@Base 0.6.18
  accounts_user_set_password_mode@Base 0.6.18
  accounts_user_set_real_name@Base 0.6.18
+ accounts_user_set_saved@Base 0.6.55
+ accounts_user_set_session@Base 0.6.55
+ accounts_user_set_session_type@Base 0.6.55
  accounts_user_set_shell@Base 0.6.18
  accounts_user_set_system_account@Base 0.6.18
  accounts_user_set_uid@Base 0.6.18
@@ -193,6 +216,9 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_get_password_mode@Base 0.6.8
  act_user_get_primary_session_id@Base 0.6.8
  act_user_get_real_name@Base 0.6.8
+ act_user_get_saved@Base 0.6.55
+ act_user_get_session@Base 0.6.55
+ act_user_get_session_type@Base 0.6.55
  act_user_get_shell@Base 0.6.8
  act_user_get_type@Base 0.6.8
  act_user_get_uid@Base 0.6.8
@@ -239,6 +265,8 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_set_password_hint@Base 0.6.43
  act_user_set_password_mode@Base 0.6.8
  act_user_set_real_name@Base 0.6.8
+ act_user_set_session@Base 0.6.55
+ act_user_set_session_type@Base 0.6.55
  act_user_set_user_name@Base 0.6.8
  act_user_set_x_session@Base 0.6.8
  console_kit_manager_call_can_restart@Base 0.6.18
