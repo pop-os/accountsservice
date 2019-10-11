@@ -16,11 +16,16 @@ act_user_get_login_frequency
 act_user_get_login_history
 act_user_get_login_time
 act_user_get_num_sessions
+act_user_get_num_sessions_anywhere
 act_user_get_object_path
+act_user_get_password_expiration_policy
 act_user_get_password_hint
 act_user_get_password_mode
 act_user_get_primary_session_id
 act_user_get_real_name
+act_user_get_saved
+act_user_get_session
+act_user_get_session_type
 act_user_get_shell
 act_user_get_uid
 act_user_get_user_name
@@ -28,6 +33,8 @@ act_user_get_x_session
 act_user_is_loaded
 act_user_is_local_account
 act_user_is_logged_in
+act_user_is_logged_in_anywhere
+act_user_is_nonexistent
 act_user_is_system_account
 act_user_set_account_type
 act_user_set_automatic_login
@@ -40,6 +47,8 @@ act_user_set_password
 act_user_set_password_hint
 act_user_set_password_mode
 act_user_set_real_name
+act_user_set_session
+act_user_set_session_type
 act_user_set_user_name
 act_user_set_x_session
 <SUBSECTION Standard>
@@ -73,6 +82,8 @@ act_user_manager_goto_login_session
 act_user_manager_list_users
 act_user_manager_no_service
 act_user_manager_uncache_user
+act_user_manager_uncache_user_async
+act_user_manager_uncache_user_finish
 <SUBSECTION Standard>
 ActUserManagerClass
 ACT_IS_USER_MANAGER

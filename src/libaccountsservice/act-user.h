@@ -70,6 +70,7 @@ gboolean       act_user_is_logged_in_anywhere     (ActUser   *user);
 int            act_user_get_login_frequency       (ActUser   *user);
 gint64         act_user_get_login_time            (ActUser   *user);
 const GVariant*act_user_get_login_history         (ActUser   *user);
+gboolean       act_user_get_saved                 (ActUser   *user);
 gboolean       act_user_get_locked                (ActUser   *user);
 gboolean       act_user_get_automatic_login       (ActUser   *user);
 gboolean       act_user_is_system_account         (ActUser   *user);
@@ -78,6 +79,8 @@ gboolean       act_user_is_nonexistent            (ActUser   *user);
 const char    *act_user_get_icon_file             (ActUser   *user);
 const char    *act_user_get_language              (ActUser   *user);
 const char    *act_user_get_x_session             (ActUser   *user);
+const char    *act_user_get_session               (ActUser   *user);
+const char    *act_user_get_session_type          (ActUser   *user);
 const char    *act_user_get_primary_session_id    (ActUser   *user);
 
 gint           act_user_collate                   (ActUser   *user1,
@@ -98,6 +101,10 @@ void           act_user_set_language              (ActUser    *user,
                                                    const char *language);
 void           act_user_set_x_session             (ActUser    *user,
                                                    const char *x_session);
+void           act_user_set_session               (ActUser    *user,
+                                                   const char *session);
+void           act_user_set_session_type          (ActUser    *user,
+                                                   const char *session_type);
 void           act_user_set_location              (ActUser    *user,
                                                    const char *location);
 void           act_user_set_user_name             (ActUser    *user,
@@ -119,6 +126,10 @@ void           act_user_set_locked                (ActUser    *user,
                                                    gboolean    locked);
 void           act_user_set_automatic_login       (ActUser   *user,
                                                    gboolean  enabled);
+
+#if GLIB_CHECK_VERSION(2, 44, 0)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (ActUser, g_object_unref)
+#endif
 
 G_END_DECLS
 

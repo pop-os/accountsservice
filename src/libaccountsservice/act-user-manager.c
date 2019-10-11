@@ -90,8 +90,6 @@
  * Various error codes returned by the accounts service.
  */
 
-#define ACT_USER_MANAGER_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), ACT_TYPE_USER_MANAGER, ActUserManagerPrivate))
-
 #define CK_NAME      "org.freedesktop.ConsoleKit"
 
 #define CK_MANAGER_PATH      "/org/freedesktop/ConsoleKit/Manager"
@@ -174,7 +172,7 @@ typedef struct
         char                       *description;
 } ActUserManagerFetchUserRequest;
 
-struct ActUserManagerPrivate
+typedef struct
 {
         GHashTable            *normal_users_by_name;
         GHashTable            *system_users_by_name;
@@ -199,8 +197,8 @@ struct ActUserManagerPrivate
         gboolean               is_loaded;
         gboolean               has_multiple_users;
         gboolean               getting_sessions;
-        gboolean               listing_cached_users;
-};
+        gboolean               list_cached_users_done;
+} ActUserManagerPrivate;
 
 enum {
         PROP_0,
@@ -224,11 +222,14 @@ static void     act_user_manager_class_init (ActUserManagerClass *klass);
 static void     act_user_manager_init       (ActUserManager      *user_manager);
 static void     act_user_manager_finalize   (GObject             *object);
 
+static gboolean ensure_accounts_proxy       (ActUserManager *manager);
 static gboolean load_seat_incrementally     (ActUserManager *manager);
 static void     unload_seat                 (ActUserManager *manager);
 static void     load_users                  (ActUserManager *manager);
+static void     load_user                   (ActUserManager *manager,
+                                             const char     *username);
 static void     act_user_manager_queue_load (ActUserManager *manager);
-static void     queue_load_seat_and_users   (ActUserManager *manager);
+static void     queue_load_seat             (ActUserManager *manager);
 
 static void     load_new_session_incrementally (ActUserManagerNewSession *new_session);
 static void     set_is_loaded (ActUserManager *manager, gboolean is_loaded);
@@ -245,7 +246,7 @@ static void     update_user                    (ActUserManager *manager,
                                                 ActUser        *user);
 static gpointer user_manager_object = NULL;
 
-G_DEFINE_TYPE (ActUserManager, act_user_manager, G_TYPE_OBJECT)
+G_DEFINE_TYPE_WITH_PRIVATE (ActUserManager, act_user_manager, G_TYPE_OBJECT)
 
 static const GDBusErrorEntry error_entries[] = {
         { ACT_USER_MANAGER_ERROR_FAILED,              "org.freedesktop.Accounts.Error.Failed" },
@@ -274,11 +275,12 @@ activate_console_kit_session_id (ActUserManager *manager,
                                  const char     *seat_id,
                                  const char     *session_id)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ConsoleKitSeat *proxy;
-        GError         *error = NULL;
-        gboolean        res = FALSE;
+        g_autoptr(GError) error = NULL;
+        gboolean res = FALSE;
 
-        proxy = console_kit_seat_proxy_new_sync (manager->priv->connection,
+        proxy = console_kit_seat_proxy_new_sync (priv->connection,
                                                  G_DBUS_PROXY_FLAGS_NONE,
                                                  CK_NAME,
                                                  seat_id,
@@ -292,7 +294,6 @@ activate_console_kit_session_id (ActUserManager *manager,
 
         if (!res) {
                 g_warning ("Unable to activate session: %s", error->message);
-                g_error_free (error);
                 return FALSE;
         }
 
@@ -305,16 +306,14 @@ activate_systemd_session_id (ActUserManager *manager,
                              const char     *seat_id,
                              const char     *session_id)
 {
-        GDBusConnection *connection;
-        GVariant *reply;
-        GError *error;
+        g_autoptr(GDBusConnection) connection = NULL;
+        g_autoptr(GVariant) reply = NULL;
+        g_autoptr(GError) error = NULL;
 
-        error = NULL;
         connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
-
-
         if (connection == NULL) {
-                goto failed;
+                g_warning ("Unable to activate session: %s", error->message);
+                return FALSE;
         }
 
         reply = g_dbus_connection_call_sync (connection,
@@ -330,20 +329,12 @@ activate_systemd_session_id (ActUserManager *manager,
                                              -1,
                                              NULL,
                                              &error);
-        g_object_unref (connection);
-
         if (reply == NULL) {
-                goto failed;
+                g_warning ("Unable to activate session: %s", error->message);
+                return FALSE;
         }
 
-        g_object_unref (reply);
-
         return TRUE;
-
-failed:
-        g_warning ("Unable to activate session: %s", error->message);
-        g_error_free (error);
-        return FALSE;
 }
 #endif
 
@@ -351,13 +342,13 @@ static gboolean
 _ck_session_is_login_window (ActUserManager *manager,
                              const char     *session_id)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ConsoleKitSession *proxy;
-        GError            *error = NULL;
-        char              *session_type;
-        gboolean           res = FALSE;
-        gboolean           ret;
+        g_autoptr(GError) error = NULL;
+        g_autofree gchar *session_type = NULL;
+        gboolean res = FALSE;
 
-        proxy = console_kit_session_proxy_new_sync (manager->priv->connection,
+        proxy = console_kit_session_proxy_new_sync (priv->connection,
                                                     G_DBUS_PROXY_FLAGS_NONE,
                                                     CK_NAME,
                                                     session_id,
@@ -369,7 +360,6 @@ _ck_session_is_login_window (ActUserManager *manager,
         if (!res) {
                 if (error != NULL) {
                         g_debug ("ActUserManager: Failed to identify the session type: %s", error->message);
-                        g_error_free (error);
                 } else {
                         g_debug ("ActUserManager: Failed to identify the session type");
                 }
@@ -378,10 +368,7 @@ _ck_session_is_login_window (ActUserManager *manager,
         if (proxy)
                 g_object_unref (proxy);
 
-        ret = strcmp (session_type, "LoginWindow") == 0;
-        g_free (session_type);
-
-        return ret;
+        return strcmp (session_type, "LoginWindow") == 0;
 }
 
 #ifdef WITH_SYSTEMD
@@ -390,27 +377,17 @@ _systemd_session_is_login_window (ActUserManager *manager,
                                   const char     *session_id)
 {
         int   res;
-        int   ret;
-        char *session_class;
+        g_autofree gchar *session_class = NULL;
 
-        ret = FALSE;
         res = sd_session_get_class (session_id, &session_class);
-
         if (res < 0) {
             g_debug ("failed to determine class of session %s: %s",
                      session_id,
                      strerror (-res));
-            goto out;
+            return FALSE;
         }
 
-        if (g_strcmp0 (session_class, "greeter") == 0) {
-            ret = TRUE;
-        }
-
-        free (session_class);
-
-out:
-        return ret;
+        return g_strcmp0 (session_class, "greeter") == 0;
 }
 #endif
 
@@ -440,29 +417,21 @@ static gboolean
 _systemd_session_is_on_our_seat (ActUserManager *manager,
                                  const char     *session_id)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         int   res;
-        int   ret;
-        char *session_seat;
+        g_autofree gchar *session_seat = NULL;
 
-        ret = FALSE;
         res = sd_session_get_seat (session_id, &session_seat);
-        if (res == -ENOENT) {
-                goto out;
+        if (res == -ENODATA) {
+                return FALSE;
         } else if (res < 0) {
                 g_debug ("failed to determine seat of session %s: %s",
                          session_id,
                          strerror (-res));
-                goto out;
+                return FALSE;
         }
 
-        if (g_strcmp0 (manager->priv->seat.id, session_seat) == 0) {
-                ret = TRUE;
-        }
-
-        free (session_seat);
-
-out:
-        return ret;
+        return g_strcmp0 (priv->seat.id, session_seat) == 0;
 }
 #endif
 
@@ -490,17 +459,17 @@ session_is_on_our_seat (ActUserManager *manager,
 gboolean
 act_user_manager_goto_login_session (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         gboolean res;
-        GError  *error;
+        g_autoptr(GError) error = NULL;
 
         g_return_val_if_fail (ACT_IS_USER_MANAGER (manager), FALSE);
-        g_return_val_if_fail (manager->priv->is_loaded, FALSE);
+        g_return_val_if_fail (priv->is_loaded, FALSE);
 
         res = g_spawn_command_line_async ("gdmflexiserver", &error);
-        if (! res) {
+        if (!res) {
                 if (error != NULL) {
                         g_warning ("Unable to start new login: %s", error->message);
-                        g_error_free (error);
                 } else {
                         g_warning ("Unable to start new login");
                 }
@@ -511,15 +480,16 @@ act_user_manager_goto_login_session (ActUserManager *manager)
 }
 
 #ifdef WITH_SYSTEMD
-gboolean
+static gboolean
 _can_activate_systemd_sessions (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         int res;
 
-        res = sd_seat_can_multi_session (manager->priv->seat.id);
+        res = sd_seat_can_multi_session (priv->seat.id);
         if (res < 0) {
-                g_warning ("unable to determine if seat can activate sessions: %s",
-                           strerror (-res));
+                g_warning ("unable to determine if seat %s can activate sessions: %s",
+                           priv->seat.id, strerror (-res));
                 return FALSE;
         }
 
@@ -530,14 +500,14 @@ _can_activate_systemd_sessions (ActUserManager *manager)
 gboolean
 _can_activate_console_kit_sessions (ActUserManager *manager)
 {
-        GError   *error = NULL;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError) error = NULL;
         gboolean  can_activate_sessions = FALSE;
 
-        if (!console_kit_seat_call_can_activate_sessions_sync (manager->priv->seat.seat_proxy, &can_activate_sessions, NULL, &error)) {
+        if (!console_kit_seat_call_can_activate_sessions_sync (priv->seat.seat_proxy, &can_activate_sessions, NULL, &error)) {
                 if (error != NULL) {
                         g_warning ("unable to determine if seat can activate sessions: %s",
                                    error->message);
-                        g_error_free (error);
                 } else {
                         g_warning ("unable to determine if seat can activate sessions");
                 }
@@ -558,12 +528,14 @@ _can_activate_console_kit_sessions (ActUserManager *manager)
 gboolean
 act_user_manager_can_switch (ActUserManager *manager)
 {
-        if (!manager->priv->is_loaded) {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (!priv->is_loaded) {
                 g_debug ("ActUserManager: Unable to switch sessions until fully loaded");
                 return FALSE;
         }
 
-        if (manager->priv->seat.id == NULL || manager->priv->seat.id[0] == '\0') {
+        if (priv->seat.id == NULL || priv->seat.id[0] == '\0') {
                 g_debug ("ActUserManager: display seat ID is not set; can't switch sessions");
                 return FALSE;
         }
@@ -593,44 +565,38 @@ gboolean
 act_user_manager_activate_user_session (ActUserManager *manager,
                                         ActUser        *user)
 {
-        gboolean ret;
-        const char *ssid;
-        gboolean res;
-
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         gboolean can_activate_sessions;
+        const char *ssid;
+
         g_return_val_if_fail (ACT_IS_USER_MANAGER (manager), FALSE);
         g_return_val_if_fail (ACT_IS_USER (user), FALSE);
-        g_return_val_if_fail (manager->priv->is_loaded, FALSE);
-
-        ret = FALSE;
+        g_return_val_if_fail (priv->is_loaded, FALSE);
 
         can_activate_sessions = act_user_manager_can_switch (manager);
 
-        if (! can_activate_sessions) {
+        if (!can_activate_sessions) {
                 g_debug ("ActUserManager: seat is unable to activate sessions");
-                goto out;
+                return FALSE;
         }
 
         ssid = act_user_get_primary_session_id (user);
         if (ssid == NULL) {
-                goto out;
+                return FALSE;
         }
 
 #ifdef WITH_SYSTEMD
         if (LOGIND_RUNNING()) {
-                return activate_systemd_session_id (manager, manager->priv->seat.id, ssid);
+                return activate_systemd_session_id (manager, priv->seat.id, ssid);
         }
 #endif
 
-        res = activate_console_kit_session_id (manager, manager->priv->seat.id, ssid);
-        if (! res) {
+        if (!activate_console_kit_session_id (manager, priv->seat.id, ssid)) {
                 g_debug ("ActUserManager: unable to activate session: %s", ssid);
-                goto out;
+                return FALSE;
         }
 
-        ret = TRUE;
- out:
-        return ret;
+        return TRUE;
 }
 
 static const char *
@@ -659,9 +625,10 @@ static void
 on_user_sessions_changed (ActUser        *user,
                           ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         guint nsessions;
 
-        if (! manager->priv->is_loaded) {
+        if (!priv->is_loaded) {
                 return;
         }
 
@@ -683,7 +650,9 @@ static void
 on_user_changed (ActUser        *user,
                  ActUserManager *manager)
 {
-        if (manager->priv->is_loaded) {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (priv->is_loaded) {
                 g_debug ("ActUserManager: sending user-changed signal for %s",
                          describe_user (user));
 
@@ -699,8 +668,10 @@ on_user_changed (ActUser        *user,
 static void
 queue_load_seat_incrementally (ActUserManager *manager)
 {
-        if (manager->priv->seat.load_idle_id == 0) {
-            manager->priv->seat.load_idle_id = g_idle_add ((GSourceFunc) load_seat_incrementally, manager);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (priv->seat.load_idle_id == 0) {
+            priv->seat.load_idle_id = g_idle_add ((GSourceFunc) load_seat_incrementally, manager);
         }
 }
 
@@ -710,8 +681,9 @@ on_get_seat_id_finished (GObject        *object,
                          gpointer        data)
 {
         ConsoleKitSession *proxy = CONSOLE_KIT_SESSION (object);
-        ActUserManager    *manager = data;
-        GError            *error = NULL;
+        g_autoptr(ActUserManager) manager = data;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError)  error = NULL;
         char              *seat_id;
 
         if (!console_kit_session_call_get_seat_id_finish (proxy, &seat_id, result, &error)) {
@@ -719,7 +691,6 @@ on_get_seat_id_finished (GObject        *object,
                         g_debug ("Failed to identify the seat of the "
                                  "current session: %s",
                                  error->message);
-                        g_error_free (error);
                 } else {
                         g_debug ("Failed to identify the seat of the "
                                  "current session");
@@ -728,31 +699,135 @@ on_get_seat_id_finished (GObject        *object,
                 g_debug ("ActUserManager: GetSeatId call failed, so unloading seat");
                 unload_seat (manager);
 
-                goto out;
+                return;
         }
 
         g_debug ("ActUserManager: Found current seat: %s", seat_id);
 
-        manager->priv->seat.id = seat_id;
-        manager->priv->seat.state++;
-
-        load_seat_incrementally (manager);
-
- out:
-        g_debug ("ActUserManager: unrefing manager owned by GetSeatId request");
-        g_object_unref (manager);
+        priv->seat.id = seat_id;
+        priv->seat.state++;
 }
 
 #ifdef WITH_SYSTEMD
+static gboolean
+_systemd_session_is_graphical (const char *session_id)
+{
+        const gchar * const graphical_session_types[] = { "wayland", "x11", "mir", NULL };
+        int saved_errno;
+        g_autofree gchar *type = NULL;
+
+        saved_errno = sd_session_get_type (session_id, &type);
+        if (saved_errno < 0) {
+                g_warning ("Couldn't get type for session '%s': %s",
+                           session_id,
+                           g_strerror (-saved_errno));
+                return FALSE;
+        }
+
+        if (!g_strv_contains (graphical_session_types, type)) {
+                g_debug ("Session '%s' is not a graphical session (type: '%s')",
+                         session_id,
+                         type);
+                return FALSE;
+        }
+
+        return TRUE;
+}
+
+static gboolean
+_systemd_session_is_active (const char *session_id)
+{
+        const gchar * const active_states[] = { "active", "online", NULL };
+        int saved_errno;
+        g_autofree gchar *state = NULL;
+
+        /*
+         * display sessions can be 'closing' if they are logged out but some
+         * processes are lingering; we shouldn't consider these (this is
+         * checking for a race condition since we specified that we want online
+         * sessions only)
+         */
+        saved_errno = sd_session_get_state (session_id, &state);
+        if (saved_errno < 0) {
+                g_warning ("Couldn't get state for session '%s': %s",
+                           session_id,
+                           g_strerror (-saved_errno));
+                return FALSE;
+        }
+
+        if (!g_strv_contains (active_states, state)) {
+                g_debug ("Session '%s' is not active or online", session_id);
+                return FALSE;
+        }
+
+        return TRUE;
+}
+
+static gboolean
+_find_graphical_systemd_session (char **session_id)
+{
+        char *local_session_id = NULL;
+        g_auto(GStrv) sessions = NULL;
+        int n_sessions;
+
+        /* filter level 0 means to include inactive and active sessions
+         * (>0 would mean to return only the active session, and <0 would mean to
+         * include closing sessions too)
+         */
+        static int filter_level = 0;
+
+        g_return_val_if_fail (session_id != NULL, FALSE);
+
+        g_debug ("Finding a graphical session for user %d", getuid ());
+
+        n_sessions = sd_uid_get_sessions (getuid (), filter_level, &sessions);
+
+        if (n_sessions < 0) {
+                g_critical ("Failed to get sessions for user %d", getuid ());
+                return FALSE;
+        }
+
+        for (int i = 0; i < n_sessions; ++i) {
+                g_debug ("Considering session '%s'", sessions[i]);
+
+                if (!_systemd_session_is_graphical (sessions[i]))
+                        continue;
+
+                if (!_systemd_session_is_active (sessions[i]))
+                        continue;
+
+                /*
+                 * We get the sessions from newest to oldest, so take the last
+                 * one we find that's good
+                 */
+                local_session_id = sessions[i];
+        }
+
+        if (local_session_id == NULL)
+                return FALSE;
+
+        *session_id = g_strdup (local_session_id);
+
+        return TRUE;
+}
+
 static void
 _get_systemd_seat_id (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         int   res;
-        char *seat_id;
+        g_autofree gchar *seat_id = NULL;
 
-        res = sd_session_get_seat (NULL, &seat_id);
+        if (priv->seat.session_id == NULL) {
+                if (!_find_graphical_systemd_session (&priv->seat.session_id)) {
+                        g_warning ("Could not get session");
+                        return;
+                }
+        }
 
-        if (res == -ENOENT) {
+        res = sd_session_get_seat (priv->seat.session_id, &seat_id);
+
+        if (res == -ENODATA) {
                 seat_id = NULL;
         } else if (res < 0) {
                 g_warning ("Could not get current seat: %s",
@@ -761,25 +836,23 @@ _get_systemd_seat_id (ActUserManager *manager)
                 return;
         }
 
-        manager->priv->seat.id = g_strdup (seat_id);
-        free (seat_id);
-
-        manager->priv->seat.state++;
-
-        queue_load_seat_incrementally (manager);
+        priv->seat.id = g_strdup (seat_id);
+        priv->seat.state++;
 }
 #endif
 
 static void
 get_seat_id_for_current_session (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
 #ifdef WITH_SYSTEMD
         if (LOGIND_RUNNING()) {
                 _get_systemd_seat_id (manager);
                 return;
         }
 #endif
-        console_kit_session_call_get_seat_id (manager->priv->seat.session_proxy,
+        console_kit_session_call_get_seat_id (priv->seat.session_proxy,
                                               NULL,
                                               on_get_seat_id_finished,
                                               g_object_ref (manager));
@@ -797,11 +870,12 @@ static gboolean
 username_in_exclude_list (ActUserManager *manager,
                           const char     *username)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GSList   *found;
         gboolean  ret = FALSE;
 
-        if (manager->priv->exclude_usernames != NULL) {
-                found = g_slist_find_custom (manager->priv->exclude_usernames,
+        if (priv->exclude_usernames != NULL) {
+                found = g_slist_find_custom (priv->exclude_usernames,
                                              username,
                                              match_name_cmpfunc);
                 if (found != NULL) {
@@ -818,7 +892,9 @@ add_session_for_user (ActUserManager *manager,
                       const char     *ssid,
                       gboolean        is_ours)
 {
-        g_hash_table_insert (manager->priv->sessions,
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        g_hash_table_insert (priv->sessions,
                              g_strdup (ssid),
                              g_object_ref (user));
 
@@ -830,8 +906,10 @@ static void
 set_has_multiple_users (ActUserManager *manager,
                         gboolean        has_multiple_users)
 {
-        if (manager->priv->has_multiple_users != has_multiple_users) {
-                manager->priv->has_multiple_users = has_multiple_users;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (priv->has_multiple_users != has_multiple_users) {
+                priv->has_multiple_users = has_multiple_users;
                 g_object_notify (G_OBJECT (manager), "has-multiple-users");
         }
 }
@@ -839,37 +917,39 @@ set_has_multiple_users (ActUserManager *manager,
 static ActUser *
 create_new_user (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUser *user;
 
         user = g_object_new (ACT_TYPE_USER, NULL);
 
-        manager->priv->new_users = g_slist_prepend (manager->priv->new_users, user);
+        priv->new_users = g_slist_prepend (priv->new_users, g_object_ref (user));
 
         g_signal_connect_object (user, "notify::is-loaded", G_CALLBACK (on_new_user_loaded), manager, 0);
 
-        return g_object_ref (user);
+        return user;
 }
 
 static void
 add_user (ActUserManager *manager,
           ActUser        *user)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         const char *object_path;
 
         g_debug ("ActUserManager: tracking user '%s'", act_user_get_user_name (user));
         if (act_user_is_system_account (user)) {
-                g_hash_table_insert (manager->priv->system_users_by_name,
+                g_hash_table_insert (priv->system_users_by_name,
                                      g_strdup (act_user_get_user_name (user)),
                                      g_object_ref (user));
         } else {
-                g_hash_table_insert (manager->priv->normal_users_by_name,
+                g_hash_table_insert (priv->normal_users_by_name,
                                      g_strdup (act_user_get_user_name (user)),
                                      g_object_ref (user));
         }
 
         object_path = act_user_get_object_path (user);
         if (object_path != NULL) {
-                g_hash_table_replace (manager->priv->users_by_object_path,
+                g_hash_table_replace (priv->users_by_object_path,
                                       (gpointer) object_path,
                                       g_object_ref (user));
         }
@@ -883,11 +963,7 @@ add_user (ActUserManager *manager,
                                  G_CALLBACK (on_user_changed),
                                  manager, 0);
 
-        if (g_hash_table_size (manager->priv->normal_users_by_name) > 1) {
-                set_has_multiple_users (manager, TRUE);
-        }
-
-        if (manager->priv->is_loaded) {
+        if (priv->is_loaded && priv->list_cached_users_done) {
                 g_debug ("ActUserManager: loaded, so emitting user-added signal");
                 g_signal_emit (manager, signals[USER_ADDED], 0, user);
         } else {
@@ -899,6 +975,8 @@ static void
 remove_user (ActUserManager *manager,
              ActUser        *user)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
         g_debug ("ActUserManager: no longer tracking user '%s' (with object path %s)",
                  act_user_get_user_name (user),
                  act_user_get_object_path (user));
@@ -908,19 +986,15 @@ remove_user (ActUserManager *manager,
         g_signal_handlers_disconnect_by_func (user, on_user_changed, manager);
         g_signal_handlers_disconnect_by_func (user, on_user_sessions_changed, manager);
         if (act_user_get_object_path (user) != NULL) {
-                g_hash_table_remove (manager->priv->users_by_object_path, act_user_get_object_path (user));
+                g_hash_table_remove (priv->users_by_object_path, act_user_get_object_path (user));
         }
         if (act_user_get_user_name (user) != NULL) {
-                g_hash_table_remove (manager->priv->normal_users_by_name, act_user_get_user_name (user));
-                g_hash_table_remove (manager->priv->system_users_by_name, act_user_get_user_name (user));
+                g_hash_table_remove (priv->normal_users_by_name, act_user_get_user_name (user));
+                g_hash_table_remove (priv->system_users_by_name, act_user_get_user_name (user));
 
         }
 
-        if (g_hash_table_size (manager->priv->normal_users_by_name) <= 1) {
-                set_has_multiple_users (manager, FALSE);
-        }
-
-        if (manager->priv->is_loaded) {
+        if (priv->is_loaded && priv->list_cached_users_done) {
                 g_debug ("ActUserManager: loaded, so emitting user-removed signal");
                 g_signal_emit (manager, signals[USER_REMOVED], 0, user);
         } else {
@@ -937,38 +1011,31 @@ static void
 update_user (ActUserManager *manager,
              ActUser        *user)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         const char *username;
 
         g_debug ("ActUserManager: updating %s", describe_user (user));
 
         username = act_user_get_user_name (user);
-        if (g_hash_table_lookup (manager->priv->system_users_by_name, username) != NULL) {
+        if (g_hash_table_lookup (priv->system_users_by_name, username) != NULL) {
                 if (!act_user_is_system_account (user)) {
                         g_debug ("ActUserManager: %s is no longer a system account, treating as normal user",
                                  describe_user (user));
-                        g_hash_table_insert (manager->priv->normal_users_by_name,
+                        g_hash_table_insert (priv->normal_users_by_name,
                                              g_strdup (act_user_get_user_name (user)),
                                              g_object_ref (user));
-                        g_hash_table_remove (manager->priv->system_users_by_name, username);
+                        g_hash_table_remove (priv->system_users_by_name, username);
                         g_signal_emit (manager, signals[USER_ADDED], 0, user);
-
-                        if (g_hash_table_size (manager->priv->normal_users_by_name) > 1) {
-                                set_has_multiple_users (manager, TRUE);
-                        }
                 }
         } else {
                 if (act_user_is_system_account (user)) {
                         g_debug ("ActUserManager: %s is no longer a normal account, treating as system user",
                                  describe_user (user));
-                        g_hash_table_insert (manager->priv->system_users_by_name,
+                        g_hash_table_insert (priv->system_users_by_name,
                                              g_strdup (act_user_get_user_name (user)),
                                              g_object_ref (user));
-                        g_hash_table_remove (manager->priv->normal_users_by_name, username);
+                        g_hash_table_remove (priv->normal_users_by_name, username);
                         g_signal_emit (manager, signals[USER_REMOVED], 0, user);
-
-                        if (g_hash_table_size (manager->priv->normal_users_by_name) <= 1) {
-                                set_has_multiple_users (manager, FALSE);
-                        }
                 }
         }
 }
@@ -977,12 +1044,13 @@ static ActUser *
 lookup_user_by_name (ActUserManager *manager,
                      const char     *username)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUser *user;
 
-        user = g_hash_table_lookup (manager->priv->normal_users_by_name, username);
+        user = g_hash_table_lookup (priv->normal_users_by_name, username);
 
         if (user == NULL) {
-                user = g_hash_table_lookup (manager->priv->system_users_by_name, username);
+                user = g_hash_table_lookup (priv->system_users_by_name, username);
         }
 
         return user;
@@ -993,6 +1061,7 @@ on_new_user_loaded (ActUser        *user,
                     GParamSpec     *pspec,
                     ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         const char *username;
         ActUser *old_user;
 
@@ -1003,10 +1072,10 @@ on_new_user_loaded (ActUser        *user,
         }
         g_signal_handlers_disconnect_by_func (user, on_new_user_loaded, manager);
 
-        manager->priv->new_users = g_slist_remove (manager->priv->new_users,
-                                                   user);
-        manager->priv->new_users_inhibiting_load = g_slist_remove (manager->priv->new_users_inhibiting_load,
-                                                                   user);
+        priv->new_users = g_slist_remove (priv->new_users,
+                                          user);
+        priv->new_users_inhibiting_load = g_slist_remove (priv->new_users_inhibiting_load,
+                                                          user);
 
         username = act_user_get_user_name (user);
 
@@ -1052,7 +1121,7 @@ on_new_user_loaded (ActUser        *user,
         g_object_unref (user);
 
 out:
-        if (manager->priv->new_users_inhibiting_load == NULL) {
+        if (priv->new_users_inhibiting_load == NULL) {
                 g_debug ("ActUserManager: no pending users, trying to set loaded property");
                 maybe_set_is_loaded (manager);
         } else {
@@ -1064,11 +1133,12 @@ static ActUser *
 find_new_user_with_object_path (ActUserManager *manager,
                                 const char     *object_path)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GSList *node;
 
         g_assert (object_path != NULL);
 
-        for (node = manager->priv->new_users; node != NULL; node = node->next) {
+        for (node = priv->new_users; node != NULL; node = node->next) {
                 ActUser *user = ACT_USER (node->data);
                 const char *user_object_path = act_user_get_object_path (user);
                 if (g_strcmp0 (user_object_path, object_path) == 0) {
@@ -1083,9 +1153,10 @@ static ActUser *
 add_new_user_for_object_path (const char     *object_path,
                               ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUser *user;
 
-        user = g_hash_table_lookup (manager->priv->users_by_object_path, object_path);
+        user = g_hash_table_lookup (priv->users_by_object_path, object_path);
 
         if (user != NULL) {
                 g_debug ("ActUserManager: tracking existing %s with object path %s",
@@ -1115,14 +1186,22 @@ on_new_user_in_accounts_service (GDBusProxy *proxy,
                                  gpointer    user_data)
 {
         ActUserManager *manager = ACT_USER_MANAGER (user_data);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(ActUser) user = NULL;
 
-        if (!manager->priv->is_loaded) {
+        /* Only track user changes if the user has requested a list
+         * of users */
+        if (!priv->list_cached_users_done) {
+                return;
+        }
+
+        if (!priv->is_loaded) {
                 g_debug ("ActUserManager: ignoring new user in accounts service with object path %s since not loaded yet", object_path);
                 return;
         }
 
         g_debug ("ActUserManager: new user in accounts service with object path %s", object_path);
-        add_new_user_for_object_path (object_path, manager);
+        user = add_new_user_for_object_path (object_path, manager);
 }
 
 static void
@@ -1131,9 +1210,17 @@ on_user_removed_in_accounts_service (GDBusProxy *proxy,
                                      gpointer    user_data)
 {
         ActUserManager *manager = ACT_USER_MANAGER (user_data);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUser        *user;
+        GSList         *node;
 
-        user = g_hash_table_lookup (manager->priv->users_by_object_path, object_path);
+        /* Only track user changes if the user has requested a list
+         * of users */
+        if (!priv->list_cached_users_done) {
+                return;
+        }
+
+        user = g_hash_table_lookup (priv->users_by_object_path, object_path);
 
         if (user == NULL) {
                 g_debug ("ActUserManager: ignoring untracked user %s", object_path);
@@ -1142,7 +1229,12 @@ on_user_removed_in_accounts_service (GDBusProxy *proxy,
                 g_debug ("ActUserManager: tracked user %s removed from accounts service", object_path);
         }
 
-        manager->priv->new_users = g_slist_remove (manager->priv->new_users, user);
+        node = g_slist_find (priv->new_users, user);
+        if (node != NULL) {
+                g_signal_handlers_disconnect_by_func (user, on_new_user_loaded, manager);
+                g_object_unref (user);
+                priv->new_users = g_slist_delete_link (priv->new_users, node);
+        }
 
         remove_user (manager, user);
 }
@@ -1153,57 +1245,46 @@ on_get_current_session_finished (GObject        *object,
                                  gpointer        data)
 {
         ConsoleKitManager *proxy = CONSOLE_KIT_MANAGER (object);
-        ActUserManager    *manager = data;
-        GError            *error = NULL;
+        g_autoptr(ActUserManager) manager = data;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError) error = NULL;
         char              *session_id;
 
-        g_assert (manager->priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_GET_SESSION_ID);
+        g_assert (priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_GET_SESSION_ID);
 
         if (!console_kit_manager_call_get_current_session_finish (proxy, &session_id, result, &error)) {
                 if (error != NULL) {
                         g_debug ("Failed to identify the current session: %s",
                                  error->message);
-                        g_error_free (error);
                 } else {
                         g_debug ("Failed to identify the current session");
                 }
                 unload_seat (manager);
 
-                goto out;
+                return;
         }
 
-        manager->priv->seat.session_id = session_id;
-        manager->priv->seat.state++;
+        priv->seat.session_id = session_id;
+        priv->seat.state++;
 
         queue_load_seat_incrementally (manager);
-
- out:
-        g_debug ("ActUserManager: unrefing manager owned by GetCurrentSession request");
-        g_object_unref (manager);
 }
 
 #ifdef WITH_SYSTEMD
 static void
 _get_current_systemd_session_id (ActUserManager *manager)
 {
-        char *session_id;
-        int   res;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autofree gchar *session_id = NULL;
 
-        res = sd_pid_get_session (0, &session_id);
-
-        if (res == -ENOENT) {
-                session_id = NULL;
-        } else if (res < 0) {
-                g_debug ("Failed to identify the current session: %s",
-                         strerror (-res));
+        if (!_find_graphical_systemd_session (&session_id)) {
+                g_debug ("Failed to identify the current session");
                 unload_seat (manager);
                 return;
         }
 
-        manager->priv->seat.session_id = g_strdup (session_id);
-        free (session_id);
-
-        manager->priv->seat.state++;
+        priv->seat.session_id = g_strdup (session_id);
+        priv->seat.state++;
 
         queue_load_seat_incrementally (manager);
 
@@ -1213,6 +1294,8 @@ _get_current_systemd_session_id (ActUserManager *manager)
 static void
 get_current_session_id (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
 #ifdef WITH_SYSTEMD
         if (LOGIND_RUNNING()) {
                 _get_current_systemd_session_id (manager);
@@ -1220,19 +1303,18 @@ get_current_session_id (ActUserManager *manager)
         }
 #endif
 
-        if (manager->priv->ck_manager_proxy == NULL) {
-                GError *error = NULL;
+        if (priv->ck_manager_proxy == NULL) {
+                g_autoptr(GError) error = NULL;
 
-                manager->priv->ck_manager_proxy = console_kit_manager_proxy_new_sync (manager->priv->connection,
-                                                                                      G_DBUS_PROXY_FLAGS_NONE,
-                                                                                      CK_NAME,
-                                                                                      CK_MANAGER_PATH,
-                                                                                      NULL,
-                                                                                      &error);
-                if (manager->priv->ck_manager_proxy == NULL) {
+                priv->ck_manager_proxy = console_kit_manager_proxy_new_sync (priv->connection,
+                                                                             G_DBUS_PROXY_FLAGS_NONE,
+                                                                             CK_NAME,
+                                                                             CK_MANAGER_PATH,
+                                                                             NULL,
+                                                                             &error);
+                if (priv->ck_manager_proxy == NULL) {
                         if (error != NULL) {
                                 g_warning ("Failed to create ConsoleKit proxy: %s", error->message);
-                                g_error_free (error);
                         } else {
                                 g_warning ("Failed to create_ConsoleKit_proxy");
                         }
@@ -1241,7 +1323,7 @@ get_current_session_id (ActUserManager *manager)
                 }
         }
 
-        console_kit_manager_call_get_current_session (manager->priv->ck_manager_proxy, NULL,
+        console_kit_manager_call_get_current_session (priv->ck_manager_proxy, NULL,
                                                       on_get_current_session_finished,
                                                       g_object_ref (manager));
 }
@@ -1249,14 +1331,13 @@ get_current_session_id (ActUserManager *manager)
 static void
 unload_new_session (ActUserManagerNewSession *new_session)
 {
-        ActUserManager *manager;
+        ActUserManager *manager = new_session->manager;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
 
 	/* From here down to the check on pending_calls is idempotent,
 	 * like GObject dispose(); it can be called twice if the new session
 	 * is unloaded while there are still async calls pending.
 	 */
-
-        manager = new_session->manager;
 
         if (new_session->cancellable != NULL &&
             !g_cancellable_is_cancelled (new_session->cancellable)) {
@@ -1276,8 +1357,8 @@ unload_new_session (ActUserManagerNewSession *new_session)
         new_session->id = NULL;
 
         if (manager != NULL) {
-                manager->priv->new_sessions = g_slist_remove (manager->priv->new_sessions,
-                                                              new_session);
+                priv->new_sessions = g_slist_remove (priv->new_sessions,
+                                                     new_session);
 
                 g_debug ("ActUserManager: unrefing manager owned by new session that's now unloaded");
                 new_session->manager = NULL;
@@ -1296,7 +1377,10 @@ unload_new_session (ActUserManagerNewSession *new_session)
 static void
 get_proxy_for_new_session (ActUserManagerNewSession *new_session)
 {
-        GError            *error = NULL;
+        ActUserManager *manager = new_session->manager;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError) error = NULL;
+
 #ifdef WITH_SYSTEMD
         if (LOGIND_RUNNING()) {
                 new_session->state++;
@@ -1305,7 +1389,7 @@ get_proxy_for_new_session (ActUserManagerNewSession *new_session)
         }
 #endif
 
-        new_session->proxy = console_kit_session_proxy_new_sync (new_session->manager->priv->connection,
+        new_session->proxy = console_kit_session_proxy_new_sync (priv->connection,
                                                                  G_DBUS_PROXY_FLAGS_NONE,
                                                                  CK_NAME,
                                                                  new_session->id,
@@ -1314,7 +1398,6 @@ get_proxy_for_new_session (ActUserManagerNewSession *new_session)
         if (new_session->proxy == NULL) {
                 g_warning ("Failed to connect to the ConsoleKit '%s' object: %s",
                            new_session->id, error->message);
-                g_error_free (error);
                 unload_new_session (new_session);
                 return;
         }
@@ -1331,7 +1414,7 @@ on_get_unix_user_finished (GObject      *object,
 {
         ConsoleKitSession *proxy = CONSOLE_KIT_SESSION (object);
         ActUserManagerNewSession *new_session = data;
-        GError            *error = NULL;
+        g_autoptr(GError)  error = NULL;
         guint              uid;
 
         new_session->pending_calls--;
@@ -1345,7 +1428,6 @@ on_get_unix_user_finished (GObject      *object,
                 if (error != NULL) {
                         g_debug ("Failed to get uid of session '%s': %s",
                                  new_session->id, error->message);
-                        g_error_free (error);
                 } else {
                         g_debug ("Failed to get uid of session '%s'",
                                  new_session->id);
@@ -1413,14 +1495,13 @@ on_find_user_by_name_finished (GObject       *object,
 {
         AccountsAccounts *proxy = ACCOUNTS_ACCOUNTS (object);
         ActUserManagerFetchUserRequest *request = data;
-        GError          *error = NULL;
+        g_autoptr(GError) error = NULL;
         char            *user;
 
         if (!accounts_accounts_call_find_user_by_name_finish (proxy, &user, result, &error)) {
                 if (error != NULL) {
                         g_debug ("ActUserManager: Failed to find %s: %s",
                                  request->description, error->message);
-                        g_error_free (error);
                 } else {
                         g_debug ("ActUserManager: Failed to find %s",
                                  request->description);
@@ -1444,14 +1525,13 @@ on_find_user_by_id_finished (GObject       *object,
 {
         AccountsAccounts *proxy = ACCOUNTS_ACCOUNTS (object);
         ActUserManagerFetchUserRequest *request = data;
-        GError          *error = NULL;
+        g_autoptr(GError) error = NULL;
         char            *user;
 
         if (!accounts_accounts_call_find_user_by_id_finish (proxy, &user, result, &error)) {
                 if (error != NULL) {
                         g_debug ("ActUserManager: Failed to find user %lu: %s",
                                  (gulong) request->uid, error->message);
-                        g_error_free (error);
                 } else {
                         g_debug ("ActUserManager: Failed to find user with id %lu",
                                  (gulong) request->uid);
@@ -1472,21 +1552,23 @@ static void
 find_user_in_accounts_service (ActUserManager                 *manager,
                                ActUserManagerFetchUserRequest *request)
 {
-        g_assert (manager->priv->accounts_proxy != NULL);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        g_assert (priv->accounts_proxy != NULL);
 
         g_debug ("ActUserManager: Looking for %s in accounts service",
                  request->description);
 
         switch (request->type) {
                 case ACT_USER_MANAGER_FETCH_USER_FROM_USERNAME_REQUEST:
-                    accounts_accounts_call_find_user_by_name (manager->priv->accounts_proxy,
+                    accounts_accounts_call_find_user_by_name (priv->accounts_proxy,
                                                               request->username,
                                                               NULL,
                                                               on_find_user_by_name_finished,
                                                               request);
                     break;
                 case ACT_USER_MANAGER_FETCH_USER_FROM_ID_REQUEST:
-                    accounts_accounts_call_find_user_by_id (manager->priv->accounts_proxy,
+                    accounts_accounts_call_find_user_by_id (priv->accounts_proxy,
                                                             request->uid,
                                                             NULL,
                                                             on_find_user_by_id_finished,
@@ -1500,41 +1582,26 @@ static void
 set_is_loaded (ActUserManager *manager,
                gboolean        is_loaded)
 {
-        if (manager->priv->is_loaded != is_loaded) {
-                manager->priv->is_loaded = is_loaded;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (priv->is_loaded != is_loaded) {
+                priv->is_loaded = is_loaded;
                 g_object_notify (G_OBJECT (manager), "is-loaded");
         }
 }
 
 static void
-on_list_cached_users_finished (GObject      *object,
-                               GAsyncResult *result,
-                               gpointer      data)
+load_user_paths (ActUserManager       *manager,
+                 const char * const * user_paths)
 {
-        AccountsAccounts *proxy = ACCOUNTS_ACCOUNTS (object);
-        ActUserManager   *manager = data;
-        gchar           **user_paths;
-        GError           *error = NULL;
-
-        manager->priv->listing_cached_users = FALSE;
-        if (!accounts_accounts_call_list_cached_users_finish (proxy, &user_paths, result, &error)) {
-                g_debug ("ActUserManager: ListCachedUsers failed: %s", error->message);
-                g_error_free (error);
-
-                g_object_unref (manager->priv->accounts_proxy);
-                manager->priv->accounts_proxy = NULL;
-
-                g_debug ("ActUserManager: unrefing manager owned by failed ListCachedUsers call");
-                g_object_unref (manager);
-                return;
-        }
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
 
         /* We now have a batch of unloaded users that we know about. Once that initial
          * batch is loaded up, we can mark the manager as loaded.
          *
          * (see on_new_user_loaded)
          */
-        if (g_strv_length (user_paths) > 0) {
+        if (g_strv_length ((char **) user_paths) > 0) {
                 int i;
 
                 g_debug ("ActUserManager: ListCachedUsers finished, will set loaded property after list is fully loaded");
@@ -1542,38 +1609,28 @@ on_list_cached_users_finished (GObject      *object,
                         ActUser *user;
 
                         user = add_new_user_for_object_path (user_paths[i], manager);
-                        if (!manager->priv->is_loaded) {
-                                manager->priv->new_users_inhibiting_load = g_slist_prepend (manager->priv->new_users_inhibiting_load, user);
+                        if (!priv->is_loaded) {
+                                priv->new_users_inhibiting_load = g_slist_prepend (priv->new_users_inhibiting_load, user);
                         }
                 }
         } else {
                 g_debug ("ActUserManager: ListCachedUsers finished with empty list, maybe setting loaded property now");
                 maybe_set_is_loaded (manager);
         }
+}
 
-        g_strfreev (user_paths);
+static void
+load_included_usernames (ActUserManager *manager)
+{
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        GSList *l;
 
         /* Add users who are specifically included */
-        if (manager->priv->include_usernames != NULL) {
-                GSList *l;
+        for (l = priv->include_usernames; l != NULL; l = l->next) {
+                g_debug ("ActUserManager: Adding included user %s", (char *)l->data);
 
-                for (l = manager->priv->include_usernames; l != NULL; l = l->next) {
-                        ActUser *user;
-
-                        g_debug ("ActUserManager: Adding included user %s", (char *)l->data);
-                        /*
-                         * The call to act_user_manager_get_user will add the user if it is
-                         * valid and not already in the hash.
-                         */
-                        user = act_user_manager_get_user (manager, l->data);
-                        if (user == NULL) {
-                                g_debug ("ActUserManager: unable to lookup user '%s'", (char *)l->data);
-                        }
-                }
+                load_user (manager, l->data);
         }
-
-        g_debug ("ActUserManager: unrefing manager owned by finished ListCachedUsers call");
-        g_object_unref (manager);
 }
 
 static void
@@ -1583,7 +1640,7 @@ on_get_x11_display_finished (GObject      *object,
 {
         ConsoleKitSession *proxy = CONSOLE_KIT_SESSION (object);
         ActUserManagerNewSession *new_session = data;
-        GError            *error = NULL;
+        g_autoptr(GError) error = NULL;
         char              *x11_display;
 
         new_session->pending_calls--;
@@ -1597,7 +1654,6 @@ on_get_x11_display_finished (GObject      *object,
                 if (error != NULL) {
                         g_debug ("Failed to get the x11 display of session '%s': %s",
                                  new_session->id, error->message);
-                        g_error_free (error);
                 } else {
                         g_debug ("Failed to get the x11 display of session '%s'",
                                  new_session->id);
@@ -1619,13 +1675,12 @@ on_get_x11_display_finished (GObject      *object,
 static void
 _get_x11_display_for_new_systemd_session (ActUserManagerNewSession *new_session)
 {
-        char *session_type;
-        char *x11_display;
-        int   res;
+        g_autofree gchar *session_type = NULL;
+        g_autofree gchar *x11_display = NULL;
+        int res;
 
         res = sd_session_get_type (new_session->id,
                                    &session_type);
-
         if (res < 0) {
                 g_debug ("ActUserManager: Failed to get the type of session '%s': %s",
                          new_session->id,
@@ -1634,19 +1689,17 @@ _get_x11_display_for_new_systemd_session (ActUserManagerNewSession *new_session)
                 return;
         }
 
-        if (g_strcmp0 (session_type, "x11") != 0) {
+        if (g_strcmp0 (session_type, "x11") != 0 &&
+            g_strcmp0 (session_type, "wayland") != 0) {
                 g_debug ("ActUserManager: (mostly) ignoring %s session '%s' since it's not graphical",
                          session_type,
                          new_session->id);
-                free (session_type);
                 x11_display = NULL;
                 goto done;
         }
-        free (session_type);
 
         res = sd_session_get_display (new_session->id,
                                       &x11_display);
-
         if (res < 0) {
                 g_debug ("ActUserManager: Failed to get the x11 display of session '%s': %s",
                          new_session->id,
@@ -1660,7 +1713,6 @@ _get_x11_display_for_new_systemd_session (ActUserManagerNewSession *new_session)
 
  done:
         new_session->x11_display = g_strdup (x11_display);
-        free (x11_display);
         new_session->state++;
 
         load_new_session_incrementally (new_session);
@@ -1716,18 +1768,13 @@ maybe_add_new_session (ActUserManagerNewSession *new_session)
         }
 
         add_session_for_user (manager, user, new_session->id, is_ours);
-
-        /* if we haven't yet gotten the login frequency
-           then at least add one because the session exists */
-        if (act_user_get_login_frequency (user) == 0) {
-                _act_user_update_login_frequency (user, 1);
-        }
 }
 
 static void
 load_new_session (ActUserManager *manager,
                   const char     *session_id)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUserManagerNewSession *new_session;
 
         new_session = g_slice_new0 (ActUserManagerNewSession);
@@ -1737,8 +1784,7 @@ load_new_session (ActUserManager *manager,
         new_session->state = ACT_USER_MANAGER_NEW_SESSION_STATE_UNLOADED + 1;
         new_session->cancellable = g_cancellable_new ();
 
-        manager->priv->new_sessions = g_slist_prepend (manager->priv->new_sessions,
-                                                       new_session);
+        priv->new_sessions = g_slist_prepend (priv->new_sessions, new_session);
         load_new_session_incrementally (new_session);
 }
 
@@ -1769,12 +1815,13 @@ static void
 _remove_session (ActUserManager *manager,
                  const char     *session_id)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUser       *user;
         GSList        *found;
 
         g_debug ("ActUserManager: Session removed: %s", session_id);
 
-        found = g_slist_find_custom (manager->priv->new_sessions,
+        found = g_slist_find_custom (priv->new_sessions,
                                      session_id,
                                      match_new_session_cmpfunc);
 
@@ -1802,7 +1849,7 @@ _remove_session (ActUserManager *manager,
         /* since the session object may already be gone
          * we can't query CK directly */
 
-        user = g_hash_table_lookup (manager->priv->sessions, session_id);
+        user = g_hash_table_lookup (priv->sessions, session_id);
 
         if (user == NULL) {
                 /* nothing to do */
@@ -1811,7 +1858,7 @@ _remove_session (ActUserManager *manager,
 
         g_debug ("ActUserManager: Session removed for %s", describe_user (user));
         _act_user_remove_session (user, session_id);
-        g_hash_table_remove (manager->priv->sessions, session_id);
+        g_hash_table_remove (priv->sessions, session_id);
 }
 
 static void
@@ -1828,14 +1875,14 @@ static gboolean
 _session_recognized (ActUserManager *manager,
                      const char     *session_id)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GSList *node;
 
-        if (g_hash_table_contains (manager->priv->sessions,
-                                   session_id)) {
+        if (g_hash_table_contains (priv->sessions, session_id)) {
                 return TRUE;
         }
 
-        node = manager->priv->new_sessions;
+        node = priv->new_sessions;
         while (node != NULL) {
                 ActUserManagerNewSession *new_session = node->data;
 
@@ -1883,12 +1930,13 @@ static void
 _remove_stale_systemd_sessions (ActUserManager *manager,
                                 GHashTable     *systemd_sessions)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GHashTableIter iter;
         gpointer key, value;
         GSList *node, *sessions_to_remove;
 
         sessions_to_remove = NULL;
-        g_hash_table_iter_init (&iter, manager->priv->sessions);
+        g_hash_table_iter_init (&iter, priv->sessions);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
                 char *session_id = key;
 
@@ -1899,7 +1947,7 @@ _remove_stale_systemd_sessions (ActUserManager *manager,
                 sessions_to_remove = g_slist_prepend (sessions_to_remove, session_id);
         }
 
-        node = manager->priv->new_sessions;
+        node = priv->new_sessions;
         while (node != NULL) {
                 ActUserManagerNewSession *new_session = node->data;
                 node = node->next;
@@ -1930,14 +1978,10 @@ reload_systemd_sessions (ActUserManager *manager)
 {
         int         res;
         int         i;
-        char       **sessions;
-        GHashTable  *systemd_sessions;
-        char        *state;
-        gboolean     is_closing;
-
+        g_auto(GStrv) sessions = NULL;
+        g_autoptr(GHashTable) systemd_sessions = NULL;
 
         res = sd_get_sessions (&sessions);
-
         if (res < 0) {
                 g_debug ("Failed to determine sessions: %s", strerror (-res));
                 return;
@@ -1948,25 +1992,20 @@ reload_systemd_sessions (ActUserManager *manager)
 
         if (sessions != NULL) {
                 for (i = 0; sessions[i] != NULL; i ++) {
-                        char *session_class;
+                        g_autofree gchar *state = NULL;
+                        g_autofree gchar *session_class = NULL;
 
                         res = sd_session_get_state (sessions[i], &state);
-
                         if (res < 0) {
                                 g_debug ("Failed to determine state of session %s: %s", sessions[i], strerror (-res));
                                 continue;
                         }
 
-                        is_closing = g_strcmp0 (state, "closing") == 0;
-                        free (state);
-
-                        if (is_closing) {
+                        if (g_strcmp0 (state, "closing") == 0) {
                                 continue;
                         }
 
-                        session_class = NULL;
                         res = sd_session_get_class (sessions[i], &session_class);
-
                         if (res < 0) {
                                 g_debug ("Failed to determine class of session %s: %s", sessions[i], strerror (-res));
                                 continue;
@@ -1974,10 +2013,8 @@ reload_systemd_sessions (ActUserManager *manager)
 
                         if (g_strcmp0 (session_class, "user") != 0) {
                                 g_debug ("Ignoring non-user session %s (class %s)", sessions[i], session_class);
-                                free (session_class);
                                 continue;
                         }
-                        free (session_class);
 
                         g_hash_table_insert (systemd_sessions,
                                              sessions[i], NULL);
@@ -1987,15 +2024,6 @@ reload_systemd_sessions (ActUserManager *manager)
 
         _add_new_systemd_sessions (manager, systemd_sessions);
         _remove_stale_systemd_sessions (manager, systemd_sessions);
-        g_hash_table_unref (systemd_sessions);
-
-        if (sessions != NULL) {
-                for (i = 0; sessions[i]; i ++) {
-                        free (sessions[i]);
-                }
-
-                free (sessions);
-        }
 }
 
 #endif
@@ -2003,7 +2031,8 @@ static gboolean
 on_session_monitor_event (GPollableInputStream *stream,
                           ActUserManager       *manager)
 {
-        sd_login_monitor_flush (manager->priv->seat.session_monitor);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        sd_login_monitor_flush (priv->seat.session_monitor);
         reload_systemd_sessions (manager);
         return TRUE;
 }
@@ -2011,11 +2040,12 @@ on_session_monitor_event (GPollableInputStream *stream,
 static void
 _monitor_for_systemd_session_changes (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         int res;
         int fd;
         GSource *source;
 
-        res = sd_login_monitor_new ("session", &manager->priv->seat.session_monitor);
+        res = sd_login_monitor_new ("session", &priv->seat.session_monitor);
 
         if (res < 0) {
                 g_warning ("Failed to monitor logind session changes: %s",
@@ -2024,17 +2054,17 @@ _monitor_for_systemd_session_changes (ActUserManager *manager)
                 return;
         }
 
-        fd = sd_login_monitor_get_fd (manager->priv->seat.session_monitor);
+        fd = sd_login_monitor_get_fd (priv->seat.session_monitor);
 
-        manager->priv->seat.session_monitor_stream = g_unix_input_stream_new (fd, FALSE);
-        source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (manager->priv->seat.session_monitor_stream),
+        priv->seat.session_monitor_stream = g_unix_input_stream_new (fd, FALSE);
+        source = g_pollable_input_stream_create_source (G_POLLABLE_INPUT_STREAM (priv->seat.session_monitor_stream),
                                                         NULL);
         g_source_set_callback (source,
                                (GSourceFunc)
                                on_session_monitor_event,
                                manager,
                                NULL);
-        manager->priv->seat.session_monitor_source_id = g_source_attach (source, NULL);
+        priv->seat.session_monitor_source_id = g_source_attach (source, NULL);
         g_source_unref (source);
 }
 #endif
@@ -2042,29 +2072,29 @@ _monitor_for_systemd_session_changes (ActUserManager *manager)
 static void
 get_seat_proxy (ActUserManager *manager)
 {
-        GError *error = NULL;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError) error = NULL;
 
 #ifdef WITH_SYSTEMD
         if (LOGIND_RUNNING()) {
                 _monitor_for_systemd_session_changes (manager);
-                manager->priv->seat.state++;
+                priv->seat.state++;
                 return;
         }
 #endif
 
-        g_assert (manager->priv->seat.seat_proxy == NULL);
+        g_assert (priv->seat.seat_proxy == NULL);
 
-        manager->priv->seat.seat_proxy = console_kit_seat_proxy_new_sync (manager->priv->connection,
-                                                                          G_DBUS_PROXY_FLAGS_NONE,
-                                                                          CK_NAME,
-                                                                          manager->priv->seat.id,
-                                                                          NULL,
-                                                                          &error);
-        if (manager->priv->seat.seat_proxy == NULL) {
+        priv->seat.seat_proxy = console_kit_seat_proxy_new_sync (priv->connection,
+                                                                 G_DBUS_PROXY_FLAGS_NONE,
+                                                                 CK_NAME,
+                                                                 priv->seat.id,
+                                                                 NULL,
+                                                                 &error);
+        if (priv->seat.seat_proxy == NULL) {
                 if (error != NULL) {
                         g_warning ("Failed to connect to the ConsoleKit seat object: %s",
                                    error->message);
-                        g_error_free (error);
                 } else {
                         g_warning ("Failed to connect to the ConsoleKit seat object");
                 }
@@ -2072,32 +2102,32 @@ get_seat_proxy (ActUserManager *manager)
                 return;
         }
 
-        g_signal_connect (manager->priv->seat.seat_proxy,
+        g_signal_connect (priv->seat.seat_proxy,
                           "session-added",
                           G_CALLBACK (seat_session_added),
                           manager);
-        g_signal_connect (manager->priv->seat.seat_proxy,
+        g_signal_connect (priv->seat.seat_proxy,
                           "session-removed",
                           G_CALLBACK (seat_session_removed),
                           manager);
-        manager->priv->seat.state++;
+        priv->seat.state++;
 }
 
 static void
 on_console_kit_session_proxy_gotten (GObject *object, GAsyncResult *result, gpointer user_data)
 {
         ActUserManager *manager = user_data;
-        GError *error = NULL;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError) error = NULL;
 
         g_debug ("on_console_kit_session_proxy_gotten");
 
-        manager->priv->seat.session_proxy = console_kit_session_proxy_new_finish (result, &error);
+        priv->seat.session_proxy = console_kit_session_proxy_new_finish (result, &error);
 
-        if (manager->priv->seat.session_proxy == NULL) {
+        if (priv->seat.session_proxy == NULL) {
                 if (error != NULL) {
                         g_warning ("Failed to connect to the ConsoleKit session object: %s",
                                    error->message);
-                        g_error_free (error);
                 } else {
                         g_warning ("Failed to connect to the ConsoleKit session object");
                 }
@@ -2106,7 +2136,7 @@ on_console_kit_session_proxy_gotten (GObject *object, GAsyncResult *result, gpoi
                 goto out;
         }
 
-        manager->priv->seat.state++;
+        priv->seat.state++;
         load_seat_incrementally (manager);
 
  out:
@@ -2117,9 +2147,11 @@ on_console_kit_session_proxy_gotten (GObject *object, GAsyncResult *result, gpoi
 static void
 get_session_proxy (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
 #ifdef WITH_SYSTEMD
         if (LOGIND_RUNNING()) {
-                manager->priv->seat.state++;
+                priv->seat.state++;
                 queue_load_seat_incrementally (manager);
                 return;
         }
@@ -2127,12 +2159,12 @@ get_session_proxy (ActUserManager *manager)
 
         g_debug ("ActUserManager: fetching user proxy");
 
-        g_assert (manager->priv->seat.session_proxy == NULL);
+        g_assert (priv->seat.session_proxy == NULL);
 
-        console_kit_session_proxy_new (manager->priv->connection,
+        console_kit_session_proxy_new (priv->connection,
                                        G_DBUS_PROXY_FLAGS_NONE,
                                        CK_NAME,
-                                       manager->priv->seat.session_id,
+                                       priv->seat.session_id,
                                        NULL,
                                        on_console_kit_session_proxy_gotten,
                                        g_object_ref (manager));
@@ -2141,23 +2173,25 @@ get_session_proxy (ActUserManager *manager)
 static void
 unload_seat (ActUserManager *manager)
 {
-        manager->priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_UNLOADED;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
 
-        if (manager->priv->seat.seat_proxy != NULL) {
-                g_object_unref (manager->priv->seat.seat_proxy);
-                manager->priv->seat.seat_proxy = NULL;
+        priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_UNLOADED;
+
+        if (priv->seat.seat_proxy != NULL) {
+                g_object_unref (priv->seat.seat_proxy);
+                priv->seat.seat_proxy = NULL;
         }
 
-        if (manager->priv->seat.session_proxy != NULL) {
-                g_object_unref (manager->priv->seat.session_proxy);
-                manager->priv->seat.session_proxy = NULL;
+        if (priv->seat.session_proxy != NULL) {
+                g_object_unref (priv->seat.session_proxy);
+                priv->seat.session_proxy = NULL;
         }
 
-        g_free (manager->priv->seat.id);
-        manager->priv->seat.id = NULL;
+        g_free (priv->seat.id);
+        priv->seat.id = NULL;
 
-        g_free (manager->priv->seat.session_id);
-        manager->priv->seat.session_id = NULL;
+        g_free (priv->seat.session_id);
+        priv->seat.session_id = NULL;
 
         g_debug ("ActUserManager: seat unloaded, so trying to set loaded property");
         maybe_set_is_loaded (manager);
@@ -2189,13 +2223,12 @@ load_new_session_incrementally (ActUserManagerNewSession *new_session)
 static void
 free_fetch_user_request (ActUserManagerFetchUserRequest *request)
 {
-        ActUserManager *manager;
-
-        manager = request->manager;
+        ActUserManager *manager = request->manager;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
 
         g_object_set_data (G_OBJECT (request->user), "fetch-user-request", NULL);
 
-        manager->priv->fetch_user_requests = g_slist_remove (manager->priv->fetch_user_requests, request);
+        priv->fetch_user_requests = g_slist_remove (priv->fetch_user_requests, request);
         if (request->type == ACT_USER_MANAGER_FETCH_USER_FROM_USERNAME_REQUEST) {
                 g_free (request->username);
         }
@@ -2228,7 +2261,9 @@ on_user_manager_maybe_ready_for_request (ActUserManager                 *manager
                                          GParamSpec                     *pspec,
                                          ActUserManagerFetchUserRequest *request)
 {
-        if (!manager->priv->is_loaded) {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (!priv->is_loaded) {
                 return;
         }
 
@@ -2244,14 +2279,14 @@ on_user_manager_maybe_ready_for_request (ActUserManager                 *manager
 static void
 fetch_user_incrementally (ActUserManagerFetchUserRequest *request)
 {
-        ActUserManager *manager;
+        ActUserManager *manager = request->manager;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
 
         g_debug ("ActUserManager: finding %s state %d",
                  request->description, request->state);
-        manager = request->manager;
         switch (request->state) {
         case ACT_USER_MANAGER_GET_USER_STATE_WAIT_FOR_LOADED:
-                if (manager->priv->is_loaded) {
+                if (priv->is_loaded) {
                         request->state++;
                         fetch_user_incrementally (request);
                 } else {
@@ -2264,7 +2299,7 @@ fetch_user_incrementally (ActUserManagerFetchUserRequest *request)
                 break;
 
         case ACT_USER_MANAGER_GET_USER_STATE_ASK_ACCOUNTS_SERVICE:
-                if (manager->priv->accounts_proxy == NULL) {
+                if (priv->accounts_proxy == NULL) {
                         give_up (manager, request);
                 } else {
                         find_user_in_accounts_service (manager, request);
@@ -2294,6 +2329,7 @@ fetch_user_with_username_from_accounts_service (ActUserManager *manager,
                                                 ActUser        *user,
                                                 const char     *username)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUserManagerFetchUserRequest *request;
 
         request = g_slice_new0 (ActUserManagerFetchUserRequest);
@@ -2305,8 +2341,8 @@ fetch_user_with_username_from_accounts_service (ActUserManager *manager,
         request->state = ACT_USER_MANAGER_GET_USER_STATE_UNFETCHED + 1;
         request->description = g_strdup_printf ("user '%s'", request->username);
 
-        manager->priv->fetch_user_requests = g_slist_prepend (manager->priv->fetch_user_requests,
-                                                              request);
+        priv->fetch_user_requests = g_slist_prepend (priv->fetch_user_requests,
+                                                     request);
         g_object_set_data (G_OBJECT (user), "fetch-user-request", request);
         fetch_user_incrementally (request);
 }
@@ -2316,6 +2352,7 @@ fetch_user_with_id_from_accounts_service (ActUserManager *manager,
                                           ActUser        *user,
                                           uid_t           id)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUserManagerFetchUserRequest *request;
 
         request = g_slice_new0 (ActUserManagerFetchUserRequest);
@@ -2327,8 +2364,8 @@ fetch_user_with_id_from_accounts_service (ActUserManager *manager,
         request->state = ACT_USER_MANAGER_GET_USER_STATE_UNFETCHED + 1;
         request->description = g_strdup_printf ("user with id %lu", (gulong) request->uid);
 
-        manager->priv->fetch_user_requests = g_slist_prepend (manager->priv->fetch_user_requests,
-                                                              request);
+        priv->fetch_user_requests = g_slist_prepend (priv->fetch_user_requests,
+                                                     request);
         g_object_set_data (G_OBJECT (user), "fetch-user-request", request);
         fetch_user_incrementally (request);
 }
@@ -2349,6 +2386,7 @@ ActUser *
 act_user_manager_get_user (ActUserManager *manager,
                            const char     *username)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUser *user;
 
         g_return_val_if_fail (ACT_IS_USER_MANAGER (manager), NULL);
@@ -2361,12 +2399,51 @@ act_user_manager_get_user (ActUserManager *manager,
                 g_debug ("ActUserManager: trying to track new user with username %s", username);
                 user = create_new_user (manager);
 
-                if (manager->priv->accounts_proxy != NULL) {
+                if (priv->accounts_proxy != NULL) {
                         fetch_user_with_username_from_accounts_service (manager, user, username);
                 }
         }
 
         return user;
+}
+
+static void
+load_user (ActUserManager *manager,
+           const char     *username)
+{
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        ActUser *user;
+        g_autoptr(GError) error = NULL;
+        char *object_path = NULL;
+        gboolean user_found;
+
+        g_return_if_fail (ACT_IS_USER_MANAGER (manager));
+        g_return_if_fail (username != NULL && username[0] != '\0');
+
+        user = lookup_user_by_name (manager, username);
+
+        if (user == NULL) {
+                g_debug ("ActUserManager: trying to track new user with username %s", username);
+                user = create_new_user (manager);
+        }
+
+        user_found = accounts_accounts_call_find_user_by_name_sync (priv->accounts_proxy,
+                                                                    username,
+                                                                    &object_path,
+                                                                    NULL,
+                                                                    &error);
+
+        if (!user_found) {
+                if (error != NULL) {
+                        g_debug ("ActUserManager: Failed to find user '%s': %s",
+                                 username, error->message);
+                } else {
+                        g_debug ("ActUserManager: Failed to find user '%s'",
+                                 username);
+                }
+        }
+
+        _act_user_update_from_object_path (user, object_path);
 }
 
 /**
@@ -2385,14 +2462,14 @@ ActUser *
 act_user_manager_get_user_by_id (ActUserManager *manager,
                                  uid_t           id)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         ActUser *user;
-        gchar  *object_path;
+        g_autofree gchar *object_path = NULL;
 
         g_return_val_if_fail (ACT_IS_USER_MANAGER (manager), NULL);
 
         object_path = g_strdup_printf ("/org/freedesktop/Accounts/User%lu", (gulong) id);
-        user = g_hash_table_lookup (manager->priv->users_by_object_path, object_path);
-        g_free (object_path);
+        user = g_hash_table_lookup (priv->users_by_object_path, object_path);
 
         if (user != NULL) {
                 return g_object_ref (user);
@@ -2400,7 +2477,7 @@ act_user_manager_get_user_by_id (ActUserManager *manager,
                 g_debug ("ActUserManager: trying to track new user with uid %lu", (gulong) id);
                 user = create_new_user (manager);
 
-                if (manager->priv->accounts_proxy != NULL) {
+                if (priv->accounts_proxy != NULL) {
                         fetch_user_with_id_from_accounts_service (manager, user, id);
                 }
         }
@@ -2429,12 +2506,20 @@ listify_hash_values_hfunc (gpointer key,
 GSList *
 act_user_manager_list_users (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GSList *retval;
 
         g_return_val_if_fail (ACT_IS_USER_MANAGER (manager), NULL);
 
+        if (!priv->list_cached_users_done) {
+                load_users (manager);
+
+                if (priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_GET_SEAT_PROXY)
+                        queue_load_seat_incrementally (manager);
+        }
+
         retval = NULL;
-        g_hash_table_foreach (manager->priv->normal_users_by_name, listify_hash_values_hfunc, &retval);
+        g_hash_table_foreach (priv->normal_users_by_name, listify_hash_values_hfunc, &retval);
 
         return g_slist_sort (retval, (GCompareFunc) act_user_collate);
 }
@@ -2442,32 +2527,29 @@ act_user_manager_list_users (ActUserManager *manager)
 static void
 maybe_set_is_loaded (ActUserManager *manager)
 {
-        if (manager->priv->is_loaded) {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (priv->is_loaded) {
                 g_debug ("ActUserManager: already loaded, so not setting loaded property");
                 return;
         }
 
-        if (manager->priv->getting_sessions) {
+        if (priv->getting_sessions) {
                 g_debug ("ActUserManager: GetSessions call pending, so not setting loaded property");
                 return;
         }
 
-        if (manager->priv->listing_cached_users) {
-                g_debug ("ActUserManager: Listing cached users, so not setting loaded property");
-                return;
-        }
-
-        if (manager->priv->new_users_inhibiting_load != NULL) {
+        if (priv->new_users_inhibiting_load != NULL) {
                 g_debug ("ActUserManager: Loading new users, so not setting loaded property");
                 return;
         }
 
-        /* Don't set is_loaded yet unless the seat is already loaded
+        /* Don't set is_loaded yet unless the seat is already loaded enough
          * or failed to load.
          */
-        if (manager->priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_LOADED) {
+        if (priv->seat.state > ACT_USER_MANAGER_SEAT_STATE_GET_ID) {
                 g_debug ("ActUserManager: Seat loaded, so now setting loaded property");
-        } else if (manager->priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_UNLOADED) {
+        } else if (priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_UNLOADED) {
                 g_debug ("ActUserManager: Seat wouldn't load, so giving up on it and setting loaded property");
         } else {
                 g_debug ("ActUserManager: Seat still actively loading, so not setting loaded property");
@@ -2501,47 +2583,44 @@ on_get_sessions_finished (GObject      *object,
                           gpointer      data)
 {
         ConsoleKitSeat *proxy = CONSOLE_KIT_SEAT (object);
-        ActUserManager *manager = data;
-        GError         *error = NULL;
-        gchar         **session_ids;
+        g_autoptr(ActUserManager) manager = data;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError) error = NULL;
+        g_auto(GStrv) session_ids = NULL;
         int             i;
 
         if (!console_kit_seat_call_get_sessions_finish (proxy, &session_ids, result, &error)) {
                 if (error != NULL) {
                         g_warning ("unable to determine sessions for seat: %s",
                                    error->message);
-                        g_error_free (error);
                 } else {
                         g_warning ("unable to determine sessions for seat");
                 }
 
-                goto out;
+                return;
         }
 
-        manager->priv->getting_sessions = FALSE;
+        priv->getting_sessions = FALSE;
         for (i = 0; session_ids[i] != NULL; i++) {
                 load_new_session (manager, session_ids[i]);
         }
-        g_strfreev (session_ids);
 
         g_debug ("ActUserManager: GetSessions call finished, so trying to set loaded property");
         maybe_set_is_loaded (manager);
-
- out:
-        g_debug ("ActUserManager: unrefing manager owned by GetSessions request");
-        g_object_unref (manager);
 }
 
 static void
 load_console_kit_sessions (ActUserManager *manager)
 {
-        if (manager->priv->seat.seat_proxy == NULL) {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (priv->seat.seat_proxy == NULL) {
                 g_debug ("ActUserManager: no seat proxy; can't load sessions");
                 return;
         }
 
-        manager->priv->getting_sessions = TRUE;
-        console_kit_seat_call_get_sessions (manager->priv->seat.seat_proxy,
+        priv->getting_sessions = TRUE;
+        console_kit_seat_call_get_sessions (priv->seat.seat_proxy,
                                             NULL,
                                             on_get_sessions_finished,
                                             g_object_ref (manager));
@@ -2563,22 +2642,41 @@ load_sessions (ActUserManager *manager)
 static void
 load_users (ActUserManager *manager)
 {
-        g_assert (manager->priv->accounts_proxy != NULL);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError) error = NULL;
+        g_auto(GStrv) user_paths = NULL;
+        gboolean could_list = FALSE;
+
+        if (!ensure_accounts_proxy (manager)) {
+                return;
+        }
+
         g_debug ("ActUserManager: calling 'ListCachedUsers'");
 
-        accounts_accounts_call_list_cached_users (manager->priv->accounts_proxy,
-                                                  NULL,
-                                                  on_list_cached_users_finished,
-                                                  g_object_ref (manager));
-        manager->priv->listing_cached_users = TRUE;
+        could_list = accounts_accounts_call_list_cached_users_sync (priv->accounts_proxy,
+                                                                    &user_paths,
+                                                                    NULL, &error);
+
+        if (!could_list) {
+                g_debug ("ActUserManager: ListCachedUsers failed: %s", error->message);
+                return;
+        }
+
+        load_user_paths (manager, (const char * const *) user_paths);
+
+        load_included_usernames (manager);
+
+        priv->list_cached_users_done = TRUE;
 }
 
 static gboolean
 load_seat_incrementally (ActUserManager *manager)
 {
-        manager->priv->seat.load_idle_id = 0;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
 
-        switch (manager->priv->seat.state) {
+        priv->seat.load_idle_id = 0;
+
+        switch (priv->seat.state) {
         case ACT_USER_MANAGER_SEAT_STATE_GET_SESSION_ID:
                 get_current_session_id (manager);
                 break;
@@ -2598,7 +2696,7 @@ load_seat_incrementally (ActUserManager *manager)
                 g_assert_not_reached ();
         }
 
-        if (manager->priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_LOADED) {
+        if (priv->seat.state == ACT_USER_MANAGER_SEAT_STATE_LOADED) {
                 load_sessions (manager);
         }
 
@@ -2610,26 +2708,25 @@ load_seat_incrementally (ActUserManager *manager)
 static gboolean
 load_idle (ActUserManager *manager)
 {
-        /* The order below is important: load_seat_incrementally might
-           set "is-loaded" immediately and we thus need to call
-           load_users before it.
-        */
-        load_users (manager);
-        manager->priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_UNLOADED + 1;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_UNLOADED + 1;
         load_seat_incrementally (manager);
-        manager->priv->load_id = 0;
+        priv->load_id = 0;
 
         return FALSE;
 }
 
 static void
-queue_load_seat_and_users (ActUserManager *manager)
+queue_load_seat (ActUserManager *manager)
 {
-        if (manager->priv->load_id > 0) {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (priv->load_id > 0) {
                 return;
         }
 
-        manager->priv->load_id = g_idle_add ((GSourceFunc)load_idle, manager);
+        priv->load_id = g_idle_add ((GSourceFunc)load_idle, manager);
 }
 
 static void
@@ -2638,22 +2735,21 @@ act_user_manager_get_property (GObject        *object,
                                GValue         *value,
                                GParamSpec     *pspec)
 {
-        ActUserManager *manager;
-
-        manager = ACT_USER_MANAGER (object);
+        ActUserManager *manager = ACT_USER_MANAGER (object);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
 
         switch (prop_id) {
         case PROP_IS_LOADED:
-                g_value_set_boolean (value, manager->priv->is_loaded);
+                g_value_set_boolean (value, priv->is_loaded);
                 break;
         case PROP_HAS_MULTIPLE_USERS:
-                g_value_set_boolean (value, manager->priv->has_multiple_users);
+                g_value_set_boolean (value, priv->has_multiple_users);
                 break;
         case PROP_INCLUDE_USERNAMES_LIST:
-                g_value_set_pointer (value, manager->priv->include_usernames);
+                g_value_set_pointer (value, priv->include_usernames);
                 break;
         case PROP_EXCLUDE_USERNAMES_LIST:
-                g_value_set_pointer (value, manager->priv->exclude_usernames);
+                g_value_set_pointer (value, priv->exclude_usernames);
                 break;
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -2665,22 +2761,26 @@ static void
 set_include_usernames (ActUserManager *manager,
                        GSList         *list)
 {
-        if (manager->priv->include_usernames != NULL) {
-                g_slist_foreach (manager->priv->include_usernames, (GFunc) g_free, NULL);
-                g_slist_free (manager->priv->include_usernames);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (priv->include_usernames != NULL) {
+                g_slist_foreach (priv->include_usernames, (GFunc) g_free, NULL);
+                g_slist_free (priv->include_usernames);
         }
-        manager->priv->include_usernames = slist_deep_copy (list);
+        priv->include_usernames = slist_deep_copy (list);
 }
 
 static void
 set_exclude_usernames (ActUserManager *manager,
                        GSList         *list)
 {
-        if (manager->priv->exclude_usernames != NULL) {
-                g_slist_foreach (manager->priv->exclude_usernames, (GFunc) g_free, NULL);
-                g_slist_free (manager->priv->exclude_usernames);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
+        if (priv->exclude_usernames != NULL) {
+                g_slist_foreach (priv->exclude_usernames, (GFunc) g_free, NULL);
+                g_slist_free (priv->exclude_usernames);
         }
-        manager->priv->exclude_usernames = slist_deep_copy (list);
+        priv->exclude_usernames = slist_deep_copy (list);
 }
 
 static void
@@ -2699,6 +2799,9 @@ act_user_manager_set_property (GObject        *object,
                 break;
         case PROP_EXCLUDE_USERNAMES_LIST:
                 set_exclude_usernames (self, g_value_get_pointer (value));
+                break;
+        case PROP_HAS_MULTIPLE_USERS:
+                set_has_multiple_users (self, g_value_get_boolean (value));
                 break;
         default:
                 G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -2728,7 +2831,7 @@ act_user_manager_class_init (ActUserManagerClass *klass)
                                                                "Has multiple users",
                                                                "Whether more than one normal user is present",
                                                                FALSE,
-                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+                                                               G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
         g_object_class_install_property (object_class,
                                          PROP_INCLUDE_USERNAMES_LIST,
                                          g_param_spec_pointer ("include-usernames-list",
@@ -2803,8 +2906,6 @@ act_user_manager_class_init (ActUserManagerClass *klass)
                               NULL, NULL,
                               g_cclosure_marshal_VOID__OBJECT,
                               G_TYPE_NONE, 1, ACT_TYPE_USER);
-
-        g_type_class_add_private (klass, sizeof (ActUserManagerPrivate));
 }
 
 /**
@@ -2818,109 +2919,119 @@ act_user_manager_class_init (ActUserManagerClass *klass)
 static void
 act_user_manager_queue_load (ActUserManager *manager)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+
         g_return_if_fail (ACT_IS_USER_MANAGER (manager));
 
-        if (! manager->priv->is_loaded) {
-                queue_load_seat_and_users (manager);
+        if (!priv->is_loaded) {
+                queue_load_seat (manager);
         }
+}
+
+static gboolean
+ensure_accounts_proxy (ActUserManager *manager)
+{
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError) error = NULL;
+
+        if (priv->accounts_proxy != NULL) {
+                return TRUE;
+        }
+
+        priv->accounts_proxy = accounts_accounts_proxy_new_sync (priv->connection,
+                                                                 G_DBUS_PROXY_FLAGS_NONE,
+                                                                 ACCOUNTS_NAME,
+                                                                 ACCOUNTS_PATH,
+                                                                 NULL,
+                                                                 &error);
+        if (error != NULL) {
+                g_debug ("ActUserManager: getting account proxy failed: %s", error->message);
+                return FALSE;
+        }
+
+        g_dbus_proxy_set_default_timeout (G_DBUS_PROXY (priv->accounts_proxy), G_MAXINT);
+
+        g_object_bind_property (G_OBJECT (priv->accounts_proxy),
+                                "has-multiple-users",
+                                G_OBJECT (manager),
+                                "has-multiple-users",
+                                G_BINDING_SYNC_CREATE);
+
+        g_signal_connect (priv->accounts_proxy,
+                          "user-added",
+                          G_CALLBACK (on_new_user_in_accounts_service),
+                          manager);
+        g_signal_connect (priv->accounts_proxy,
+                          "user-deleted",
+                          G_CALLBACK (on_user_removed_in_accounts_service),
+                          manager);
+
+        return TRUE;
 }
 
 static void
 act_user_manager_init (ActUserManager *manager)
 {
-        GError        *error;
-
-        manager->priv = ACT_USER_MANAGER_GET_PRIVATE (manager);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        g_autoptr(GError) error = NULL;
 
         act_user_manager_error_quark (); /* register dbus errors */
 
         /* sessions */
-        manager->priv->sessions = g_hash_table_new_full (g_str_hash,
-                                                         g_str_equal,
-                                                         g_free,
-                                                         g_object_unref);
+        priv->sessions = g_hash_table_new_full (g_str_hash,
+                                                g_str_equal,
+                                                g_free,
+                                                g_object_unref);
 
         /* users */
-        manager->priv->normal_users_by_name = g_hash_table_new_full (g_str_hash,
-                                                                     g_str_equal,
-                                                                     g_free,
-                                                                     g_object_unref);
-        manager->priv->system_users_by_name = g_hash_table_new_full (g_str_hash,
-                                                                     g_str_equal,
-                                                                     g_free,
-                                                                     g_object_unref);
-        manager->priv->users_by_object_path = g_hash_table_new_full (g_str_hash,
-                                                                     g_str_equal,
-                                                                     NULL,
-                                                                     g_object_unref);
+        priv->normal_users_by_name = g_hash_table_new_full (g_str_hash,
+                                                            g_str_equal,
+                                                            g_free,
+                                                            g_object_unref);
+        priv->system_users_by_name = g_hash_table_new_full (g_str_hash,
+                                                            g_str_equal,
+                                                            g_free,
+                                                            g_object_unref);
+        priv->users_by_object_path = g_hash_table_new_full (g_str_hash,
+                                                            g_str_equal,
+                                                            NULL,
+                                                            g_object_unref);
 
-        error = NULL;
-        manager->priv->connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
-        if (manager->priv->connection == NULL) {
+        priv->connection = g_bus_get_sync (G_BUS_TYPE_SYSTEM, NULL, &error);
+        if (priv->connection == NULL) {
                 if (error != NULL) {
                         g_warning ("Failed to connect to the D-Bus daemon: %s", error->message);
-                        g_error_free (error);
                 } else {
                         g_warning ("Failed to connect to the D-Bus daemon");
                 }
                 return;
         }
 
-        manager->priv->accounts_proxy = accounts_accounts_proxy_new_sync (manager->priv->connection,
-                                                                          G_DBUS_PROXY_FLAGS_NONE,
-                                                                          ACCOUNTS_NAME,
-                                                                          ACCOUNTS_PATH,
-                                                                          NULL,
-                                                                          &error);
-        if (manager->priv->accounts_proxy == NULL) {
-                if (error != NULL) {
-                        g_warning ("Failed to create accounts proxy: %s", error->message);
-                        g_error_free (error);
-                } else {
-                        g_warning ("Failed to create_accounts_proxy");
-                }
-                return;
-        }
-        g_dbus_proxy_set_default_timeout (G_DBUS_PROXY (manager->priv->accounts_proxy), G_MAXINT);
+        ensure_accounts_proxy (manager);
 
-        g_signal_connect (manager->priv->accounts_proxy,
-                          "user-added",
-                          G_CALLBACK (on_new_user_in_accounts_service),
-                          manager);
-        g_signal_connect (manager->priv->accounts_proxy,
-                          "user-deleted",
-                          G_CALLBACK (on_user_removed_in_accounts_service),
-                          manager);
-
-        manager->priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_UNLOADED;
+        priv->seat.state = ACT_USER_MANAGER_SEAT_STATE_UNLOADED;
 }
 
 static void
 act_user_manager_finalize (GObject *object)
 {
-        ActUserManager *manager;
+        ActUserManager *manager = ACT_USER_MANAGER (object);
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GSList         *node;
 
         g_debug ("ActUserManager: finalizing user manager");
 
-        g_return_if_fail (object != NULL);
-        g_return_if_fail (ACT_IS_USER_MANAGER (object));
-
-        manager = ACT_USER_MANAGER (object);
-
-        g_return_if_fail (manager->priv != NULL);
-
-        g_slist_foreach (manager->priv->new_sessions,
+        g_slist_foreach (priv->new_sessions,
                          (GFunc) unload_new_session, NULL);
-        g_slist_free (manager->priv->new_sessions);
+        g_slist_free (priv->new_sessions);
 
-        g_slist_foreach (manager->priv->fetch_user_requests,
+        g_slist_foreach (priv->fetch_user_requests,
                          (GFunc) free_fetch_user_request, NULL);
-        g_slist_free (manager->priv->fetch_user_requests);
+        g_slist_free (priv->fetch_user_requests);
 
-        g_slist_free (manager->priv->new_users_inhibiting_load);
+        g_slist_free (priv->new_users_inhibiting_load);
 
-        node = manager->priv->new_users;
+        node = priv->new_users;
         while (node != NULL) {
                 ActUser *user;
                 GSList  *next_node;
@@ -2930,62 +3041,62 @@ act_user_manager_finalize (GObject *object)
 
                 g_signal_handlers_disconnect_by_func (user, on_new_user_loaded, manager);
                 g_object_unref (user);
-                manager->priv->new_users = g_slist_delete_link (manager->priv->new_users, node);
+                priv->new_users = g_slist_delete_link (priv->new_users, node);
                 node = next_node;
         }
 
         unload_seat (manager);
 
-        if (manager->priv->exclude_usernames != NULL) {
-                g_slist_foreach (manager->priv->exclude_usernames, (GFunc) g_free, NULL);
-                g_slist_free (manager->priv->exclude_usernames);
+        if (priv->exclude_usernames != NULL) {
+                g_slist_foreach (priv->exclude_usernames, (GFunc) g_free, NULL);
+                g_slist_free (priv->exclude_usernames);
         }
 
-        if (manager->priv->include_usernames != NULL) {
-                g_slist_foreach (manager->priv->include_usernames, (GFunc) g_free, NULL);
-                g_slist_free (manager->priv->include_usernames);
+        if (priv->include_usernames != NULL) {
+                g_slist_foreach (priv->include_usernames, (GFunc) g_free, NULL);
+                g_slist_free (priv->include_usernames);
         }
 
-        if (manager->priv->seat.seat_proxy != NULL) {
-                g_object_unref (manager->priv->seat.seat_proxy);
+        if (priv->seat.seat_proxy != NULL) {
+                g_object_unref (priv->seat.seat_proxy);
         }
 
-        if (manager->priv->seat.session_proxy != NULL) {
-                g_object_unref (manager->priv->seat.session_proxy);
+        if (priv->seat.session_proxy != NULL) {
+                g_object_unref (priv->seat.session_proxy);
         }
 
-        if (manager->priv->seat.load_idle_id != 0) {
-                g_source_remove (manager->priv->seat.load_idle_id);
+        if (priv->seat.load_idle_id != 0) {
+                g_source_remove (priv->seat.load_idle_id);
         }
 
 #ifdef WITH_SYSTEMD
-        if (manager->priv->seat.session_monitor != NULL) {
-                sd_login_monitor_unref (manager->priv->seat.session_monitor);
+        if (priv->seat.session_monitor != NULL) {
+                sd_login_monitor_unref (priv->seat.session_monitor);
         }
 
-        if (manager->priv->seat.session_monitor_stream != NULL) {
-                g_object_unref (manager->priv->seat.session_monitor_stream);
+        if (priv->seat.session_monitor_stream != NULL) {
+                g_object_unref (priv->seat.session_monitor_stream);
         }
 
-        if (manager->priv->seat.session_monitor_source_id != 0) {
-                g_source_remove (manager->priv->seat.session_monitor_source_id);
+        if (priv->seat.session_monitor_source_id != 0) {
+                g_source_remove (priv->seat.session_monitor_source_id);
         }
 #endif
 
-        if (manager->priv->accounts_proxy != NULL) {
-                g_object_unref (manager->priv->accounts_proxy);
+        if (priv->accounts_proxy != NULL) {
+                g_object_unref (priv->accounts_proxy);
         }
 
-        if (manager->priv->load_id > 0) {
-                g_source_remove (manager->priv->load_id);
-                manager->priv->load_id = 0;
+        if (priv->load_id > 0) {
+                g_source_remove (priv->load_id);
+                priv->load_id = 0;
         }
 
-        g_hash_table_destroy (manager->priv->sessions);
+        g_hash_table_destroy (priv->sessions);
 
-        g_hash_table_destroy (manager->priv->normal_users_by_name);
-        g_hash_table_destroy (manager->priv->system_users_by_name);
-        g_hash_table_destroy (manager->priv->users_by_object_path);
+        g_hash_table_destroy (priv->normal_users_by_name);
+        g_hash_table_destroy (priv->system_users_by_name);
+        g_hash_table_destroy (priv->users_by_object_path);
 
         G_OBJECT_CLASS (act_user_manager_parent_class)->finalize (object);
 }
@@ -3024,7 +3135,8 @@ act_user_manager_get_default (void)
 gboolean
 act_user_manager_no_service (ActUserManager *manager)
 {
-       return manager->priv->accounts_proxy == NULL;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        return priv->accounts_proxy == NULL;
 }
 
 /**
@@ -3046,32 +3158,30 @@ act_user_manager_create_user (ActUserManager      *manager,
                               ActUserAccountType   accounttype,
                               GError             **error)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GError *local_error = NULL;
         gboolean res;
-        gchar *path;
+        g_autofree gchar *path = NULL;
         ActUser *user;
 
         g_debug ("ActUserManager: Creating user '%s', '%s', %d",
                  username, fullname, accounttype);
 
-        g_assert (manager->priv->accounts_proxy != NULL);
+        g_assert (priv->accounts_proxy != NULL);
 
-        local_error = NULL;
-        res = accounts_accounts_call_create_user_sync (manager->priv->accounts_proxy,
+        res = accounts_accounts_call_create_user_sync (priv->accounts_proxy,
                                                        username,
                                                        fullname,
                                                        accounttype,
                                                        &path,
                                                        NULL,
                                                        &local_error);
-        if (! res) {
+        if (!res) {
                 g_propagate_error (error, local_error);
                 return NULL;
         }
 
         user = add_new_user_for_object_path (path, manager);
-
-        g_free (path);
 
         return user;
 }
@@ -3081,11 +3191,10 @@ act_user_manager_async_complete_handler (GObject      *source,
                                          GAsyncResult *result,
                                          gpointer      user_data)
 {
-  GSimpleAsyncResult *res = user_data;
+        GTask *task = user_data;
 
-  g_simple_async_result_set_op_res_gpointer (res, g_object_ref (result), g_object_unref);
-  g_simple_async_result_complete (res);
-  g_object_unref (res);
+        g_task_return_pointer (task, g_object_ref (result), g_object_unref);
+        g_object_unref (task);
 }
 
 /**
@@ -3116,27 +3225,27 @@ act_user_manager_create_user_async (ActUserManager      *manager,
                                     GAsyncReadyCallback  callback,
                                     gpointer             user_data)
 {
-        GSimpleAsyncResult *res;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        GTask *task;
 
         g_return_if_fail (ACT_IS_USER_MANAGER (manager));
-        g_return_if_fail (manager->priv->accounts_proxy != NULL);
+        g_return_if_fail (priv->accounts_proxy != NULL);
 
         g_debug ("ActUserManager: Creating user (async) '%s', '%s', %d",
                  username, fullname, accounttype);
 
-        g_assert (manager->priv->accounts_proxy != NULL);
+        g_assert (priv->accounts_proxy != NULL);
 
-        res = g_simple_async_result_new (G_OBJECT (manager),
-                                         callback, user_data,
-                                         act_user_manager_create_user_async);
-        g_simple_async_result_set_check_cancellable (res, cancellable);
+        task = g_task_new (G_OBJECT (manager),
+                           cancellable,
+                           callback, user_data);
 
-        accounts_accounts_call_create_user (manager->priv->accounts_proxy,
+        accounts_accounts_call_create_user (priv->accounts_proxy,
                                             username,
                                             fullname,
                                             accounttype,
                                             cancellable,
-                                            act_user_manager_async_complete_handler, res);
+                                            act_user_manager_async_complete_handler, task);
 }
 
 /**
@@ -3158,22 +3267,20 @@ act_user_manager_create_user_finish (ActUserManager  *manager,
                                      GAsyncResult    *result,
                                      GError         **error)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GAsyncResult *inner_result;
         ActUser *user = NULL;
-        gchar *path;
-        GSimpleAsyncResult *res;
+        g_autofree gchar *path = NULL;
         GError *remote_error = NULL;
 
-        g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_create_user_async), FALSE);
+        inner_result = g_task_propagate_pointer (G_TASK (result), error);
+        if (inner_result == NULL) {
+                return FALSE;
+        }
 
-        res = G_SIMPLE_ASYNC_RESULT (result);
-        inner_result = g_simple_async_result_get_op_res_gpointer (res);
-        g_assert (inner_result);
-
-        if (accounts_accounts_call_create_user_finish (manager->priv->accounts_proxy,
+        if (accounts_accounts_call_create_user_finish (priv->accounts_proxy,
                                                        &path, inner_result, &remote_error)) {
                 user = add_new_user_for_object_path (path, manager);
-                g_free (path);
         }
 
         if (remote_error) {
@@ -3199,32 +3306,27 @@ act_user_manager_cache_user (ActUserManager     *manager,
                              const char         *username,
                              GError            **error)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GError *local_error = NULL;
         gboolean res;
-        gchar *path;
-        ActUser *user;
+        g_autofree gchar *path = NULL;
 
         g_debug ("ActUserManager: Caching user '%s'",
                  username);
 
-        g_assert (manager->priv->accounts_proxy != NULL);
+        g_assert (priv->accounts_proxy != NULL);
 
-        local_error = NULL;
-        res = accounts_accounts_call_cache_user_sync (manager->priv->accounts_proxy,
+        res = accounts_accounts_call_cache_user_sync (priv->accounts_proxy,
                                                       username,
                                                       &path,
                                                       NULL,
                                                       &local_error);
-        if (! res) {
+        if (!res) {
                 g_propagate_error (error, local_error);
                 return NULL;
         }
 
-        user = add_new_user_for_object_path (path, manager);
-
-        g_free (path);
-
-        return user;
+        return add_new_user_for_object_path (path, manager);
 }
 
 
@@ -3253,22 +3355,22 @@ act_user_manager_cache_user_async (ActUserManager      *manager,
                                    GAsyncReadyCallback  callback,
                                    gpointer             user_data)
 {
-        GSimpleAsyncResult *res;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        GTask *task;
 
         g_return_if_fail (ACT_IS_USER_MANAGER (manager));
-        g_return_if_fail (manager->priv->accounts_proxy != NULL);
+        g_return_if_fail (priv->accounts_proxy != NULL);
 
         g_debug ("ActUserManager: Caching user (async) '%s'", username);
 
-        res = g_simple_async_result_new (G_OBJECT (manager),
-                                         callback, user_data,
-                                         act_user_manager_cache_user_async);
-        g_simple_async_result_set_check_cancellable (res, cancellable);
+        task = g_task_new (G_OBJECT (manager),
+                           cancellable,
+                           callback, user_data);
 
-        accounts_accounts_call_cache_user (manager->priv->accounts_proxy,
+        accounts_accounts_call_cache_user (priv->accounts_proxy,
                                            username,
                                            cancellable,
-                                           act_user_manager_async_complete_handler, res);
+                                           act_user_manager_async_complete_handler, task);
 }
 
 /**
@@ -3290,22 +3392,20 @@ act_user_manager_cache_user_finish (ActUserManager  *manager,
                                     GAsyncResult    *result,
                                     GError         **error)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GAsyncResult *inner_result;
         ActUser *user = NULL;
-        gchar *path;
-        GSimpleAsyncResult *res;
+        g_autofree gchar *path = NULL;
         GError *remote_error = NULL;
 
-        g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_cache_user_async), FALSE);
+        inner_result = g_task_propagate_pointer (G_TASK (result), error);
+        if (inner_result == NULL) {
+                return FALSE;
+        }
 
-        res = G_SIMPLE_ASYNC_RESULT (result);
-        inner_result = g_simple_async_result_get_op_res_gpointer (res);
-        g_assert (inner_result);
-
-        if (accounts_accounts_call_cache_user_finish (manager->priv->accounts_proxy,
+        if (accounts_accounts_call_cache_user_finish (priv->accounts_proxy,
                                                       &path, inner_result, &remote_error)) {
                 user = add_new_user_for_object_path (path, manager);
-                g_free (path);
         }
 
         if (remote_error) {
@@ -3334,20 +3434,20 @@ act_user_manager_uncache_user (ActUserManager     *manager,
                                const char         *username,
                                GError            **error)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GError *local_error = NULL;
         gboolean res;
 
         g_debug ("ActUserManager: Uncaching user '%s'",
                  username);
 
-        g_assert (manager->priv->accounts_proxy != NULL);
+        g_assert (priv->accounts_proxy != NULL);
 
-        local_error = NULL;
-        res = accounts_accounts_call_uncache_user_sync (manager->priv->accounts_proxy,
+        res = accounts_accounts_call_uncache_user_sync (priv->accounts_proxy,
                                                         username,
                                                         NULL,
                                                         &local_error);
-        if (! res) {
+        if (!res) {
                 g_propagate_error (error, local_error);
                 return FALSE;
         }
@@ -3379,23 +3479,23 @@ act_user_manager_uncache_user_async (ActUserManager      *manager,
                                      GAsyncReadyCallback  callback,
                                      gpointer             user_data)
 {
-        GSimpleAsyncResult *res;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        GTask *task;
 
         g_return_if_fail (ACT_IS_USER_MANAGER (manager));
         g_return_if_fail (username != NULL);
-        g_return_if_fail (manager->priv->accounts_proxy != NULL);
+        g_return_if_fail (priv->accounts_proxy != NULL);
 
         g_debug ("ActUserManager: Uncaching user (async) '%s'", username);
 
-        res = g_simple_async_result_new (G_OBJECT (manager),
-                                         callback, user_data,
-                                         act_user_manager_uncache_user_async);
-        g_simple_async_result_set_check_cancellable (res, cancellable);
+        task = g_task_new (G_OBJECT (manager),
+                           cancellable,
+                           callback, user_data);
 
-        accounts_accounts_call_uncache_user (manager->priv->accounts_proxy,
+        accounts_accounts_call_uncache_user (priv->accounts_proxy,
                                              username,
                                              cancellable,
-                                             act_user_manager_async_complete_handler, res);
+                                             act_user_manager_async_complete_handler, task);
 }
 
 /**
@@ -3417,18 +3517,17 @@ act_user_manager_uncache_user_finish (ActUserManager  *manager,
                                       GAsyncResult    *result,
                                       GError         **error)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GAsyncResult *inner_result;
         gboolean success;
-        GSimpleAsyncResult *res;
         GError *remote_error = NULL;
 
-        g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_uncache_user_async), FALSE);
+        inner_result = g_task_propagate_pointer (G_TASK (result), error);
+        if (inner_result == NULL) {
+                return FALSE;
+        }
 
-        res = G_SIMPLE_ASYNC_RESULT (result);
-        inner_result = g_simple_async_result_get_op_res_gpointer (res);
-        g_assert (inner_result);
-
-        success = accounts_accounts_call_uncache_user_finish (manager->priv->accounts_proxy,
+        success = accounts_accounts_call_uncache_user_finish (priv->accounts_proxy,
                                                               inner_result, &remote_error);
 
         if (remote_error) {
@@ -3456,26 +3555,25 @@ act_user_manager_delete_user (ActUserManager  *manager,
                               gboolean         remove_files,
                               GError         **error)
 {
-        GError *local_error;
-        gboolean res = TRUE;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        GError *local_error = NULL;
 
         g_debug ("ActUserManager: Deleting user '%s' (uid %ld)", act_user_get_user_name (user), (long) act_user_get_uid (user));
 
         g_return_val_if_fail (ACT_IS_USER_MANAGER (manager), FALSE);
         g_return_val_if_fail (ACT_IS_USER (user), FALSE);
-        g_return_val_if_fail (manager->priv->accounts_proxy != NULL, FALSE);
+        g_return_val_if_fail (priv->accounts_proxy != NULL, FALSE);
 
-        local_error = NULL;
-        if (!accounts_accounts_call_delete_user_sync (manager->priv->accounts_proxy,
+        if (!accounts_accounts_call_delete_user_sync (priv->accounts_proxy,
                                                       act_user_get_uid (user),
                                                       remove_files,
                                                       NULL,
                                                       &local_error)) {
                 g_propagate_error (error, local_error);
-                res = FALSE;
+                return FALSE;
         }
 
-        return res;
+        return TRUE;
 }
 
 /**
@@ -3504,23 +3602,23 @@ act_user_manager_delete_user_async (ActUserManager      *manager,
                                     GAsyncReadyCallback  callback,
                                     gpointer             user_data)
 {
-        GSimpleAsyncResult *res;
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
+        GTask *task;
 
         g_return_if_fail (ACT_IS_USER_MANAGER (manager));
         g_return_if_fail (ACT_IS_USER (user));
-        g_return_if_fail (manager->priv->accounts_proxy != NULL);
+        g_return_if_fail (priv->accounts_proxy != NULL);
 
-        res = g_simple_async_result_new (G_OBJECT (manager),
-                                         callback, user_data,
-                                         act_user_manager_delete_user_async);
-        g_simple_async_result_set_check_cancellable (res, cancellable);
+        task = g_task_new (G_OBJECT (manager),
+                           cancellable,
+                           callback, user_data);
 
         g_debug ("ActUserManager: Deleting (async) user '%s' (uid %ld)", act_user_get_user_name (user), (long) act_user_get_uid (user));
 
-        accounts_accounts_call_delete_user (manager->priv->accounts_proxy,
+        accounts_accounts_call_delete_user (priv->accounts_proxy,
                                             act_user_get_uid (user), remove_files,
                                             cancellable,
-                                            act_user_manager_async_complete_handler, res);
+                                            act_user_manager_async_complete_handler, task);
 }
 
 /**
@@ -3542,17 +3640,17 @@ act_user_manager_delete_user_finish (ActUserManager  *manager,
                                      GAsyncResult    *result,
                                      GError         **error)
 {
+        ActUserManagerPrivate *priv = act_user_manager_get_instance_private (manager);
         GAsyncResult *inner_result;
         gboolean success;
-        GSimpleAsyncResult *res;
         GError *remote_error = NULL;
 
-        g_return_val_if_fail (g_simple_async_result_is_valid (result, G_OBJECT (manager), act_user_manager_delete_user_async), FALSE);
-        res = G_SIMPLE_ASYNC_RESULT (result);
-        inner_result = g_simple_async_result_get_op_res_gpointer (res);
-        g_assert (inner_result);
+        inner_result = g_task_propagate_pointer (G_TASK (result), error);
+        if (inner_result == NULL) {
+                return FALSE;
+        }
 
-        success = accounts_accounts_call_delete_user_finish (manager->priv->accounts_proxy,
+        success = accounts_accounts_call_delete_user_finish (priv->accounts_proxy,
                                                              inner_result, &remote_error);
         if (remote_error) {
                 g_dbus_error_strip_remote_error (remote_error);
