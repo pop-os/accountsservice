@@ -31,19 +31,19 @@
 
 #include <glib.h>
 #include <glib/gi18n.h>
+#include <glib/gstdio.h>
 #include <glib-unix.h>
 
 #include "daemon.h"
 
 #define NAME_TO_CLAIM "org.freedesktop.Accounts"
 
-static GMainLoop *loop;
-
 static gboolean
 ensure_directory (const char  *path,
+                  gint         mode,
                   GError     **error)
 {
-        if (g_mkdir_with_parents (path, 0775) < 0) {
+        if (g_mkdir_with_parents (path, mode) < 0) {
                 g_set_error (error,
                              G_FILE_ERROR,
                              g_file_error_from_errno (errno),
@@ -51,6 +51,54 @@ ensure_directory (const char  *path,
                              path);
                 return FALSE;
         }
+
+        if (g_chmod (path, mode) < 0) {
+                g_set_error (error,
+                             G_FILE_ERROR,
+                             g_file_error_from_errno (errno),
+                             "Failed to change permissions of directory %s: %m",
+                             path);
+                return FALSE;
+        }
+
+        return TRUE;
+}
+
+static gboolean
+ensure_file_permissions (const char  *dir_path,
+                         gint         file_mode,
+                         GError     **error)
+{
+        GDir *dir = NULL;
+        const gchar *filename;
+        gint errsv = 0;
+
+        dir = g_dir_open (dir_path, 0, error);
+        if (dir == NULL)
+                return FALSE;
+
+        while ((filename = g_dir_read_name (dir)) != NULL) {
+                gchar *file_path = g_build_filename (dir_path, filename, NULL);
+
+                g_debug ("Changing permission of %s to %04o", file_path, file_mode);
+                if (g_chmod (file_path, file_mode) < 0)
+                        errsv = errno;
+
+                g_free (file_path);
+        }
+
+        g_dir_close (dir);
+
+        /* Report any errors after all chmod()s have been attempted. */
+        if (errsv != 0) {
+                g_set_error (error,
+                             G_FILE_ERROR,
+                             g_file_error_from_errno (errsv),
+                             "Failed to change permissions of files in directory %s: %m",
+                             dir_path);
+                return FALSE;
+        }
+
         return TRUE;
 }
 
@@ -59,36 +107,29 @@ on_bus_acquired (GDBusConnection  *connection,
                  const gchar      *name,
                  gpointer          user_data)
 {
+        GMainLoop *loop = user_data;
         Daemon *daemon;
-        GError *local_error = NULL;
-        GError **error = &local_error;
+        g_autoptr(GError) error = NULL;
 
-        if (!ensure_directory (ICONDIR, error)) {
-                goto out;
-        }
-
-        if (!ensure_directory (USERDIR, error)) {
-                goto out;
+        if (!ensure_directory (ICONDIR, 0775, &error) ||
+            !ensure_directory (USERDIR, 0700, &error) ||
+            !ensure_file_permissions (USERDIR, 0600, &error)) {
+                g_printerr ("%s\n", error->message);
+                g_main_loop_quit (loop);
+                return;
         }
 
         daemon = daemon_new ();
         if (daemon == NULL) {
-                g_set_error (error, G_IO_ERROR, G_IO_ERROR_FAILED,
-                             "Failed to initialize daemon");
-                goto out;
+                g_printerr ("Failed to initialize daemon\n");
+                g_main_loop_quit (loop);
+                return;
         }
 
         openlog ("accounts-daemon", LOG_PID, LOG_DAEMON);
         syslog (LOG_INFO, "started daemon version %s", VERSION);
         closelog ();
         openlog ("accounts-daemon", 0, LOG_AUTHPRIV);
-
- out:
-        if (local_error != NULL) {
-                g_printerr ("%s\n", local_error->message);
-                g_clear_error (&local_error);
-                g_main_loop_quit (loop);
-        }
 }
 
 static void
@@ -96,6 +137,8 @@ on_name_lost (GDBusConnection  *connection,
               const gchar      *name,
               gpointer          user_data)
 {
+        GMainLoop *loop = user_data;
+
         g_debug ("got NameLost, exiting");
         g_main_loop_quit (loop);
 }
@@ -108,7 +151,7 @@ on_log_debug (const gchar *log_domain,
               const gchar *message,
               gpointer user_data)
 {
-        GString *string;
+        g_autoptr(GString) string = NULL;
         const gchar *progname;
         int ret G_GNUC_UNUSED;
 
@@ -121,8 +164,6 @@ on_log_debug (const gchar *log_domain,
                                 message ? message : "(NULL) message");
 
         ret = write (1, string->str, string->len);
-
-        g_string_free (string, TRUE);
 }
 
 static void
@@ -141,17 +182,19 @@ log_handler (const gchar   *domain,
 static gboolean
 on_signal_quit (gpointer data)
 {
-        g_main_loop_quit (data);
+        GMainLoop *loop = data;
+
+        g_main_loop_quit (loop);
         return FALSE;
 }
 
 int
 main (int argc, char *argv[])
 {
-        GError *error;
-        gint ret;
+        g_autoptr(GMainLoop) loop = NULL;
+        g_autoptr(GError) error = NULL;
         GBusNameOwnerFlags flags;
-        GOptionContext *context;
+        g_autoptr(GOptionContext) context = NULL;
         static gboolean replace;
         static gboolean show_version;
         static GOptionEntry entries[] = {
@@ -162,9 +205,6 @@ main (int argc, char *argv[])
                 { NULL }
         };
 
-        ret = 1;
-        error = NULL;
-
         setlocale (LC_ALL, "");
         bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 
@@ -174,31 +214,29 @@ main (int argc, char *argv[])
 
         if (!g_setenv ("GIO_USE_VFS", "local", TRUE)) {
                 g_warning ("Couldn't set GIO_USE_GVFS");
-                goto out;
+                return EXIT_FAILURE;
         }
 
         context = g_option_context_new ("");
         g_option_context_set_translation_domain (context, GETTEXT_PACKAGE);
         g_option_context_set_summary (context, _("Provides D-Bus interfaces for querying and manipulating\nuser account information."));
         g_option_context_add_main_entries (context, entries, NULL);
-        error = NULL;
         if (!g_option_context_parse (context, &argc, &argv, &error)) {
                 g_warning ("%s", error->message);
-                g_error_free (error);
-                goto out;
+                return EXIT_FAILURE;
         }
-        g_option_context_free (context);
 
         if (show_version) {
                 g_print ("accounts-daemon " VERSION "\n");
-                ret = 0;
-                goto out;
+                return EXIT_SUCCESS;
         }
 
         /* If --debug, then print debug messages even when no G_MESSAGES_DEBUG */
         if (debug && !g_getenv ("G_MESSAGES_DEBUG"))
                 g_log_set_handler (G_LOG_DOMAIN, G_LOG_LEVEL_DEBUG, on_log_debug, NULL);
         g_log_set_default_handler (log_handler, NULL);
+
+        loop = g_main_loop_new (NULL, FALSE);
 
         flags = G_BUS_NAME_OWNER_FLAGS_ALLOW_REPLACEMENT;
         if (replace)
@@ -209,10 +247,8 @@ main (int argc, char *argv[])
                         on_bus_acquired,
                         NULL,
                         on_name_lost,
-                        NULL,
+                        loop,
                         NULL);
-
-        loop = g_main_loop_new (NULL, FALSE);
 
         g_unix_signal_add (SIGINT, on_signal_quit, loop);
         g_unix_signal_add (SIGTERM, on_signal_quit, loop);
@@ -221,11 +257,7 @@ main (int argc, char *argv[])
         g_main_loop_run (loop);
 
         g_debug ("exiting");
-        g_main_loop_unref (loop);
 
-        ret = 0;
-
- out:
-        return ret;
+        return EXIT_SUCCESS;
 }
 
