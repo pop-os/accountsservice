@@ -17,9 +17,6 @@ override_dh_auto_configure:
 		--libexecdir=/usr/lib/accountsservice \
 		-Dsystemdsystemunitdir=/lib/systemd/system
 
-# Disabled to avoid FTBFS
-override_dh_auto_test:
-
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS
 
