@@ -79,7 +79,7 @@ Description: query and manipulate user account information - header files
 Package: gir1.2-accountsservice-1.0
 Section: introspection
 Architecture: any
-Multi-Arch: foreign
+Multi-Arch: same
 Depends:
  ${gir:Depends},
  ${misc:Depends},
