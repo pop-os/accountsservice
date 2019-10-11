@@ -1,4 +1,5 @@
 libaccountsservice.so.0 libaccountsservice0 #MINVER#
+* Build-Depends-Package: libaccountsservice-dev
  accounts_accounts_call_cache_user@Base 0.6.24
  accounts_accounts_call_cache_user_finish@Base 0.6.24
  accounts_accounts_call_cache_user_sync@Base 0.6.24
