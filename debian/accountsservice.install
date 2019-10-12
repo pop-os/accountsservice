@@ -1,6 +1,5 @@
-#!/usr/bin/dh-exec
 etc
-lib				[linux-any]
+lib
 usr/lib/accountsservice
 usr/share/dbus-1
 usr/share/language-tools

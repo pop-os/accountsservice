@@ -6,7 +6,6 @@ Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>
 Build-Depends:
  debhelper (>= 12),
  meson (>= 0.46.0),
- dh-exec (>= 0.13),
  gobject-introspection (>= 0.9.12-4~),
  intltool,
  libgirepository1.0-dev (>= 1.34),
