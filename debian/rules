@@ -28,7 +28,3 @@ override_dh_auto_configure:
 
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS
-
-override_dh_strip:
-	dh_strip -plibaccountsservice0 --dbgsym-migration='libaccountsservice-dbg (<< 0.6.40-4~)'
-	dh_strip --remaining-packages
