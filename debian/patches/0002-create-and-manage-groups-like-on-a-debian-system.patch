@@ -1,19 +1,22 @@
 From: Frederic Peters <fpeters@debian.org>
+Date: Sat, 12 Oct 2019 10:29:08 +0200
+Subject: Create and manage groups like on a debian system.
+
 Bug-Debian: http://bugs.debian.org/618764
 Forwarded: not-needed
+
 Description: Create and manage groups like on a debian system.
 ---
- src/daemon.c |   22 ++++++----------------
- src/user.c   |   16 ++++++++--------
- src/util.c   |   42 ++++++++++++++++++++++++++++++++++++++++++
- src/util.h   |    9 +++++++++
- 4 files changed, 65 insertions(+), 24 deletions(-)
+ src/daemon.c | 29 ++++++++++-------------------
+ src/util.c   | 42 ++++++++++++++++++++++++++++++++++++++++++
+ src/util.h   |  8 ++++++++
+ 3 files changed, 60 insertions(+), 19 deletions(-)
 
-Index: accountsservice/src/daemon.c
-===================================================================
---- accountsservice.orig/src/daemon.c
-+++ accountsservice/src/daemon.c
-@@ -1032,26 +1032,13 @@ daemon_create_user_authorized_cb (Daemon
+diff --git a/src/daemon.c b/src/daemon.c
+index c52bda3..43aa45c 100644
+--- a/src/daemon.c
++++ b/src/daemon.c
+@@ -1106,25 +1106,12 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
  
          sys_log (context, "create user '%s'", cd->user_name);
  
@@ -22,87 +25,45 @@ Index: accountsservice/src/daemon.c
 -        argv[2] = "-c";
 -        argv[3] = cd->real_name;
 -        if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
+-                if (EXTRA_ADMIN_GROUPS != NULL && EXTRA_ADMIN_GROUPS[0] != '\0')
+-                        admin_groups = g_strconcat (ADMIN_GROUP, ",",
+-                                                    EXTRA_ADMIN_GROUPS, NULL);
+-                else
+-                        admin_groups = g_strdup (ADMIN_GROUP);
+-
 -                argv[4] = "-G";
--                argv[5] = ADMIN_GROUP;
+-                argv[5] = admin_groups;
 -                argv[6] = "--";
 -                argv[7] = cd->user_name;
 -                argv[8] = NULL;
 -        }
 -        else if (cd->account_type == ACCOUNT_TYPE_STANDARD) {
 -                argv[4] = "--";
--                argv[5] = cd->user_name;
--                argv[6] = NULL;
--        }
--        else {
--                throw_error (context, ERROR_FAILED, "Don't know how to add user of type %d", cd->account_type);
--                return;
--        }
-+        argv[0] = "/usr/sbin/adduser";
-+        argv[1] = "--quiet";
-+        argv[2] = "--disabled-login";
-+        argv[3] = "--gecos";
-+        argv[4] = cd->real_name;
-+        argv[5] = cd->user_name;
-+        argv[6] = NULL;
- 
-         error = NULL;
-         if (!spawn_with_login_uid (context, argv, &error)) {
-@@ -1060,6 +1047,10 @@ daemon_create_user_authorized_cb (Daemon
++        if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR || cd->account_type == ACCOUNT_TYPE_STANDARD) {
++                argv[0] = "/usr/sbin/adduser";
++                argv[1] = "--quiet";
++                argv[2] = "--disabled-login";
++                argv[3] = "--gecos";
++                argv[4] = cd->real_name;
+                 argv[5] = cd->user_name;
+                 argv[6] = NULL;
+         }
+@@ -1138,6 +1125,10 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
                  return;
          }
  
 +        if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
-+                add_user_to_group (context, cd->user_name, "sudo");
++                add_user_to_group (context, cd->user_name, ADMIN_GROUP);
 +        }
 +
          user = daemon_local_find_user_by_name (daemon, cd->user_name);
          user_update_local_account_property (user, TRUE);
          user_update_system_account_property (user, FALSE);
-Index: accountsservice/src/user.c
-===================================================================
---- accountsservice.orig/src/user.c
-+++ accountsservice/src/user.c
-@@ -1672,7 +1672,7 @@ user_change_account_type_authorized_cb (
-         gid_t *groups;
-         gint ngroups;
-         GString *str;
--        gid_t wheel;
-+        gid_t admin;
-         struct group *grp;
-         gint i;
-         const gchar *argv[6];
-@@ -1684,22 +1684,22 @@ user_change_account_type_authorized_cb (
- 
-                 grp = getgrnam (ADMIN_GROUP);
-                 if (grp == NULL) {
--                        throw_error (context, ERROR_FAILED, "failed to set account type: wheel group not found");
-+                        throw_error (context, ERROR_FAILED, "failed to set account type: admin group not found");
-                         return;
-                 }
--                wheel = grp->gr_gid;
-+                admin = grp->gr_gid;
- 
-                 ngroups = get_user_groups (user->user_name, user->gid, &groups);
- 
-                 str = g_string_new ("");
-                 for (i = 0; i < ngroups; i++) {
--                        if (groups[i] == wheel)
-+                        if (groups[i] == admin)
-                                 continue;
-                         g_string_append_printf (str, "%d,", groups[i]);
-                 }
-                 switch (account_type) {
-                 case ACCOUNT_TYPE_ADMINISTRATOR:
--                        g_string_append_printf (str, "%d", wheel);
-+                        g_string_append_printf (str, "%d", admin);
-                         break;
-                 case ACCOUNT_TYPE_STANDARD:
-                 default:
-Index: accountsservice/src/util.c
-===================================================================
---- accountsservice.orig/src/util.c
-+++ accountsservice/src/util.c
-@@ -313,3 +313,45 @@ get_caller_uid (GDBusMethodInvocation *c
+diff --git a/src/util.c b/src/util.c
+index 0372b4b..a014e6f 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -289,3 +289,45 @@ get_caller_uid (GDBusMethodInvocation *context,
  
          return TRUE;
  }
@@ -148,11 +109,11 @@ Index: accountsservice/src/util.c
 +                return;
 +        }
 +}
-Index: accountsservice/src/util.h
-===================================================================
---- accountsservice.orig/src/util.h
-+++ accountsservice/src/util.h
-@@ -40,6 +40,15 @@ gint get_user_groups (const gchar  *user
+diff --git a/src/util.h b/src/util.h
+index 41ba545..bf7daf0 100644
+--- a/src/util.h
++++ b/src/util.h
+@@ -40,6 +40,14 @@ gint get_user_groups (const gchar  *username,
                        gid_t         group,
                        gid_t       **groups);
  
@@ -163,7 +124,6 @@ Index: accountsservice/src/util.h
 +void remove_user_from_group (GDBusMethodInvocation *context,
 +                             const char *user_name,
 +                             const char *group_name);
-+
 +
  G_END_DECLS
  
