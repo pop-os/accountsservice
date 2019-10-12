@@ -12,12 +12,8 @@ get_pid() {
 }
 
 if [ "$1" = "configure" -a ! -d /run/systemd/system ]; then
-   # stop accounts-daemon
-   pid=$(get_pid org.freedesktop.Accounts)
-   kill $pid 2>/dev/null || true
-
-   # restart daemon if it was running before
-   [ -z "$pid" ] || /usr/lib/accountsservice/accounts-daemon & >/dev/null || true # will trigger through D-Bus activation
+    # stop accounts-daemon
+    kill $(get_pid org.freedesktop.Accounts) 2>/dev/null || true
 fi
 
 #DEBHELPER#
