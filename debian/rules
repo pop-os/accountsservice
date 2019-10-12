@@ -1,36 +1,30 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-export CPPFLAGS:=$(shell dpkg-buildflags --get CPPFLAGS)
-export CFLAGS:=$(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS)
-export CXXFLAGS:=$(shell dpkg-buildflags --get CXXFLAGS)
-export LDFLAGS:=$(shell dpkg-buildflags --get LDFLAGS)
+export DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed
 
-LDFLAGS+=-Wl,--as-needed
+BUILD_GTKDOC := -Dgtk_doc=true
+ifneq ($(filter nodoc, $(DEB_BUILD_OPTIONS)),)
+  BUILD_GTKDOC := -Dgtk_doc=false
+else
+ifeq ($(shell which gtkdoc-scan),)
+  BUILD_GTKDOC := -Dgtk-doc=false
+endif
+endif
 
 %:
 	dh $@ --with=gir
-
-override_dh_autoreconf:
-	gtkdocize
-	dh_autoreconf
 
 override_dh_makeshlibs:
 	dh_makeshlibs -V -- -c4
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
-		--enable-gtk-doc \
-		--enable-static=no \
+		$(BUILD_GTKDOC) -Ddocbook=true \
+		-Dgdmconffile=/etc/gdm3/daemon.conf \
+		-Dadmin_group=sudo \
 		--libexecdir=/usr/lib/accountsservice \
-		--with-systemdsystemunitdir=/lib/systemd/system
-
-# Disabled to avoid FTBFS
-override_dh_auto_test:
+		-Dsystemdsystemunitdir=/lib/systemd/system
 
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS
-
-override_dh_strip:
-	dh_strip -plibaccountsservice0 --dbgsym-migration='libaccountsservice-dbg (<< 0.6.40-4~)'
-	dh_strip --remaining-packages

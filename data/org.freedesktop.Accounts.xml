@@ -71,7 +71,6 @@
       <arg name="name" direction="in" type="s">
         <doc:doc><doc:summary>The username for the new user</doc:summary></doc:doc>
       </arg>
-      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
       <arg name="fullname" direction="in" type="s">
         <doc:doc><doc:summary>The real name for the new user</doc:summary></doc:doc>
       </arg>
@@ -219,6 +218,36 @@
        <doc:description>
          <doc:para>
            The version of the running daemon.
+         </doc:para>
+       </doc:description>
+     </doc:doc>
+   </property>
+
+   <property name="HasNoUsers" type="b" access="read">
+     <doc:doc>
+       <doc:description>
+         <doc:para>
+           Whether or not the system has no users
+         </doc:para>
+       </doc:description>
+     </doc:doc>
+   </property>
+
+   <property name="HasMultipleUsers" type="b" access="read">
+     <doc:doc>
+       <doc:description>
+         <doc:para>
+           Whether or not the system has multiple users
+         </doc:para>
+       </doc:description>
+     </doc:doc>
+   </property>
+
+   <property name="AutomaticLoginUsers" type="ao" access="read">
+     <doc:doc>
+       <doc:description>
+         <doc:para>
+           Users to automatically log in as
          </doc:para>
        </doc:description>
      </doc:doc>

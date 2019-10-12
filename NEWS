@@ -1,3 +1,69 @@
+Changes in 0.6.55
+=================
+* Memory leak fix
+* improved heuristics for identifying user session
+* Export interfaces directory to pkgconfig
+* Lock down state directory from prying eyes to be more friendly to
+  accountsservice extensions that require privacy.
+* misc fixes
+* Translation updateso
+
+Changes in 0.6.54
+=================
+* Fix user state dirs
+
+Changes in 0.6.53
+=================
+* Fix introspection
+
+Changes in 0.6.52
+=================
+* migrate to meson and gettext (instead of autogoo and intltool)
+* add code of conduct
+* Add new session and session type properties (to replace XSession)
+* Try to handle misbehaving logind a little better
+* misc mixes and code modernization
+* Add new "Saved" property to say whether a cached user is stored on
+  disk.
+
+Changes in 0.6.50
+=================
+* Fix insufficient path check on user icon files
+* Fix is-logged-in status for wayland sessions
+* Fix user enumeration when system accounts are mixed in
+
+Changes in 0.6.49
+=================
+* Fix crash on startup from previous compiler warning fix
+
+Changes in 0.6.48
+=================
+* Fix crash when adding admin user
+* Fix crash when user is removed
+* performance improvements handling really large wtmp files
+* compiler warning fix
+
+Changes in 0.6.47
+=================
+* Fix problem where libaccountsservice users weren't getting
+  property change updates
+* Reduce memory usage of cached users in daemon process
+* Drop premature user-added/user-removed signals that
+  erroneously get emitted before ListCachedUsers call finishes.
+
+Changes in 0.6.46
+=================
+* Fix systemd unit file to use default standard output
+* performance improvements
+* leak fixes
+* crash fixes
+* support extra groups for admin users
+* add policy that allows admins to allow users to change their own password
+* introspection fixes
+* elogind support
+* decruftification of username blacklist
+* Translation updates
+
 Changes in 0.6.45
 =================
 * wrap password expiration info in libaccountsservice api

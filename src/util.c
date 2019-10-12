@@ -37,52 +37,43 @@
 static gchar *
 get_cmdline_of_pid (GPid pid)
 {
-  gchar *ret = NULL;
-  gchar *filename;
-  gchar *contents;
-  gsize contents_len;
-  GError *error;
-  guint n;
+        gchar *ret;
+        g_autofree gchar *filename = NULL;
+        g_autofree gchar *contents = NULL;
+        gsize contents_len;
+        g_autoptr(GError) error = NULL;
+        guint n;
 
-  filename = g_strdup_printf ("/proc/%d/cmdline", (int) pid);
+        filename = g_strdup_printf ("/proc/%d/cmdline", (int) pid);
 
-  if (!g_file_get_contents (filename,
-                            &contents,
-                            &contents_len,
-                            &error))
-    {
-      g_warning ("Error opening `%s': %s",
-                 filename,
-                 error->message);
-      g_error_free (error);
-      goto out;
-    }
-  /* The kernel uses '\0' to separate arguments - replace those with a space. */
-  for (n = 0; n < contents_len - 1; n++)
-    {
-      if (contents[n] == '\0')
-        contents[n] = ' ';
-    }
+        if (!g_file_get_contents (filename,
+                                  &contents,
+                                  &contents_len,
+                                  &error)) {
+                g_warning ("Error opening `%s': %s",
+                           filename,
+                           error->message);
+                return NULL;
+        }
+        /* The kernel uses '\0' to separate arguments - replace those with a space. */
+        for (n = 0; n < contents_len - 1; n++) {
+                if (contents[n] == '\0')
+                        contents[n] = ' ';
+        }
 
-  ret = g_strdup (contents);
-  g_strstrip (ret);
-
- out:
-  g_free (filename);
-  g_free (contents);
-
-  return ret;
+        ret = g_strdup (contents);
+        g_strstrip (ret);
+        return ret;
 }
 
 static gboolean
 get_caller_pid (GDBusMethodInvocation *context,
                 GPid                  *pid)
 {
-        GVariant      *reply;
-        GError        *error;
-        guint32        pid_as_int;
+        g_autoptr(GVariant) reply = NULL;
+        g_autoptr(GError) error = NULL;
+        guint32 pid_as_int;
 
-        error = NULL;
         reply = g_dbus_connection_call_sync (g_dbus_method_invocation_get_connection (context),
                                              "org.freedesktop.DBus",
                                              "/org/freedesktop/DBus",
@@ -100,15 +91,11 @@ get_caller_pid (GDBusMethodInvocation *context,
                 g_warning ("Could not talk to message bus to find uid of sender %s: %s",
                            g_dbus_method_invocation_get_sender (context),
                            error->message);
-                g_error_free (error);
-
                 return FALSE;
         }
 
         g_variant_get (reply, "(u)", &pid_as_int);
         *pid = pid_as_int;
-
-        g_variant_unref (reply);
 
         return TRUE;
 }
@@ -119,7 +106,7 @@ sys_log (GDBusMethodInvocation *context,
                                 ...)
 {
         va_list args;
-        gchar *msg;
+        g_autofree gchar *msg = NULL;
 
         va_start (args, format);
         msg = g_strdup_vprintf (format, args);
@@ -127,11 +114,11 @@ sys_log (GDBusMethodInvocation *context,
 
         if (context) {
                 PolkitSubject *subject;
-                gchar *cmdline = NULL;
-                gchar *id;
+                g_autofree gchar *cmdline = NULL;
+                g_autofree gchar *id = NULL;
                 GPid pid = 0;
                 gint uid = -1;
-                gchar *tmp;
+                g_autofree gchar *tmp = NULL;
 
                 subject = polkit_system_bus_name_new (g_dbus_method_invocation_get_sender (context));
                 id = polkit_subject_to_string (subject);
@@ -160,16 +147,12 @@ sys_log (GDBusMethodInvocation *context,
                 }
 
                 g_free (msg);
-                msg = tmp;
+                msg = g_steal_pointer (&tmp);
 
-                g_free (id);
-                g_free (cmdline);
                 g_object_unref (subject);
         }
 
         syslog (LOG_NOTICE, "%s", msg);
-
-        g_free (msg);
 }
 
 static void
@@ -177,8 +160,8 @@ get_caller_loginuid (GDBusMethodInvocation *context, gchar *loginuid, gint size)
 {
         GPid pid;
         gint uid;
-        gchar *path;
-        gchar *buf;
+        g_autofree gchar *path = NULL;
+        g_autofree gchar *buf = NULL;
 
         if (!get_caller_uid (context, &uid)) {
                 uid = getuid ();
@@ -192,13 +175,10 @@ get_caller_loginuid (GDBusMethodInvocation *context, gchar *loginuid, gint size)
 
         if (path != NULL && g_file_get_contents (path, &buf, NULL, NULL)) {
                 strncpy (loginuid, buf, size);
-                g_free (buf);
         }
         else {
                 g_snprintf (loginuid, size, "%d", uid);
         }
-
-        g_free (path);
 }
 
 static gboolean
@@ -282,10 +262,9 @@ gboolean
 get_caller_uid (GDBusMethodInvocation *context,
                 gint                  *uid)
 {
-        GVariant      *reply;
-        GError        *error;
+        g_autoptr(GVariant) reply = NULL;
+        g_autoptr(GError) error = NULL;
 
-        error = NULL;
         reply = g_dbus_connection_call_sync (g_dbus_method_invocation_get_connection (context),
                                              "org.freedesktop.DBus",
                                              "/org/freedesktop/DBus",
@@ -303,13 +282,10 @@ get_caller_uid (GDBusMethodInvocation *context,
                 g_warning ("Could not talk to message bus to find uid of sender %s: %s",
                            g_dbus_method_invocation_get_sender (context),
                            error->message);
-                g_error_free (error);
-
                 return FALSE;
         }
 
         g_variant_get (reply, "(u)", uid);
-        g_variant_unref (reply);
 
         return TRUE;
 }

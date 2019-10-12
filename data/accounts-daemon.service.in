@@ -11,7 +11,6 @@ Wants=nss-user-lookup.target
 Type=dbus
 BusName=org.freedesktop.Accounts
 ExecStart=@libexecdir@/accounts-daemon
-StandardOutput=syslog
 Environment=GVFS_DISABLE_FUSE=1
 Environment=GIO_USE_VFS=local
 Environment=GVFS_REMOTE_VOLUME_MONITOR_IGNORE=1

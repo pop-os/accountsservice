@@ -1,0 +1,48 @@
+<node>
+  <!-- 
+   1. Copy this example to this directory:
+     # install -c -m 644 doc/org.mydm.MyDisplayManager.Wallpaper.xml $prefix/share/dbus-1/interfaces
+   2. Link into accountsservice interfaces directory:
+     # install -d $prefix/share/accountsservice/interfaces/
+     # ln -s ../../dbus-1/interfaces/org.mydm.MyDisplayManager.Wallpaper.xml $prefix/share/accountsservice/interfaces/
+   3. Reload accounts-daemon
+  -->
+  <interface name="org.mydm.MyDisplayManager.Wallpaper">
+
+    <annotation name="org.freedesktop.Accounts.VendorExtension" value="true"/>
+
+    <!-- defaults to always allowed -->
+    <!--
+    <annotation name="org.freedesktop.Accounts.Authentication.ReadOwn"
+                value="org.mydm.MyDisplayManager.ReadWallpaper"/>
+    <annotation name="org.freedesktop.Accounts.Authentication.ReadAny"
+                value="org.mydm.MyDisplayManager.ReadWallpaper"/>
+    -->
+
+    <!-- defaults to org.freedesktop.accounts.user-administration -->
+    <annotation name="org.freedesktop.Accounts.Authentication.ChangeAny"
+                value="org.mydm.MyDisplayManager.ModifyWallpaper"/>
+
+    <!-- defaults to org.freedesktop.accounts.change-own-user-data -->
+    <!--
+    <annotation name="org.freedesktop.Accounts.Authentication.ChangeOwn"
+                value="org.mydm.MyDisplayManager.ModifyWallpaper"/>
+    -->
+
+    <property name="filename" type="s" access="readwrite"/>
+
+    <property name="display-mode" type="s" access="readwrite">
+      <annotation name="org.freedesktop.Accounts.DefaultValue.String" value="zoom"/>
+    </property>
+
+    <property name="background-color" type="(iii)" access="readwrite">
+      <annotation name="org.freedesktop.Accounts.DefaultValue" value="(0xdd, 0x48, 0x14)"/>
+    </property>
+
+  </interface>
+</node>
+
+<!-- must install file in XDG_DATA_DIRS/dbus-1/interfaces
+     and symlink to it from XDG_DATA_DIRS/accountsservice/interface
+     with the same basename, using a relative path starting '../../dbus-1/interfaces/"
+ -->

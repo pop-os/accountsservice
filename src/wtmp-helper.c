@@ -75,7 +75,6 @@ wtmp_helper_update_login_frequencies (GHashTable *users)
         struct utmpx *wtmp_entry;
         GHashTableIter iter;
         gpointer key, value;
-        struct passwd *pwent;
         User *user;
         GVariantBuilder *builder, *builder2;
         GList *l;
@@ -128,11 +127,6 @@ wtmp_helper_update_login_frequencies (GHashTable *users)
                         continue;
                 }
 
-                pwent = getpwnam (wtmp_entry->ut_user);
-                if (pwent == NULL) {
-                        continue;
-                }
-
                 if (!g_hash_table_lookup_extended (login_hash,
                                                    wtmp_entry->ut_user,
                                                    &key, &value)) {
@@ -165,6 +159,9 @@ wtmp_helper_update_login_frequencies (GHashTable *users)
         while (g_hash_table_iter_next (&iter, &key, &value)) {
                 UserAccounting    *accounting = (UserAccounting *) value;
                 UserPreviousLogin *previous_login;
+                gboolean           changed = FALSE;
+                guint64            old_login_frequency;
+                guint64            old_login_time;
 
                 user = g_hash_table_lookup (users, key);
                 if (user == NULL) {
@@ -172,8 +169,20 @@ wtmp_helper_update_login_frequencies (GHashTable *users)
                         continue;
                 }
 
-                g_object_set (user, "login-frequency", accounting->frequency, NULL);
-                g_object_set (user, "login-time", accounting->time, NULL);
+                g_object_get (user,
+                              "login-frequency", &old_login_frequency,
+                              "login-time", &old_login_time,
+                              NULL);
+
+                if (old_login_frequency != accounting->frequency) {
+                        g_object_set (user, "login-frequency", accounting->frequency, NULL);
+                        changed = TRUE;
+                }
+
+                if (old_login_time != accounting->time) {
+                        g_object_set (user, "login-time", accounting->time, NULL);
+                        changed = TRUE;
+                }
 
                 builder = g_variant_builder_new (G_VARIANT_TYPE ("a(xxa{sv})"));
                 for (l = g_list_last (accounting->previous_logins); l != NULL; l = l->prev) {
@@ -188,7 +197,8 @@ wtmp_helper_update_login_frequencies (GHashTable *users)
                 g_variant_builder_unref (builder);
                 g_list_free_full (accounting->previous_logins, (GDestroyNotify) user_previous_login_free);
 
-                user_changed (user);
+                if (changed)
+                        user_changed (user);
         }
 
         g_hash_table_unref (login_hash);

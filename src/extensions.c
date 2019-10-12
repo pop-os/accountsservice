@@ -55,29 +55,24 @@ static void
 daemon_read_extension_file (GHashTable  *ifaces,
                             const gchar *filename)
 {
-        GError *error = NULL;
-        GDBusNodeInfo *node;
-        gchar *contents;
+        g_autoptr(GError) error = NULL;
+        g_autoptr(GDBusNodeInfo) node = NULL;
+        g_autofree gchar *contents = NULL;
         gint i;
 
         if (!g_file_get_contents (filename, &contents, NULL, &error)) {
                 g_warning ("Unable to read extension file %s: %s.  Ignoring.", filename, error->message);
-                g_error_free (error);
                 return;
         }
 
         node = g_dbus_node_info_new_for_xml (contents, &error);
-        if (node) {
-                for (i = 0; node->interfaces && node->interfaces[i]; i++)
-                        daemon_maybe_add_extension_interface (ifaces, node->interfaces[i]);
-
-                g_dbus_node_info_unref (node);
-        } else {
+        if (!node) {
                 g_warning ("Failed to parse file %s: %s", filename, error->message);
-                g_error_free (error);
+                return;
         }
 
-        g_free (contents);
+        for (i = 0; node->interfaces && node->interfaces[i]; i++)
+                daemon_maybe_add_extension_interface (ifaces, node->interfaces[i]);
 }
 
 static void
@@ -92,8 +87,8 @@ daemon_read_extension_directory (GHashTable  *ifaces,
                 return;
 
         while ((name = g_dir_read_name (dir))) {
-                gchar *filename;
-                gchar *symlink;
+                g_autofree gchar *filename = NULL;
+                g_autofree gchar *symlink = NULL;
 
                 /* Extensions are installed as normal D-Bus interface
                  * files with an annotation.
@@ -123,7 +118,6 @@ daemon_read_extension_directory (GHashTable  *ifaces,
                 if (!symlink) {
                         g_warning ("Found accounts service vendor extension file %s, but file must be a symlink to "
                                    "'../../dbus-1/interfaces/%s' for forwards-compatibility reasons.", filename, name);
-                        g_free (filename);
                         continue;
                 }
 
@@ -137,9 +131,6 @@ daemon_read_extension_directory (GHashTable  *ifaces,
                                    "equal to '../../dbus-1/interfaces/%s' for forwards-compatibility reasons.",
                                    filename, name);
                 }
-
-                g_free (filename);
-                g_free (symlink);
         }
 
         g_dir_close (dir);
@@ -156,11 +147,8 @@ daemon_read_extension_ifaces (void)
 
         data_dirs = g_get_system_data_dirs ();
         for (i = 0; data_dirs[i]; i++) {
-                gchar *path = g_build_filename (data_dirs[i], "accountsservice/interfaces", NULL);
-
+                g_autofree gchar *path = g_build_filename (data_dirs[i], "accountsservice/interfaces", NULL);
                 daemon_read_extension_directory (ifaces, path);
-
-                g_free (path);
         }
 
         return ifaces;

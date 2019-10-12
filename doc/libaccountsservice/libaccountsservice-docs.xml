@@ -19,6 +19,14 @@
     <title>API Index</title>
     <xi:include href="xml/api-index-full.xml"><xi:fallback /></xi:include>
   </index>
+  <index id="api-index-0-6-27">
+    <title>Index of new symbols in 0.6.27</title>
+    <xi:include href="xml/api-index-0.6.27.xml"><xi:fallback /></xi:include>
+  </index>
+  <index id="api-index-0-6-39">
+    <title>Index of new symbols in 0.6.39</title>
+    <xi:include href="xml/api-index-0.6.39.xml"><xi:fallback /></xi:include>
+  </index>
 
   <xi:include href="xml/annotation-glossary.xml">
     <xi:fallback />

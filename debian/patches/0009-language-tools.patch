@@ -1,49 +1,238 @@
-Description: Help files for dealing with language/locale settings.
-Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
+From: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
+Date: Thu, 21 Dec 2017 15:09:24 +1300
+Subject: [PATCH 05/12] Help files for dealing with language/locale settings.
 
 ---
- configure.ac                            |    1 
- data/Makefile.am                        |    1 
- data/langtools/Makefile.am              |   17 ++++++
- data/langtools/del-profile-env-settings |   13 +++++
- data/langtools/language-options         |   66 +++++++++++++++++++++++++++
- data/langtools/language-validate        |   78 ++++++++++++++++++++++++++++++++
- data/langtools/language2locale          |   65 ++++++++++++++++++++++++++
- data/langtools/main-countries           |   28 +++++++++++
- data/langtools/save-to-pam-env          |   36 ++++++++++++++
- data/langtools/set-language-helper      |   25 ++++++++++
- data/langtools/update-langlist          |   48 +++++++++++++++++++
- 11 files changed, 378 insertions(+)
+ data/langtools/Makefile.am         | 17 ++++++++
+ data/langtools/language-options    | 84 ++++++++++++++++++++++++++++++++++++++
+ data/langtools/language-validate   | 82 +++++++++++++++++++++++++++++++++++++
+ data/langtools/language2locale     | 70 +++++++++++++++++++++++++++++++
+ data/langtools/locale2papersize    | 18 ++++++++
+ data/langtools/main-countries      | 28 +++++++++++++
+ data/langtools/meson.build         | 25 ++++++++++++
+ data/langtools/save-to-pam-env     | 40 ++++++++++++++++++
+ data/langtools/set-language-helper | 27 ++++++++++++
+ data/langtools/update-langlist     | 48 ++++++++++++++++++++++
+ data/meson.build                   |  2 +
+ 11 files changed, 441 insertions(+)
+ create mode 100644 data/langtools/Makefile.am
+ create mode 100755 data/langtools/language-options
+ create mode 100755 data/langtools/language-validate
+ create mode 100755 data/langtools/language2locale
+ create mode 100755 data/langtools/locale2papersize
+ create mode 100644 data/langtools/main-countries
+ create mode 100644 data/langtools/meson.build
+ create mode 100755 data/langtools/save-to-pam-env
+ create mode 100755 data/langtools/set-language-helper
+ create mode 100755 data/langtools/update-langlist
 
---- a/configure.ac
-+++ b/configure.ac
-@@ -323,6 +323,7 @@
- Makefile
- po/Makefile.in
- data/Makefile
-+data/langtools/Makefile
- src/Makefile
- src/libaccountsservice/Makefile
- src/libaccountsservice/accountsservice.pc
+diff --git a/data/langtools/Makefile.am b/data/langtools/Makefile.am
+new file mode 100644
+index 0000000..ca345e0
 --- /dev/null
-+++ b/data/langtools/del-profile-env-settings
-@@ -0,0 +1,13 @@
-+#!/bin/sh -e
++++ b/data/langtools/Makefile.am
+@@ -0,0 +1,17 @@
++langtoolsdir = ${datadir}/language-tools
 +
-+homedir=$1
++install-data-hook:
++	if test '!' -d $(DESTDIR)$(langtoolsdir); then \
++		$(mkinstalldirs) $(DESTDIR)$(langtoolsdir); \
++		chmod 755 $(DESTDIR)$(langtoolsdir); \
++	fi
 +
-+test -n "$homedir" || exit 1
++	$(INSTALL_SCRIPT)  language-options          $(DESTDIR)$(langtoolsdir)/language-options
++	$(INSTALL_SCRIPT)  language-validate         $(DESTDIR)$(langtoolsdir)/language-validate
++	$(INSTALL_SCRIPT)  language2locale           $(DESTDIR)$(langtoolsdir)/language2locale
++	$(INSTALL_SCRIPT)  locale2papersize          $(DESTDIR)$(langtoolsdir)/locale2papersize
++	$(INSTALL_DATA)    main-countries            $(DESTDIR)$(langtoolsdir)/main-countries
++	$(INSTALL_SCRIPT)  save-to-pam-env           $(DESTDIR)$(langtoolsdir)/save-to-pam-env
++	$(INSTALL_SCRIPT)  set-language-helper       $(DESTDIR)$(langtoolsdir)/set-language-helper
++	$(INSTALL_SCRIPT)  update-langlist           $(DESTDIR)$(langtoolsdir)/update-langlist
 +
-+test -f "$homedir/.profile" && {
-+    cd "$homedir"
-+    for var in 'LANGUAGE' 'LANG' 'LC_MESSAGES' 'LC_CTYPE' 'LC_COLLATE'; do
-+        sed -i "/^export $var=\"[^[:space:]]*\"$/d" .profile
-+    done
+diff --git a/data/langtools/language-options b/data/langtools/language-options
+new file mode 100755
+index 0000000..b1cc1f3
+--- /dev/null
++++ b/data/langtools/language-options
+@@ -0,0 +1,84 @@
++#!/usr/bin/perl
++use strict;
++use warnings;
++
++my $langtoolsdir = '/usr/share/language-tools';
++
++# get the locales available on the system
++my @avail_locales = map { chomp; s/\.utf8//; $_ } qx( locale -a | grep -F .utf8 );
++
++# add items without country code to facilitate lookups
++my %extended_localelist;
++for my $loc (@avail_locales) {
++    ( my $lang = $loc ) =~ s/_[A-Z]+//;
++    @extended_localelist{$loc, $lang} = (1, 1);
 +}
 +
++# get the directory names in /usr/share/locale-langpack plus possible other
++# translation directory names in /usr/share/locale and /usr/local/share/locale
++my %translation_dirs;
++if ( opendir my ($dh), '/usr/share/locale-langpack' ) {
++    $translation_dirs{$_} = 1 for readdir $dh;
++}
++my %langpack_langcodes = map { s/[^a-z].+//; $_, 1 }
++                         grep !/^\./, keys %translation_dirs;
++for my $t_dir ('/usr/share/locale', '/usr/local/share/locale') {
++    if ( opendir my ($dh), $t_dir ) {
++        for ( readdir $dh ) {
++            for my $lang ( keys %langpack_langcodes ) {
++                if ( /^$lang[_@]/ ) {
++                    $translation_dirs{$_} = 1;
++                    last;
++                }
++            }
++        }
++    }
++}
++
++# Assume that 'en' is present even if the English language pack isn't installed
++if ( ! $translation_dirs{'en'} and "@avail_locales" =~ /\ben_US\b/ ) {
++    $translation_dirs{'en'} = 1;
++}
++
++# get the intersection of available translation_dirs and the extended locale list
++my %intersection;
++for ( keys %extended_localelist ) {
++    $intersection{$_} = 1 if $translation_dirs{$_};
++}
++
++# adjustments
++if ( open my $fh, '<', "$langtoolsdir/main-countries" ) {
++    # If country code items in a language exist:
++    # - Remove the item without country code, since gettext won't find a
++    #   translation under e.g. 'de_DE' if the first item in LANGUAGE is 'de'
++    #   (see https://launchpad.net/bugs/700213). 'en' is kept, though, since
++    #   it's always the last item in LANGUAGE per design.
++    # - Make sure that the main dialect of the language is represented among
++    #   the country code items (see https://launchpad.net/bugs/710148).
++    my %main;
++    while ( <$fh> ) {
++        next if /^\s*(?:#|$)/;
++        my ($k, $v) = split;
++        $main{$k} = $v;
++    }
++    my %count;
++    for ( keys %intersection ) {
++        next if /^en[^a-z]/;
++        ( my $not_country = $_ ) =~ s/_[A-Z]+//;
++        $count{$not_country} ++;
++    }
++    for my $langcode ( keys %count ) {
++        if ( $count{$langcode} > 1 ) {
++            delete $intersection{$langcode};
++            $intersection{ $main{$langcode} } = 1 if $main{$langcode};
++        }
++    }
++} else {
++    # not access to the language-to-main-dialect map
++    # => stick with a minimum of list manipulation
++    delete $intersection{'zh'};
++}
++
++# print the resulting list of language options
++print join("\n", sort keys %intersection) || 'en';
++
+diff --git a/data/langtools/language-validate b/data/langtools/language-validate
+new file mode 100755
+index 0000000..b87c132
+--- /dev/null
++++ b/data/langtools/language-validate
+@@ -0,0 +1,82 @@
++#!/bin/sh -e
++
++lang=$1
++validated_language=
++
++test -n "$lang" || exit 1
++
++langtoolsdir=/usr/share/language-tools
++
++#
++# discard possible fallback languages
++#
++lang=${lang%%:*}
++
++#
++# remove possible encoding part
++#
++if [ $lang != ${lang%.utf8*} ]; then
++    lang=${lang%.*}${lang#*.utf8}
++elif [ $lang != ${lang%.UTF-8*} ]; then
++    lang=${lang%.*}${lang#*.UTF-8}
++fi
++
++#
++# make sure that the output is a valid language option
++#
++options=$( $langtoolsdir/language-options )
++
++# exact match
++for opt in $options; do
++    if [ $opt = $lang ]; then
++        validated_language=$lang
++        break
++    fi
++done
++
++if [ -z "$validated_language" ]; then
++    langcode=${lang%%[_@]*}
++
++    # try the "main" country code if any
++    main_country=
++    is_variant=false
++    while read line; do
++        if [ "${line%%[[:space:]]*}" = $langcode ]; then
++            main_country=${line##*[[:space:]]}
++            if [ $lang != ${lang#*@} ]; then
++                main_country=$main_country@${lang#*@}
++                is_variant=true
++            fi
++            break
++        fi
++    done < $langtoolsdir/main-countries
++    if [ -n "$main_country" ]; then
++        for opt in $options; do
++            if [ $main_country = $opt ]; then
++                validated_language=$main_country
++                break
++            fi
++        done
++    fi
++
++    # try out fitting language option without paying regard to
++    # country code
++    if [ -z "$validated_language" ]; then
++        for opt in $options; do
++            if [ "${opt%%[_@]*}" = $langcode -a $langcode != 'zh' ]; then
++                if $is_variant && [ $opt = ${opt#*@} ]; then
++                    continue
++                fi
++                validated_language=$opt
++                break
++            fi
++        done
++    fi
++fi
++
++if [ -z "$validated_language" ]; then
++    validated_language='en'
++fi
++
++echo $validated_language
++
+diff --git a/data/langtools/language2locale b/data/langtools/language2locale
+new file mode 100755
+index 0000000..874b357
 --- /dev/null
 +++ b/data/langtools/language2locale
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,70 @@
 +#!/bin/sh -e
 +#
 +# - takes the first choice language in the LANGUAGE priority list as argument
@@ -53,6 +242,11 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +locale_name=
 +
 +test -n "$lang" || exit 1
++
++# remove codeset if any
++if [ "$lang" != "${lang%.*}" ]; then
++    lang=$( echo $lang | sed -r 's/([^.]+)[^@]+(.*)/\1\2/' )
++fi
 +
 +langtoolsdir=/usr/share/language-tools
 +
@@ -109,156 +303,33 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $locale_name
 +
+diff --git a/data/langtools/locale2papersize b/data/langtools/locale2papersize
+new file mode 100755
+index 0000000..3fcc13b
 --- /dev/null
-+++ b/data/langtools/language-options
-@@ -0,0 +1,66 @@
-+#!/usr/bin/perl
-+use strict;
-+use warnings;
-+
-+my $langtoolsdir = '/usr/share/language-tools';
-+
-+# get the locales available on the system
-+my @avail_locales = map { chomp; s/\.utf8//; $_ } qx( locale -a | grep -F .utf8 );
-+
-+# add items without country code to facilitate lookups
-+my %extended_localelist;
-+for my $loc (@avail_locales) {
-+    ( my $lang = $loc ) =~ s/_[A-Z]+//;
-+    @extended_localelist{$loc, $lang} = (1, 1);
-+}
-+
-+# get the union of /usr/share/locale-langpack and /usr/share/locale
-+my %translation_dirs;
-+for my $dir ('/usr/share/locale-langpack', '/usr/share/locale') {
-+    if ( opendir my ($dh), $dir ) {
-+        $translation_dirs{$_} = 1 for readdir $dh;
-+    }
-+}
-+
-+# get the intersection of available translation_dirs and the extended locale list
-+my %intersection;
-+for ( keys %extended_localelist ) {
-+    $intersection{$_} = 1 if $translation_dirs{$_};
-+}
-+
-+# adjustments
-+if ( open my $fh, '<', "$langtoolsdir/main-countries" ) {
-+    # If country code items in a language exist:
-+    # - Remove the item without country code, since gettext won't find a
-+    #   translation under e.g. 'de_DE' if the first item in LANGUAGE is 'de'
-+    #   (see https://launchpad.net/bugs/700213). 'en' is kept, though, since
-+    #   it's always the last item in LANGUAGE per design.
-+    # - Make sure that the main dialect of the language is represented among
-+    #   the country code items (see https://launchpad.net/bugs/710148).
-+    my %main;
-+    while ( <$fh> ) {
-+        next if /^\s*(?:#|$)/;
-+        my ($k, $v) = split;
-+        $main{$k} = $v;
-+    }
-+    my %count;
-+    for ( keys %intersection ) {
-+        next if /^en[^a-z]/;
-+        ( my $not_country = $_ ) =~ s/_[A-Z]+//;
-+        $count{$not_country} ++;
-+    }
-+    for my $langcode ( keys %count ) {
-+        if ( $count{$langcode} > 1 ) {
-+            delete $intersection{$langcode};
-+            $intersection{ $main{$langcode} } = 1 if $main{$langcode};
-+        }
-+    }
-+} else {
-+    # not access to the language-to-main-dialect map
-+    # => stick with a minimum of list manipulation
-+    delete $intersection{'zh'};
-+}
-+
-+# print the resulting list of language options
-+print join("\n", sort keys %intersection) || 'en';
-+
---- /dev/null
-+++ b/data/langtools/language-validate
-@@ -0,0 +1,78 @@
++++ b/data/langtools/locale2papersize
+@@ -0,0 +1,18 @@
 +#!/bin/sh -e
-+
-+lang=$1
-+validated_language=
-+
-+test -n "$lang" || exit 1
-+
-+langtoolsdir=/usr/share/language-tools
-+
 +#
-+# discard possible fallback languages
-+#
-+lang=${lang%%:*}
++# locale2papersize outputs the paper size "a4" or "letter" based on
++# the height and width in the locale that is passed as an argument.
 +
-+#
-+# remove possible encoding part
-+#
-+if [ $lang != ${lang%.utf8*} ]; then
-+    lang=${lang%.*}${lang#*.utf8}
-+elif [ $lang != ${lang%.UTF-8*} ]; then
-+    lang=${lang%.*}${lang#*.UTF-8}
++export LC_PAPER=$1
++
++height=$( locale height )
++width=$( locale width )
++
++if [ "$height" = 279 -a "$width" = 216 ]; then
++    size=letter
++else
++    size=a4
 +fi
 +
-+#
-+# make sure that the output is a valid language option
-+#
-+options=$( $langtoolsdir/language-options )
++echo $size
 +
-+# exact match
-+for opt in $options; do
-+    if [ $opt = $lang ]; then
-+        validated_language=$lang
-+        break
-+    fi
-+done
-+
-+if [ -z "$validated_language" ]; then
-+    langcode=${lang%%[_@]*}
-+
-+    # try the "main" country code if any
-+    main_country=
-+    while read line; do
-+        if [ "${line%%[[:space:]]*}" = $langcode ]; then
-+            main_country=${line##*[[:space:]]}
-+            if [ $lang != ${lang#*@} ]; then
-+                main_country=$main_country@${lang#*@}
-+                is_variant=true
-+            fi
-+            break
-+        fi
-+    done < $langtoolsdir/main-countries
-+    if [ -n "$main_country" ]; then
-+        for opt in $options; do
-+            if [ $main_country = $opt ]; then
-+                validated_language=$main_country
-+                break
-+            fi
-+        done
-+    fi
-+
-+    # try out fitting language option without paying regard to
-+    # country code or variant
-+    if [ -z "$validated_language" ]; then
-+        for opt in $options; do
-+            if [ "${opt%%[_@]*}" = $langcode -a $langcode != 'zh' ]; then
-+                validated_language=$opt
-+                break
-+            fi
-+        done
-+    fi
-+fi
-+
-+if [ -z "$validated_language" ]; then
-+    validated_language='en'
-+fi
-+
-+echo $validated_language
-+
+diff --git a/data/langtools/main-countries b/data/langtools/main-countries
+new file mode 100644
+index 0000000..c6bbd32
 --- /dev/null
 +++ b/data/langtools/main-countries
 @@ -0,0 +1,28 @@
@@ -290,29 +361,43 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +ti	ti_ER
 +tr	tr_TR
 +
+diff --git a/data/langtools/meson.build b/data/langtools/meson.build
+new file mode 100644
+index 0000000..ed024a7
 --- /dev/null
-+++ b/data/langtools/Makefile.am
-@@ -0,0 +1,17 @@
-+langtoolsdir = ${datadir}/language-tools
++++ b/data/langtools/meson.build
+@@ -0,0 +1,25 @@
++langtools_dir = join_paths(get_option('datadir'), 'language-tools')
 +
-+install-data-hook:
-+	if test '!' -d $(DESTDIR)$(langtoolsdir); then \
-+		$(mkinstalldirs) $(DESTDIR)$(langtoolsdir); \
-+		chmod 755 $(DESTDIR)$(langtoolsdir); \
-+	fi
++scripts = files(
++  'language-options',
++  'language-validate',
++  'language2locale',
++  'locale2papersize',
++  'save-to-pam-env',
++  'set-language-helper',
++  'update-langlist'
++)
 +
-+	$(INSTALL_SCRIPT)  del-profile-env-settings  $(DESTDIR)$(langtoolsdir)/del-profile-env-settings
-+	$(INSTALL_SCRIPT)  language-options          $(DESTDIR)$(langtoolsdir)/language-options
-+	$(INSTALL_SCRIPT)  language-validate         $(DESTDIR)$(langtoolsdir)/language-validate
-+	$(INSTALL_SCRIPT)  language2locale           $(DESTDIR)$(langtoolsdir)/language2locale
-+	$(INSTALL_DATA)    main-countries            $(DESTDIR)$(langtoolsdir)/main-countries
-+	$(INSTALL_SCRIPT)  save-to-pam-env           $(DESTDIR)$(langtoolsdir)/save-to-pam-env
-+	$(INSTALL_SCRIPT)  set-language-helper       $(DESTDIR)$(langtoolsdir)/set-language-helper
-+	$(INSTALL_SCRIPT)  update-langlist           $(DESTDIR)$(langtoolsdir)/update-langlist
++install_data(
++  scripts,
++  install_dir: langtools_dir,
++)
 +
++data = files(
++  'main-countries'
++)
++
++install_data(
++  data,
++  install_dir: langtools_dir,
++)
+diff --git a/data/langtools/save-to-pam-env b/data/langtools/save-to-pam-env
+new file mode 100755
+index 0000000..2492957
 --- /dev/null
 +++ b/data/langtools/save-to-pam-env
-@@ -0,0 +1,36 @@
+@@ -0,0 +1,40 @@
 +#!/bin/sh -e
 +#
 +# updates the ~/.pam_environment config file
@@ -323,15 +408,17 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +[ -n "$homedir" -a -n "$locale_name" ] || exit 1
 +
++langtoolsdir=/usr/share/language-tools
++
 +# create ~/.pam_environment if it doesn't exist
 +touch "$homedir/.pam_environment" || exit 1
 +
 +save_to_pam_env() {
 +    var=$1; value=$2
-+    if [ "$( grep "^$var=" .pam_environment )" ]; then
-+        sed -r -i "s/^($var=).*/\1$value/" .pam_environment
++    if [ "$( grep -E "^$var(\s+DEFAULT|=)" .pam_environment )" ]; then
++        sed -r -i "s/^$var(\s+DEFAULT|=).*/$var\tDEFAULT=$value/" .pam_environment
 +    else
-+        echo "$var=$value" >> .pam_environment
++        echo "$var\tDEFAULT=$value" >> .pam_environment
 +    fi
 +}
 +
@@ -341,17 +428,22 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +    save_to_pam_env 'LANG' $locale_name
 +else
 +    for var in 'LC_NUMERIC' 'LC_TIME' 'LC_MONETARY' 'LC_PAPER' 'LC_NAME' \
-+               'LC_ADDRESS' 'LC_TELEPHONE' 'LC_MEASUREMENT'; do
++               'LC_ADDRESS' 'LC_TELEPHONE' 'LC_MEASUREMENT' 'LC_IDENTIFICATION'; do
 +        save_to_pam_env $var $locale_name
 +    done
++    papersize=$( $langtoolsdir/locale2papersize $locale_name )
++    save_to_pam_env 'PAPERSIZE' $papersize
 +    echo $locale_name
 +fi
 +
 +exit 0
 +
+diff --git a/data/langtools/set-language-helper b/data/langtools/set-language-helper
+new file mode 100755
+index 0000000..efbb394
 --- /dev/null
 +++ b/data/langtools/set-language-helper
-@@ -0,0 +1,25 @@
+@@ -0,0 +1,27 @@
 +#!/bin/sh -e
 +
 +homedir=$1
@@ -364,7 +456,9 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +validated_language=$( $langtoolsdir/language-validate $language )
 +
-+if [ $language = "${language%:*}" ]; then
++if ! dpkg -l language-selector-gnome > /dev/null 2>&1; then
++    renewed_langlist=$validated_language
++elif [ $language = "${language%:*}" ]; then
 +    renewed_langlist=$( $langtoolsdir/update-langlist $validated_language "$homedir" )
 +else
 +    # $language contains a priority list
@@ -377,14 +471,17 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $validated_language
 +
+diff --git a/data/langtools/update-langlist b/data/langtools/update-langlist
+new file mode 100755
+index 0000000..317a60b
 --- /dev/null
 +++ b/data/langtools/update-langlist
 @@ -0,0 +1,48 @@
 +#!/bin/sh -e
 +#
 +# update-langlist maintains the LANGUAGE priority list. It does so in
-+# a simplified manner, unlike the principal UI for setting the user
-+# language which provides full control.
++# a simplified manner, unlike the UI in language-selector-gnome for
++# setting the user language which provides full control.
 +
 +first_language=$1
 +homedir=$2
@@ -395,7 +492,7 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +get_old_langlist() {
 +    if [ -r "$homedir/.pam_environment" ]; then
 +        while read line; do
-+            if [ "${line%=*}" = 'LANGUAGE' ]; then
++            if [ "$( echo "${line%=*}" | sed -r 's/\s+DEFAULT$//' )" = 'LANGUAGE' ]; then
 +                old_langlist=${line#*=}
 +                break
 +            fi
@@ -428,10 +525,13 @@ Author: Gunnar Hjalmarsson <ubuntu@gunnar.cc>
 +
 +echo $renewed_langlist
 +
---- a/data/Makefile.am
-+++ b/data/Makefile.am
-@@ -1,3 +1,4 @@
-+SUBDIRS = langtools
- 
- dbusifdir   = $(datadir)/dbus-1/interfaces
- dbusif_DATA = \
+diff --git a/data/meson.build b/data/meson.build
+index 4987937..58ee672 100644
+--- a/data/meson.build
++++ b/data/meson.build
+@@ -48,3 +48,5 @@ if install_systemd_unit_dir
+     install_dir: systemd_system_unit_dir,
+   )
+ endif
++
++subdir('langtools')

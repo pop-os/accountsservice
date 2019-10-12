@@ -35,16 +35,15 @@ G_BEGIN_DECLS
 #define ACT_IS_USER_MANAGER_CLASS(k)  (G_TYPE_CHECK_CLASS_TYPE ((k), ACT_TYPE_USER_MANAGER))
 #define ACT_USER_MANAGER_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), ACT_TYPE_USER_MANAGER, ActUserManagerClass))
 
-typedef struct ActUserManagerPrivate ActUserManagerPrivate;
 typedef struct _ActUserManager ActUserManager;
 typedef struct _ActUserManagerClass ActUserManagerClass;
 
 struct _ActUserManager
 {
-        GObject                parent;
+        GObject  parent;
 
         /*< private >*/
-        ActUserManagerPrivate *priv;
+        gpointer deprecated;
 };
 
 struct _ActUserManagerClass
@@ -144,6 +143,10 @@ void                act_user_manager_delete_user_async     (ActUserManager     *
 gboolean            act_user_manager_delete_user_finish    (ActUserManager     *manager,
                                                             GAsyncResult       *result,
                                                             GError            **error);
+
+#if GLIB_CHECK_VERSION(2, 44, 0)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (ActUserManager, g_object_unref)
+#endif
 
 G_END_DECLS
 
