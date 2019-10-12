@@ -1,3 +1,3 @@
 version=3
-http://www.freedesktop.org/software/accountsservice/ \
+https://www.freedesktop.org/software/accountsservice/ \
 accountsservice-([\d\.]+)\.tar\.xz
