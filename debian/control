@@ -7,7 +7,6 @@ Build-Depends:
  debhelper (>= 10),
  meson (>= 0.46.0),
  dh-exec (>= 0.13),
- gtk-doc-tools,
  gobject-introspection (>= 0.9.12-4~),
  intltool,
  libgirepository1.0-dev (>= 1.34),
@@ -18,7 +17,8 @@ Build-Depends:
  policykit-1,
  libdbus-1-dev
 Build-Depends-Indep:
- libglib2.0-doc
+ gtk-doc-tools <!nodoc>,
+ libglib2.0-doc <!nodoc>
 Standards-Version: 4.1.0
 Homepage: https://www.freedesktop.org/wiki/Software/AccountsService/
 Vcs-Git: https://salsa.debian.org/freedesktop-team/accountsservice.git
@@ -103,6 +103,7 @@ Architecture: all
 Multi-Arch: foreign
 Depends:
  ${misc:Depends}
+Build-Profiles: <!nodoc>
 Description: query and manipulate user account information - documentation
  The AccountService project provides a set of D-Bus
  interfaces for querying and manipulating user account

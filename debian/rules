@@ -3,6 +3,15 @@
 
 DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed
 
+BUILD_GTKDOC := -Dgtk_doc=true
+ifneq ($(filter nodoc, $(DEB_BUILD_OPTIONS)),)
+  BUILD_GTKDOC := -Dgtk_doc=false
+else
+ifeq ($(shell which gtkdoc-scan),)
+  BUILD_GTKDOC := -Dgtk-doc=false
+endif
+endif
+
 %:
 	dh $@ --with=gir
 
@@ -11,7 +20,7 @@ override_dh_makeshlibs:
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
-		-Dgtk_doc=true -Ddocbook=true \
+		$(BUILD_GTKDOC) -Ddocbook=true \
 		-Dgdmconffile=/etc/gdm3/daemon.conf \
 		-Dadmin_group=sudo \
 		--libexecdir=/usr/lib/accountsservice \

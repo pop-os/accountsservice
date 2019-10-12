@@ -7,3 +7,4 @@ usr/share/language-tools
 usr/share/locale
 usr/share/polkit-1
 var
+usr/share/doc/accountsservice/spec/
