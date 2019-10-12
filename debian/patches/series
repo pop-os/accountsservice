@@ -2,3 +2,4 @@
 0005-gdm_config_file_path.patch
 0007-add-lightdm-support.patch
 0009-language-tools.patch
+1001-move-dbus-conf-file.patch

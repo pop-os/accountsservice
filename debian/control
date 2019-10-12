@@ -14,7 +14,7 @@ Build-Depends:
  libsystemd-dev (>= 209) [linux-any],
  xmlto,
  policykit-1,
- libdbus-1-dev
+ libdbus-1-dev (>= 1.9.18)
 Build-Depends-Indep:
  gtk-doc-tools <!nodoc>,
  libglib2.0-doc <!nodoc>
@@ -26,7 +26,7 @@ Vcs-Browser: https://salsa.debian.org/freedesktop-team/accountsservice
 Package: accountsservice
 Architecture: any
 Depends:
- dbus,
+ dbus (>= 1.9.18),
  libaccountsservice0 (= ${binary:Version}),
  ${misc:Depends},
  ${shlibs:Depends}
