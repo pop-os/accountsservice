@@ -1,4 +1,4 @@
-accountsservice (0.6.55-1) UNRELEASED; urgency=medium
+accountsservice (0.6.55-1) unstable; urgency=medium
 
   * New upstream version 0.6.55 (Closes: #901308)
   * Bump build-dependencies and switch to meson
@@ -26,8 +26,9 @@ accountsservice (0.6.55-1) UNRELEASED; urgency=medium
   * Stop using dh-exec
   * d/p/1001-move-dbus-conf-file.patch: Move D-Bus conf file to
     /usr/share/dbus-1/system.d
+  * debian/control, debian/rules: Remove ancient Breaks/Replaces
 
- -- Laurent Bigonville <bigon@debian.org>  Sat, 12 Oct 2019 11:31:33 +0200
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 12 Oct 2019 13:12:38 +0200
 
 accountsservice (0.6.45-2) unstable; urgency=medium
 
