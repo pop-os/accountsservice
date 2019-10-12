@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian freedesktop.org maintainers <pkg-freedesktop-maintainers@lists.alioth.debian.org>
 Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>
 Build-Depends:
- debhelper (>= 10),
+ debhelper (>= 12),
  meson (>= 0.46.0),
  dh-exec (>= 0.13),
  gobject-introspection (>= 0.9.12-4~),
