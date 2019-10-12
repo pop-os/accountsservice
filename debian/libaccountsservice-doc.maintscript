@@ -1,0 +1,2 @@
+symlink_to_dir /usr/share/gtk-doc/html/libaccountsservice ../../doc/libaccountsservice-doc/html 0.6.55-1~
+dir_to_symlink /usr/share/doc/libaccountsservice-doc/html ../../gtk-doc/html/libaccountsservice 0.6.55-1~
