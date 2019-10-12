@@ -2,5 +2,4 @@
 0005-gdm_config_file_path.patch
 0007-add-lightdm-support.patch
 0009-language-tools.patch
-0015-debian-nologin-path.patch
 0016-user-fix-insufficient-path-prefix-check.patch
