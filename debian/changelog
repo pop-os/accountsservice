@@ -1,5 +1,6 @@
 accountsservice (0.6.55-1) unstable; urgency=medium
 
+  * Team upload.
   * New upstream version 0.6.55 (Closes: #901308)
   * Bump build-dependencies and switch to meson
   * d/p/0002-create-and-manage-groups-like-on-a-debian-system.patch,
