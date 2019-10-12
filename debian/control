@@ -5,18 +5,20 @@ Maintainer: Debian freedesktop.org maintainers <pkg-freedesktop-maintainers@list
 Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>
 Build-Depends:
  debhelper (>= 10),
+ meson (>= 0.46.0),
  dh-exec (>= 0.13),
- gir1.2-freedesktop,
- gir1.2-glib-2.0 (>= 1.34),
- gnome-doc-utils,
- gobject-introspection (>= 0.9.12-4~),
  gtk-doc-tools,
+ gobject-introspection (>= 0.9.12-4~),
  intltool,
- libgirepository1.0-dev (>= 0.9.12),
- libglib2.0-dev (>= 2.37.3),
+ libgirepository1.0-dev (>= 1.34),
+ libglib2.0-dev (>= 2.44),
  libpolkit-gobject-1-dev,
  libsystemd-dev (>= 209) [linux-any],
- xmlto
+ xmlto,
+ policykit-1,
+ libdbus-1-dev
+Build-Depends-Indep:
+ libglib2.0-doc
 Standards-Version: 4.1.0
 Homepage: https://www.freedesktop.org/wiki/Software/AccountsService/
 Vcs-Git: https://salsa.debian.org/freedesktop-team/accountsservice.git

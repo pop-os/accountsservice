@@ -1,29 +1,21 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-export CPPFLAGS:=$(shell dpkg-buildflags --get CPPFLAGS)
-export CFLAGS:=$(shell dpkg-buildflags --get CFLAGS) $(CPPFLAGS)
-export CXXFLAGS:=$(shell dpkg-buildflags --get CXXFLAGS)
-export LDFLAGS:=$(shell dpkg-buildflags --get LDFLAGS)
-
-LDFLAGS+=-Wl,--as-needed
+DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed
 
 %:
 	dh $@ --with=gir
-
-override_dh_autoreconf:
-	gtkdocize
-	dh_autoreconf
 
 override_dh_makeshlibs:
 	dh_makeshlibs -V -- -c4
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
-		--enable-gtk-doc \
-		--enable-static=no \
+		-Dgtk_doc=true -Ddocbook=true \
+		-Dgdmconffile=/etc/gdm3/daemon.conf \
+		-Dadmin_group=sudo \
 		--libexecdir=/usr/lib/accountsservice \
-		--with-systemdsystemunitdir=/lib/systemd/system
+		-Dsystemdsystemunitdir=/lib/systemd/system
 
 # Disabled to avoid FTBFS
 override_dh_auto_test:
