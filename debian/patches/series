@@ -3,3 +3,4 @@
 0007-add-lightdm-support.patch
 0009-language-tools.patch
 1001-move-dbus-conf-file.patch
+0001-user-Remove-user-from-extra_admin_groups-when-demoti.patch
