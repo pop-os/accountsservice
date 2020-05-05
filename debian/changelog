@@ -1,5 +1,20 @@
+accountsservice (0.6.55-2) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * Move the daemon to /usr/libexec now that's allowed in the policy
+
+  [ Philip Withnall ]
+  * Update group management patches to respect `extra_admin_groups` option.
+
+  [ Iain Lane ]
+  * Add patch to not crash in the library when the daemon goes away
+    (Closes: #948228) (LP: #1843982)
+
+ -- Iain Lane <laney@debian.org>  Tue, 05 May 2020 16:31:00 +0100
+
 accountsservice (0.6.55-1) unstable; urgency=medium
 
+  * Team upload.
   * New upstream version 0.6.55 (Closes: #901308)
   * Bump build-dependencies and switch to meson
   * d/p/0002-create-and-manage-groups-like-on-a-debian-system.patch,
