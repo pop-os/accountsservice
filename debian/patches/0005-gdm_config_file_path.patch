@@ -12,7 +12,7 @@ Bug: https://bugs.freedesktop.org/show_bug.cgi?id=49993
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/daemon.c b/src/daemon.c
-index 43aa45c..4a2537c 100644
+index c6074b2..e0fd37a 100644
 --- a/src/daemon.c
 +++ b/src/daemon.c
 @@ -582,7 +582,7 @@ reload_autologin_timeout (Daemon *daemon)

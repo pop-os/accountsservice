@@ -1,4 +1,3 @@
-From 6078a7b95da643352911cce82487487e4555a744 Mon Sep 17 00:00:00 2001
 From: Philip Withnall <withnall@endlessm.com>
 Date: Mon, 27 Apr 2020 15:17:48 +0100
 Subject: [PATCH] user: Remove user from extra_admin_groups when demoting them
@@ -13,10 +12,10 @@ Signed-off-by: Philip Withnall <withnall@endlessm.com>
  1 file changed, 26 insertions(+), 12 deletions(-)
 
 diff --git a/src/user.c b/src/user.c
-index 2fd2410..87341db 100644
+index 9f57af5..442c041 100644
 --- a/src/user.c
 +++ b/src/user.c
-@@ -1676,6 +1676,8 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
+@@ -1675,6 +1675,8 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
          gint ngroups;
          g_autoptr(GString) str = NULL;
          g_auto(GStrv) extra_admin_groups = NULL;
@@ -25,7 +24,7 @@ index 2fd2410..87341db 100644
          gid_t admin_gid;
          struct group *grp;
          gint i;
-@@ -1695,26 +1697,38 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
+@@ -1694,26 +1696,38 @@ user_change_account_type_authorized_cb (Daemon                *daemon,
                  }
                  admin_gid = grp->gr_gid;
  
@@ -76,6 +75,3 @@ index 2fd2410..87341db 100644
  
                          g_string_append_printf (str, "%d", admin_gid);
                          break;
--- 
-2.25.4
-

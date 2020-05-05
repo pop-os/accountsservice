@@ -1,4 +1,3 @@
-From ced73d0fcbd2a54085a660d260482fc70d79bd5c Mon Sep 17 00:00:00 2001
 From: Soapux <2375-Soapux@users.noreply.gitlab.freedesktop.org>
 Date: Wed, 31 Jul 2019 22:43:37 -0500
 Subject: Move D-Bus conf file to $(datadir)/dbus-1/system.d
@@ -14,10 +13,10 @@ https://lists.freedesktop.org/archives/dbus/2015-July/016746.html
  1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/meson.build b/meson.build
-index 050a2fc..2567bc7 100644
+index 4465a26..c996e5c 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -146,7 +146,11 @@ polkit_gobject_dep = dependency('polkit-gobject-1')
+@@ -126,7 +126,11 @@ polkit_gobject_dep = dependency('polkit-gobject-1')
  crypt_dep = cc.find_library('crypt')
  
  dbus_dep = dependency('dbus-1')
@@ -30,6 +29,3 @@ index 050a2fc..2567bc7 100644
  dbus_ifaces_dir = dbus_dep.get_pkgconfig_variable('interfaces_dir', define_variable: ['datadir', act_datadir])
  dbus_sys_dir = dbus_dep.get_pkgconfig_variable('system_bus_services_dir', define_variable: ['datadir', act_datadir])
  
--- 
-cgit v1.1
-
