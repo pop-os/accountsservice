@@ -30,6 +30,7 @@ override_dh_auto_configure:
 		-Dgdmconffile=/etc/gdm3/daemon.conf \
 		-Dadmin_group=sudo \
 		-Dsystemdsystemunitdir=/lib/systemd/system \
+		-Dintrospection=true \
 		$(extra_meson_options)
 
 override_dh_installchangelogs:
