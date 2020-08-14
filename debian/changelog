@@ -1,5 +1,6 @@
-accountsservice (0.6.55-3) UNRELEASED; urgency=medium
+accountsservice (0.6.55-3) unstable; urgency=medium
 
+  * Team upload
   * d/rules: Enable libsystemd dependency, for logind integration.
     This appears to have got lost in the switch to the Meson build system,
     where both libsystemd and libelogind support for communicating with a
@@ -31,7 +32,7 @@ accountsservice (0.6.55-3) UNRELEASED; urgency=medium
     output because we can't know how an automated test system will be
     configured, but it should at least run successfully and exit 0.
 
- -- Simon McVittie <smcv@debian.org>  Fri, 14 Aug 2020 14:32:52 +0100
+ -- Simon McVittie <smcv@debian.org>  Fri, 14 Aug 2020 15:31:50 +0100
 
 accountsservice (0.6.55-2) unstable; urgency=medium
 
