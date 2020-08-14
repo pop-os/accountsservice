@@ -12,6 +12,12 @@ ifeq ($(shell which gtkdoc-scan),)
 endif
 endif
 
+extra_meson_options =
+
+ifeq ($(DEB_HOST_ARCH_OS),linux)
+extra_meson_options += -Dsystemd=true
+endif
+
 %:
 	dh $@ --with=gir
 
@@ -23,7 +29,8 @@ override_dh_auto_configure:
 		$(BUILD_GTKDOC) -Ddocbook=true \
 		-Dgdmconffile=/etc/gdm3/daemon.conf \
 		-Dadmin_group=sudo \
-		-Dsystemdsystemunitdir=/lib/systemd/system
+		-Dsystemdsystemunitdir=/lib/systemd/system \
+		$(extra_meson_options)
 
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS
