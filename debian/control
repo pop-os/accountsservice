@@ -30,6 +30,8 @@ Depends:
  libaccountsservice0 (= ${binary:Version}),
  ${misc:Depends},
  ${shlibs:Depends}
+Recommends:
+ default-logind | logind,
 Suggests:
  gnome-control-center
 Description: query and manipulate user account information
