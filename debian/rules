@@ -3,13 +3,17 @@
 
 export DEB_LDFLAGS_MAINT_APPEND=-Wl,--as-needed
 
-BUILD_GTKDOC := -Dgtk_doc=true
-ifneq ($(filter nodoc, $(DEB_BUILD_OPTIONS)),)
-  BUILD_GTKDOC := -Dgtk_doc=false
+binaries := $(shell dh_listpackages)
+extra_meson_options =
+
+ifneq ($(filter libaccountsservice-doc,$(binaries)),)
+extra_meson_options += -Dgtk_doc=true
 else
-ifeq ($(shell which gtkdoc-scan),)
-  BUILD_GTKDOC := -Dgtk-doc=false
+extra_meson_options += -Dgtk_doc=false
 endif
+
+ifeq ($(DEB_HOST_ARCH_OS),linux)
+extra_meson_options += -Dsystemd=true
 endif
 
 %:
@@ -20,10 +24,12 @@ override_dh_makeshlibs:
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
-		$(BUILD_GTKDOC) -Ddocbook=true \
+		-Ddocbook=true \
 		-Dgdmconffile=/etc/gdm3/daemon.conf \
 		-Dadmin_group=sudo \
-		-Dsystemdsystemunitdir=/lib/systemd/system
+		-Dsystemdsystemunitdir=/lib/systemd/system \
+		-Dintrospection=true \
+		$(extra_meson_options)
 
 override_dh_installchangelogs:
 	dh_installchangelogs NEWS

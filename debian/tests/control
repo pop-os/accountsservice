@@ -1,0 +1,7 @@
+Tests: build
+Depends: accountsservice, build-essential, libaccountsservice-dev
+Restrictions: allow-stderr, superficial
+
+Tests: pygi.py
+Depends: accountsservice, gir1.2-accountsservice-1.0, libpam-systemd | libpam-elogind, python3, python3-gi
+Restrictions: allow-stderr, superficial
