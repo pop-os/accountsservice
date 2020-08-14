@@ -1,3 +1,38 @@
+accountsservice (0.6.55-3) UNRELEASED; urgency=medium
+
+  * d/rules: Enable libsystemd dependency, for logind integration.
+    This appears to have got lost in the switch to the Meson build system,
+    where both libsystemd and libelogind support for communicating with a
+    logind implementation are disabled by default (they are mutually exclusive).
+    In particular, this fixes the "Switch User..." menu option in GNOME
+    Shell, which disappeared because libaccountsservice didn't tell GNOME
+    Shell that user-switching was possible.
+    This should work equally well for elogind due to libelogind's libsystemd
+    ABI compatibility, although I haven't tried that configuration.
+    (Closes: #968394)
+  * d/control: accountsservice Recommends default-logind | logind.
+    About half of accountsservice's functionality is a higher-level API
+    over either systemd-logind, or something like elogind that is compatible
+    enough to be a reasonable substitute (or ConsoleKit, but that's
+    dead upstream and no longer in Debian).
+  * d/rules: Explicitly enable GObject-Introspection.
+    It's enabled by default, but explicit is better than implicit for this
+    sort of thing.
+  * d/rules: Simplify how we choose whether to enable gtk-doc.
+    Enable it if and only if we are building the libaccountsservice-doc
+    package.
+  * d/p/build-Add-missing-pkg-config-Requires.private-dependencie.patch:
+    Add patch to fix missing pkg-config dependencies
+  * d/tests/build: Add a smoke-test for building against
+    libaccountsservice with pkg-config
+  * d/tests/pygi.py: Add a smoke-test.
+    When run from a full desktop session, this should produce
+    reasonable-looking results. We don't make any assertions about its
+    output because we can't know how an automated test system will be
+    configured, but it should at least run successfully and exit 0.
+
+ -- Simon McVittie <smcv@debian.org>  Fri, 14 Aug 2020 14:32:52 +0100
+
 accountsservice (0.6.55-2) unstable; urgency=medium
 
   [ Laurent Bigonville ]
