@@ -1,0 +1,28 @@
+#!/bin/sh
+# Copyright 2020 Collabora Ltd.
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+set -eux
+
+if [ -n "${DEB_HOST_GNU_TYPE:-}" ]; then
+    CROSS_COMPILE="$DEB_HOST_GNU_TYPE-"
+else
+    CROSS_COMPILE=
+fi
+
+cd "$AUTOPKGTEST_TMP"
+
+cat > trivial.c <<EOF
+#include <act/act.h>
+
+int main(void)
+{
+    g_assert_cmpint (ACT_TYPE_USER_MANAGER, !=, 0);
+    return 0;
+}
+EOF
+
+# Deliberately word-splitting pkg-config's output:
+# shellcheck disable=SC2046
+"${CROSS_COMPILE}gcc" -otrivial trivial.c $("${CROSS_COMPILE}pkg-config" --cflags --libs accountsservice glib-2.0)
+./trivial
