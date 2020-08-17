@@ -7,6 +7,7 @@ $(pkg-config --cflags --libs accountsservice), will fail to compile
 when we cannot include headers like <glib-object.h>.
 
 Forwarded: https://gitlab.freedesktop.org/accountsservice/accountsservice/-/merge_requests/62
+Applied-upstream: 0.6.56, commit:0376129b92490789ca337d8cd9f6b3bcbd00e416
 ---
  src/libaccountsservice/meson.build | 6 ++++++
  1 file changed, 6 insertions(+)
