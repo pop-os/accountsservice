@@ -13,3 +13,6 @@ gitlab_change_types.patch
 gitlab_shared_tmp.patch
 adduser_invocation.patch
 setlocked_signature.patch
+
+# Pop!_OS Patches
+default-groups.patch
