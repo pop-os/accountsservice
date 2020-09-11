@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+<policyconfig>
+  <vendor/>
+  <vendor_url/>
+  <icon_name>stock_person</icon_name>
+
+  <action id="org.freedesktop.accounts.change-own-user-data">
+    <description>Change your own user data</description>
+    <message>Authentication is required to change your own user data</message>
+    <defaults>
+      <allow_any>yes</allow_any>
+      <allow_inactive>yes</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.freedesktop.accounts.change-own-password">
+    <description>Change your own user password</description>
+    <message>Authentication is required to change your own user password</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.freedesktop.accounts.user-administration">
+    <description>Manage user accounts</description>
+    <message>Authentication is required to change user data</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="org.freedesktop.accounts.set-login-option">
+    <description>Change the login screen configuration</description>
+    <message>Authentication is required to change the login screen configuration</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.gnome.gconf.defaults.set-mandatory.prefix">/apps/gdm/simple-greeter</annotate>
+  </action>
+
+</policyconfig>

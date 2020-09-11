@@ -1,0 +1,71 @@
+# Danish translation for AccountsService
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the accountsservice package.
+# scootergrisen, 2019.
+msgid ""
+msgstr ""
+"Project-Id-Version: accountsservice\n"
+"Report-Msgid-Bugs-To: "
+"https://gitlab.freedesktop.org/accountsservice/accountsservice/issues\n"
+"POT-Creation-Date: 2019-02-20 15:24+0000\n"
+"PO-Revision-Date: 2019-02-20 17:02+0200\n"
+"Last-Translator: scootergrisen\n"
+"Language-Team: Danish\n"
+"Language: da\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: data/org.freedesktop.accounts.policy.in:11
+msgid "Change your own user data"
+msgstr "Skift data for din egen bruger"
+
+#: data/org.freedesktop.accounts.policy.in:12
+msgid "Authentication is required to change your own user data"
+msgstr "Der kræves autentifikation for at skifte data for din egen bruger"
+
+#: data/org.freedesktop.accounts.policy.in:21
+msgid "Change your own user password"
+msgstr "Skift adgangskode for din egen bruger"
+
+#: data/org.freedesktop.accounts.policy.in:22
+msgid "Authentication is required to change your own user password"
+msgstr ""
+"Der kræves autentifikation for at skifte adgangskode for din egen bruger"
+
+#: data/org.freedesktop.accounts.policy.in:31
+msgid "Manage user accounts"
+msgstr "Håndter brugerkonti"
+
+#: data/org.freedesktop.accounts.policy.in:32
+msgid "Authentication is required to change user data"
+msgstr "Der kræves autentifikation for at skifte brugerdata"
+
+#: data/org.freedesktop.accounts.policy.in:41
+msgid "Change the login screen configuration"
+msgstr "Skift konfiguration af loginskærmen"
+
+#: data/org.freedesktop.accounts.policy.in:42
+msgid "Authentication is required to change the login screen configuration"
+msgstr "Der kræves autentifikation for at skifte konfiguration af loginskærmen"
+
+#: src/main.c:150
+msgid "Output version information and exit"
+msgstr "Output versionsinformation og afslut"
+
+#: src/main.c:151
+msgid "Replace existing instance"
+msgstr "Erstat eksisterende instans"
+
+#: src/main.c:152
+msgid "Enable debugging code"
+msgstr "Aktivér fejlretningskode"
+
+#: src/main.c:171
+msgid ""
+"Provides D-Bus interfaces for querying and manipulating\n"
+"user account information."
+msgstr ""
+"Giver D-Bus-grænseflader til forespørgsel og manipulering\n"
+"af brugerkontoinformation."
