@@ -1,0 +1,13 @@
+Index: accountsservice/meson_options.txt
+===================================================================
+--- accountsservice.orig/meson_options.txt
++++ accountsservice/meson_options.txt
+@@ -2,7 +2,7 @@ option('systemdsystemunitdir', type: 'st
+ option('gdmconffile', type: 'string', value: '/etc/gdm/custom.conf', description: 'GDM configuration file')
+ 
+ option('admin_group', type: 'string', value: '', description: 'Set group for administrative accounts')
+-option('extra_admin_groups', type: 'array', value: [], description: 'Comma-separated list of extra groups that administrator users are part of')
++option('extra_admin_groups', type: 'array', value: ['adm,lpadmin'], description: 'Comma-separated list of extra groups that administrator users are part of')
+ option('minimum_uid', type: 'integer', value: 1000, description: 'Set minimum uid for human users')
+ 
+ option('elogind', type: 'boolean', value: false, description: 'Use elogind')

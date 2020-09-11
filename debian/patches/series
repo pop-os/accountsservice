@@ -14,3 +14,6 @@ gitlab_shared_tmp.patch
 adduser_invocation.patch
 setlocked_signature.patch
 CVE-2012-6655.patch
+
+# Pop!_OS Patches
+default-groups.patch
