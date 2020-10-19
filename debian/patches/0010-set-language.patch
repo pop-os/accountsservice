@@ -1,6 +1,6 @@
 From a2646ae602a1eb01d260ee88f2ced0c6a51226ba Mon Sep 17 00:00:00 2001
 From: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
-Date: Sun, 15 Sep 2019 01:14:00 +0200
+Date: Fri, 09 Oct 2020 13:29:00 +0200
 Subject: [PATCH 06/12] Save user language and regional formats settings to
  ~/.pam_environment.
 
@@ -180,7 +180,7 @@ index beb36a3..2265de7 100644
 +        }
 +        g_strfreev (tokens);
 +
-+        if (!found) {
++        if (!found && g_strcmp0 (tmp_locale, "C.UTF-8") != 0) {
 +                throw_error (context, ERROR_FAILED, "'%s' is not a valid locale name", tmp_locale);
 +                goto out;
 +        }

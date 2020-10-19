@@ -1,3 +1,10 @@
+accountsservice (0.6.55-0ubuntu13) groovy; urgency=medium
+
+  * debian/patches/0010-set-language.patch:
+    - Don't dismiss C.UTF-8 as an invalid locale name (LP: #1873678)
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Fri, 09 Oct 2020 15:08:15 +0200
+
 accountsservice (0.6.55-0ubuntu12) groovy; urgency=medium
 
   * Cherry-pick from unstable.
