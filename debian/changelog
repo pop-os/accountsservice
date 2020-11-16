@@ -1,3 +1,9 @@
+accountsservice (0.6.55-0ubuntu13.2pop0) groovy; urgency=medium
+
+  * Update Pop 
+
+ -- Michael Aaron Murphy <michael@system76.com>  Mon, 16 Nov 2020 14:42:33 -0700
+
 accountsservice (0.6.55-0ubuntu13.2) groovy-security; urgency=medium
 
   * SECURITY UPDATE: accountsservice drop privileges SIGSTOP DoS
