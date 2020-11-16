@@ -4,15 +4,23 @@ Date: Fri, 09 Oct 2020 13:29:00 +0200
 Subject: [PATCH 06/12] Save user language and regional formats settings to
  ~/.pam_environment.
 
+Updated: 2020-10-21
+
 ---
  src/user.c | 389 +++++++++++++++++++++++++++++++++++++++++++++++++++-
  1 file changed, 384 insertions(+), 5 deletions(-)
 
-diff --git a/src/user.c b/src/user.c
-index beb36a3..2265de7 100644
 --- a/src/user.c
 +++ b/src/user.c
-@@ -336,6 +336,8 @@ user_update_system_account_property (User          *user,
+@@ -27,6 +27,7 @@
+ #include <stdlib.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
++#include <fcntl.h>
+ #include <sys/wait.h>
+ #include <unistd.h>
+ #include <grp.h>
+@@ -336,6 +337,8 @@ user_update_system_account_property (Use
          accounts_user_set_system_account (ACCOUNTS_USER (user), system);
  }
  
@@ -21,7 +29,7 @@ index beb36a3..2265de7 100644
  static void
  user_save_to_keyfile (User     *user,
                        GKeyFile *keyfile)
-@@ -345,7 +347,7 @@ user_save_to_keyfile (User     *user,
+@@ -345,7 +348,7 @@ user_save_to_keyfile (User     *user,
          if (accounts_user_get_email (ACCOUNTS_USER (user)))
                  g_key_file_set_string (keyfile, "User", "Email", accounts_user_get_email (ACCOUNTS_USER (user)));
  
@@ -30,7 +38,7 @@ index beb36a3..2265de7 100644
                  g_key_file_set_string (keyfile, "User", "Language", accounts_user_get_language (ACCOUNTS_USER (user)));
  
          if (accounts_user_get_session (ACCOUNTS_USER (user)))
-@@ -354,7 +356,7 @@ user_save_to_keyfile (User     *user,
+@@ -354,7 +357,7 @@ user_save_to_keyfile (User     *user,
          if (accounts_user_get_session_type (ACCOUNTS_USER (user)))
                  g_key_file_set_string (keyfile, "User", "SessionType", accounts_user_get_session_type (ACCOUNTS_USER (user)));
  
@@ -39,7 +47,7 @@ index beb36a3..2265de7 100644
                  g_key_file_set_string (keyfile, "User", "FormatsLocale", accounts_user_get_formats_locale (ACCOUNTS_USER (user)));
  
          if (accounts_user_get_xsession (ACCOUNTS_USER (user)))
-@@ -750,6 +752,8 @@ user_changed (User *user)
+@@ -750,6 +753,8 @@ user_changed (User *user)
          accounts_user_emit_changed (ACCOUNTS_USER (user));
  }
  
@@ -48,7 +56,7 @@ index beb36a3..2265de7 100644
  User *
  user_new (Daemon *daemon,
            uid_t   uid)
-@@ -760,6 +764,9 @@ user_new (Daemon *daemon,
+@@ -760,6 +765,9 @@ user_new (Daemon *daemon,
          user->daemon = daemon;
          accounts_user_set_uid (ACCOUNTS_USER (user), uid);
  
@@ -58,18 +66,18 @@ index beb36a3..2265de7 100644
          return user;
  }
  
-@@ -1012,6 +1019,342 @@ user_set_email (AccountsUser          *auser,
+@@ -1012,6 +1020,357 @@ user_set_email (AccountsUser          *a
          return TRUE;
  }
  
 +static gboolean
 +user_drop_privileges_to_user (User *user)
 +{
-+        if (setresgid (user->gid, user->gid, -1) != 0) {
++        if (setresgid (-1, user->gid, -1) != 0) {
 +                g_warning ("setresgid() failed");
 +                return FALSE;
 +        }
-+        if (setresuid (accounts_user_get_uid (ACCOUNTS_USER (user)), accounts_user_get_uid (ACCOUNTS_USER (user)), -1) != 0) {
++        if (setresuid (-1, accounts_user_get_uid (ACCOUNTS_USER (user)), -1) != 0) {
 +                g_warning ("setresuid() failed");
 +                return FALSE;
 +        }
@@ -371,6 +379,8 @@ index beb36a3..2265de7 100644
 +        const gchar *prefix;
 +        FILE *fp;
 +        g_autofree gchar *pam_env = NULL;
++        int lineno = 0;
++        int fd;
 +
 +        if (g_strcmp0 (property, "Language") == 0)
 +                prefix = "LANG";
@@ -383,13 +393,26 @@ index beb36a3..2265de7 100644
 +
 +        if (!user_drop_privileges_to_user (user))
 +                return FALSE;
-+        if ((fp = fopen (pam_env, "r"))) {
++
++        fd = open (pam_env, O_RDONLY | O_NOFOLLOW);
++        if (fd < 0) {
++                user_regain_privileges ();
++                return FALSE;
++        }
++
++        if ((fp = fdopen (fd, "r"))) {
 +                gchar line[50];
 +                while ((fgets (line, 50, fp)) != NULL) {
 +                        if (g_str_has_prefix (line, prefix)) {
 +                                ret = TRUE;
 +                                break;
 +                        }
++                        /* Give up on large files */
++                        if (lineno > 50) {
++                                ret = FALSE;
++                                break;
++                        }
++                        lineno++;
 +                }
 +                fclose (fp);
 +        }
@@ -401,7 +424,7 @@ index beb36a3..2265de7 100644
  static void
  user_change_language_authorized_cb (Daemon                *daemon,
                                      User                  *user,
-@@ -1019,14 +1362,44 @@ user_change_language_authorized_cb (Daemon                *daemon,
+@@ -1019,14 +1378,44 @@ user_change_language_authorized_cb (Daem
                                      gpointer               data)
  
  {
@@ -448,7 +471,7 @@ index beb36a3..2265de7 100644
          accounts_user_complete_set_language (ACCOUNTS_USER (user), context);
  }
  
-@@ -1171,7 +1544,13 @@ user_change_formats_locale_authorized_cb (Daemon                *daemon,
+@@ -1171,7 +1560,13 @@ user_change_formats_locale_authorized_cb
          const gchar *formats_locale = user_data;
  
          if (g_strcmp0 (accounts_user_get_formats_locale (ACCOUNTS_USER (user)), formats_locale) != 0) {
@@ -463,6 +486,3 @@ index beb36a3..2265de7 100644
  
                  save_extra_data (user);
          }
--- 
-2.20.1
-

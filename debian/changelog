@@ -1,3 +1,20 @@
+accountsservice (0.6.55-0ubuntu13.2) groovy-security; urgency=medium
+
+  * SECURITY UPDATE: accountsservice drop privileges SIGSTOP DoS
+    (LP: #1900255)
+    - debian/patches/0010-set-language.patch: updated to not drop real uid
+      and real gid in user_drop_privileges_to_user.
+    - debian/patches/0009-language-tools.patch: updated to not reset
+      effective uid.
+    - CVE-2020-16126
+  * SECURITY UPDATE: accountsservice .pam_environment infinite loop
+    (LP: #1900255)
+    - debian/patches/0010-set-language.patch: updated to use O_NOFOLLOW
+      and limit the number of lines read from file.
+    - CVE-2020-16127
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Mon, 02 Nov 2020 12:02:46 -0500
+
 accountsservice (0.6.55-0ubuntu13) groovy; urgency=medium
 
   * debian/patches/0010-set-language.patch:
