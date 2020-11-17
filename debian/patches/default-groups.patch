@@ -1,19 +1,20 @@
-Description: Add the adm group to new administrator accounts
+Description: Add the adm and lpadmin groups to new administrator accounts
  .
  accountsservice (0.6.50-0ubuntu1~pop1) disco; urgency=medium
  .
    * Add the adm group to new administrator accounts
 Author: Michael Aaron Murphy <michael@system76.com>
 
-Index: accountsservice-0.6.55/src/daemon.c
+Index: accountsservice/src/daemon.c
 ===================================================================
---- accountsservice-0.6.55.orig/src/daemon.c
-+++ accountsservice-0.6.55/src/daemon.c
-@@ -1136,6 +1136,7 @@ daemon_create_user_authorized_cb (Daemon
+--- accountsservice.orig/src/daemon.c
++++ accountsservice/src/daemon.c
+@@ -1136,6 +1136,8 @@ daemon_create_user_authorized_cb (Daemon
          }
  
          if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
 +                add_user_to_group(context, cd->user_name, "adm");
++                add_user_to_group(context, cd->user_name, "lpadmin");
                  add_user_to_group (context, cd->user_name, "sudo");
          }
  

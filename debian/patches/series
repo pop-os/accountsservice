@@ -12,4 +12,4 @@
 act-user-manager-Watch-for-the-daemon-going-away-and-comi.patch
 
 # Pop!_OS Patches
-adm-group.patch
+default-groups.patch
