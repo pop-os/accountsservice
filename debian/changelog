@@ -1,3 +1,9 @@
+accountsservice (0.6.55-0ubuntu14) impish; urgency=medium
+
+  * No-change rebuild to build packages with zstd compression.
+
+ -- Matthias Klose <doko@ubuntu.com>  Thu, 07 Oct 2021 12:29:08 +0200
+
 accountsservice (0.6.55-0ubuntu13.2) groovy-security; urgency=medium
 
   * SECURITY UPDATE: accountsservice drop privileges SIGSTOP DoS
