@@ -4,7 +4,7 @@ Date: Fri, 09 Oct 2020 13:29:00 +0200
 Subject: [PATCH 06/12] Save user language and regional formats settings to
  ~/.pam_environment.
 
-Updated: 2020-10-21
+Updated: 2021-11-09
 
 ---
  src/user.c | 389 +++++++++++++++++++++++++++++++++++++++++++++++++++-
@@ -443,10 +443,10 @@ Updated: 2020-10-21
  
          if (g_strcmp0 (accounts_user_get_language (ACCOUNTS_USER (user)), language) != 0) {
 -                accounts_user_set_language (ACCOUNTS_USER (user), language);
-+                gchar *lang = user_update_environment (user,
-+                                                       (gchar *) language,
-+                                                       "set-language-helper",
-+                                                       context);
++                g_autofree gchar *lang = user_update_environment (user,
++                                                                  (gchar *) language,
++                                                                  "set-language-helper",
++                                                                  context);
 +                if (lang != NULL)
 +                        accounts_user_set_language (ACCOUNTS_USER (user), lang);
 +
@@ -454,12 +454,12 @@ Updated: 2020-10-21
 +
 +                        /* set the user formats (certain LC_* variables) explicitly
 +                           in order to prevent surprises when LANG is changed */
-+                        g_autofree gchar *fallback_locale = user_get_fallback_value (user, "FormatsLocale");
++                        gchar *fallback_locale = user_get_fallback_value (user, "FormatsLocale");
 +                        g_autofree gchar *validated_locale = user_locale_validate (user, fallback_locale, context);
-+                        gchar *formats_locale = user_update_environment (user,
-+                                                                         validated_locale,
-+                                                                         "save-to-pam-env",
-+                                                                         context);
++                        g_autofree gchar *formats_locale = user_update_environment (user,
++                                                                                    validated_locale,
++                                                                                    "save-to-pam-env",
++                                                                                    context);
 +                        if (formats_locale != NULL)
 +                                accounts_user_set_formats_locale (ACCOUNTS_USER (user), formats_locale);
 +                }
@@ -477,10 +477,10 @@ Updated: 2020-10-21
          if (g_strcmp0 (accounts_user_get_formats_locale (ACCOUNTS_USER (user)), formats_locale) != 0) {
 -                accounts_user_set_formats_locale (ACCOUNTS_USER (user), formats_locale);
 +                g_autofree gchar *validated_locale = user_locale_validate (user, formats_locale, context);
-+                gchar *locale = user_update_environment (user,
-+                                                         validated_locale,
-+                                                         "save-to-pam-env",
-+                                                         context);
++                g_autofree gchar *locale = user_update_environment (user,
++                                                                    validated_locale,
++                                                                    "save-to-pam-env",
++                                                                    context);
 +                if (locale != NULL)
 +                        accounts_user_set_formats_locale (ACCOUNTS_USER (user), locale);
  

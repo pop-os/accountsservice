@@ -1,3 +1,15 @@
+accountsservice (0.6.55-0ubuntu14.1) impish-security; urgency=medium
+
+  * SECURITY UPDATE: double-free in the SetLanguage D-Bus method
+    (LP: #1950149)
+    - debian/patches/0010-set-language.patch: updated to remove g_autofree
+      on result of user_get_fallback_value().
+    - CVE-2021-3939
+  * debian/patches/0010-set-language.patch: updated to fix minor memory
+    leaks by adding g_autofree to results of user_update_environment().
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Tue, 09 Nov 2021 07:19:41 -0500
+
 accountsservice (0.6.55-0ubuntu14) impish; urgency=medium
 
   * No-change rebuild to build packages with zstd compression.
