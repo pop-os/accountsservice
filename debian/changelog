@@ -1,3 +1,9 @@
+accountsservice (0.6.55-0ubuntu14.1pop0) impish; urgency=medium
+
+  * Pop!_OS patches
+
+ -- Jeremy Soller <jeremy@system76.com>  Wed, 24 Nov 2021 07:38:29 -0700
+
 accountsservice (0.6.55-0ubuntu14.1) impish-security; urgency=medium
 
   * SECURITY UPDATE: double-free in the SetLanguage D-Bus method
