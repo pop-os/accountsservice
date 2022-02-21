@@ -12,10 +12,6 @@ else
 extra_meson_options += -Dgtk_doc=false
 endif
 
-ifeq ($(DEB_HOST_ARCH_OS),linux)
-extra_meson_options += -Dsystemd=true
-endif
-
 %:
 	dh $@ --with=gir
 

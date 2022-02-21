@@ -9,6 +9,8 @@ accountsservice (22.07.5-1) UNRELEASED; urgency=medium
   * debian/control:
     - include the build-depends needed for the tests
     - updated libglib and meson requirements
+  * debian/rules:
+    - remove the non existant systemd option
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 13:57:22 +0100
 
