@@ -1,9 +1,13 @@
-accountsservice (0.6.55-4) UNRELEASED; urgency=medium
+accountsservice (22.07.5-1) UNRELEASED; urgency=medium
 
-  * d/p/build-Add-missing-pkg-config-Requires.private-dependencie.patch:
-    Mark as having been applied upstream
+  * New upstream version
+  * Remove the patches which are included in the update
+  * d/p/0002-create-and-manage-groups-like-on-a-debian-system.patch:
+    - changed to warn when trying to add the user to non existant
+      groups rather than erroring out since the list is static and some
+      default groups are created by optional packages.
 
- -- Simon McVittie <smcv@debian.org>  Mon, 17 Aug 2020 12:15:54 +0100
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 13:57:22 +0100
 
 accountsservice (0.6.55-3) unstable; urgency=medium
 
