@@ -43,6 +43,8 @@ ensure_directory (const char  *path,
                   gint         mode,
                   GError     **error)
 {
+        GStatBuf stat_buffer = { 0 };
+
         if (g_mkdir_with_parents (path, mode) < 0) {
                 g_set_error (error,
                              G_FILE_ERROR,
@@ -52,12 +54,25 @@ ensure_directory (const char  *path,
                 return FALSE;
         }
 
-        if (g_chmod (path, mode) < 0) {
+        g_chmod (path, mode);
+
+        if (g_stat (path, &stat_buffer) < 0) {
+                g_clear_error (error);
+
                 g_set_error (error,
                              G_FILE_ERROR,
                              g_file_error_from_errno (errno),
-                             "Failed to change permissions of directory %s: %m",
+                             "Failed to validate permissions of directory %s: %m",
                              path);
+                return FALSE;
+        }
+
+        if ((stat_buffer.st_mode & ~S_IFMT) != mode) {
+                g_set_error (error,
+                             G_FILE_ERROR,
+                             g_file_error_from_errno (errno),
+                             "Directory %s has wrong mode %o; it should be %o",
+                             path, stat_buffer.st_mode, mode);
                 return FALSE;
         }
 
@@ -78,11 +93,18 @@ ensure_file_permissions (const char  *dir_path,
                 return FALSE;
 
         while ((filename = g_dir_read_name (dir)) != NULL) {
+                GStatBuf stat_buffer = { 0 };
+
                 gchar *file_path = g_build_filename (dir_path, filename, NULL);
 
                 g_debug ("Changing permission of %s to %04o", file_path, file_mode);
-                if (g_chmod (file_path, file_mode) < 0)
+                g_chmod (file_path, file_mode);
+
+                if (g_stat (file_path, &stat_buffer) < 0)
                         errsv = errno;
+
+                if ((stat_buffer.st_mode & ~S_IFMT) != file_mode)
+                        errsv = EACCES;
 
                 g_free (file_path);
         }
@@ -125,7 +147,6 @@ on_bus_acquired (GDBusConnection  *connection,
                 g_main_loop_quit (loop);
                 return;
         }
-
         openlog ("accounts-daemon", LOG_PID, LOG_DAEMON);
         syslog (LOG_INFO, "started daemon version %s", VERSION);
         closelog ();
@@ -217,7 +238,7 @@ main (int argc, char *argv[])
                 return EXIT_FAILURE;
         }
 
-        context = g_option_context_new ("");
+        context = g_option_context_new (NULL);
         g_option_context_set_translation_domain (context, GETTEXT_PACKAGE);
         g_option_context_set_summary (context, _("Provides D-Bus interfaces for querying and manipulating\nuser account information."));
         g_option_context_add_main_entries (context, entries, NULL);

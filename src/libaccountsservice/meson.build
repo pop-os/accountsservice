@@ -28,43 +28,20 @@ enum_sources = gnome.mkenums(
   install_dir: join_paths(act_pkgincludedir, subdir),
 )
 
-dbus_sources = []
-
-ifaces = [
-  'Manager',
-  'Seat',
-  'Session',
-]
-
-namespace = 'ConsoleKit'
-prefix = 'org.freedesktop.' + namespace
-
-foreach iface: ifaces
-  dbus_sources += gnome.gdbus_codegen(
-    'ck-@0@-generated'.format(iface.to_lower()),
-    '@0@.@1@.xml'.format(prefix, iface),
-    interface_prefix: prefix,
-    namespace: namespace,
-  )
-endforeach
-
 deps = [
   crypt_dep,
   gio_unix_dep,
   glib_dep,
   libaccounts_generated_dep,
+  logind_dep,
 ]
 
 symbol_map = join_paths(meson.current_source_dir(), 'symbol.map')
 ldflags = cc.get_supported_link_arguments('-Wl,--version-script,@0@'.format(symbol_map))
 
-if enable_systemd or enable_elogind
-  deps += logind_dep
-endif
-
 libaccountsservice = shared_library(
   act_name,
-  sources: sources + enum_sources + dbus_sources,
+  sources: sources + enum_sources,
   version: libversion,
   include_directories: top_inc,
   dependencies: deps,
@@ -92,10 +69,16 @@ pkg.generate(
     'datadir=${prefix}/' + get_option('datadir'),
     'interfacesdir=${datadir}/accountsservice/interfaces',
   ],
+  requires_private : [
+    'gio-2.0',
+    'glib-2.0',
+    'gobject-2.0',
+    'polkit-gobject-1',
+  ],
 )
 
 if get_option('introspection')
-  gnome.generate_gir(
+  as_gir_gen_sources = gnome.generate_gir(
     libaccountsservice,
     sources: sources + headers + [enum_sources[1]],
     includes: ['GObject-2.0', 'Gio-2.0'],
@@ -106,4 +89,12 @@ if get_option('introspection')
     header: join_paths(subdir, 'act.h'),
     install: true,
   )
+
+  if get_option('vapi')
+    gnome.generate_vapi(act_name,
+      sources : as_gir_gen_sources[0],
+      packages : 'gio-2.0',
+      install : true,
+    )
+  endif
 endif
