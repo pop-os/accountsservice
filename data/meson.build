@@ -14,7 +14,11 @@ install_data(
 )
 
 service_conf = configuration_data()
+service_conf.set('datadir', act_datadir)
+service_conf.set('gdm_conf_file', gdm_conf_file)
 service_conf.set('libexecdir', act_libexecdir)
+service_conf.set('localstatedir', act_localstatedir)
+service_conf.set('path_wtmp', path_wtmp)
 
 service = act_namespace + '.service'
 
@@ -29,7 +33,6 @@ configure_file(
 policy = act_namespace.to_lower() + '.policy'
 
 i18n.merge_file(
-  policy,
   input: policy + '.in',
   output: policy,
   po_dir: po_dir,
@@ -48,3 +51,13 @@ if install_systemd_unit_dir
     install_dir: systemd_system_unit_dir,
   )
 endif
+
+install_data(
+  'administrator',
+  install_dir: join_paths(act_datadir, 'accountsservice', 'user-templates'),
+)
+
+install_data(
+  'standard',
+  install_dir: join_paths(act_datadir, 'accountsservice', 'user-templates'),
+)

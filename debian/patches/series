@@ -2,7 +2,4 @@
 0005-gdm_config_file_path.patch
 0007-add-lightdm-support.patch
 0009-language-tools.patch
-1001-move-dbus-conf-file.patch
-0001-user-Remove-user-from-extra_admin_groups-when-demoti.patch
-act-user-manager-Watch-for-the-daemon-going-away-and-comi.patch
-build-Add-missing-pkg-config-Requires.private-dependencie.patch
+

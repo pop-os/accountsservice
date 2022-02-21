@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <grp.h>
 #include <sys/wait.h>
 #include <pwd.h>
 #ifdef HAVE_SHADOW_H
@@ -47,6 +48,8 @@
 #include "wtmp-helper.h"
 #include "daemon.h"
 #include "util.h"
+#include "user.h"
+#include "accounts-user-generated.h"
 
 #define PATH_PASSWD "/etc/passwd"
 #define PATH_SHADOW "/etc/shadow"
@@ -245,6 +248,14 @@ entry_generator_fgetpwent (Daemon       *daemon,
                         if (shadow_entry_buffers != NULL) {
                             *spent = &shadow_entry_buffers->spbuf;
                         }
+
+                        /* Skip system users... */
+                        if (!user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell, (*spent)? (*spent)->sp_pwdp : NULL)) {
+                                g_debug ("skipping user: %s", pwent->pw_name);
+
+                                return entry_generator_fgetpwent (daemon, users, state, spent);
+                        }
+
                         return pwent;
                 }
         }
@@ -324,15 +335,9 @@ entry_generator_cachedir (Daemon       *daemon,
         /* Update all the users from the files in the cache dir */
         g_hash_table_iter_init (&iter, users);
         while (g_hash_table_iter_next (&iter, &key, &value)) {
-                const gchar *name = key;
                 User *user = value;
-                g_autofree gchar *filename = NULL;
-                g_autoptr(GKeyFile) key_file = NULL;
 
-                filename = g_build_filename (USERDIR, name, NULL);
-                key_file = g_key_file_new ();
-                if (g_key_file_load_from_file (key_file, filename, 0, NULL))
-                        user_update_from_keyfile (user, key_file);
+                user_update_from_cache (user);
         }
 
         *state = NULL;
@@ -405,12 +410,6 @@ load_entries (Daemon             *daemon,
                 if (pwent == NULL)
                         break;
 
-                /* Skip system users... */
-                if (!explicitly_requested && !user_classify_is_human (pwent->pw_uid, pwent->pw_name, pwent->pw_shell, spent? spent->sp_pwdp : NULL)) {
-                        g_debug ("skipping user: %s", pwent->pw_name);
-                        continue;
-                }
-
                 /* Only process users that haven't been processed yet.
                  * We do always make sure entries get promoted
                  * to "cached" status if they are supposed to be
@@ -481,11 +480,11 @@ reload_users (Daemon *daemon)
         while (g_hash_table_iter_next (&iter, &name, NULL))
                 g_hash_table_add (local, name);
 
+        /* Now add/update users from other sources, possibly non-local */
+        load_entries (daemon, users, TRUE, entry_generator_cachedir);
+
         /* and add users to hash table that were explicitly requested  */
         load_entries (daemon, users, TRUE, entry_generator_requested_users);
-
-        /* Now add/update users from other sources, possibly non-local */
-        load_entries (daemon, users, FALSE, entry_generator_cachedir);
 
         wtmp_helper_update_login_frequencies (users);
 
@@ -591,7 +590,6 @@ reload_autologin_timeout (Daemon *daemon)
 
         if (priv->autologin != NULL && priv->autologin != user) {
                 g_object_set (priv->autologin, "automatic-login", FALSE, NULL);
-                g_signal_emit_by_name (priv->autologin, "changed", 0);
                 g_clear_object (&priv->autologin);
         }
 
@@ -995,7 +993,6 @@ finish_list_cached_users (ListUserData *data)
         GHashTableIter iter;
         gpointer key, value;
         uid_t uid;
-        const gchar *shell;
 
         object_paths = g_ptr_array_new ();
 
@@ -1005,9 +1002,8 @@ finish_list_cached_users (ListUserData *data)
                 User *user = value;
 
                 uid = user_get_uid (user);
-                shell = user_get_shell (user);
 
-                if (!user_classify_is_human (uid, name, shell, NULL)) {
+                if (user_get_system_account (user)) {
                         g_debug ("user %s %ld excluded", name, (long) uid);
                         continue;
                 }
@@ -1111,11 +1107,24 @@ daemon_create_user_authorized_cb (Daemon                *daemon,
         argv[2] = "-c";
         argv[3] = cd->real_name;
         if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
-                if (EXTRA_ADMIN_GROUPS != NULL && EXTRA_ADMIN_GROUPS[0] != '\0')
-                        admin_groups = g_strconcat (ADMIN_GROUP, ",",
-                                                    EXTRA_ADMIN_GROUPS, NULL);
-                else
-                        admin_groups = g_strdup (ADMIN_GROUP);
+                g_auto(GStrv) admin_groups_array = NULL;
+                g_autoptr(GStrvBuilder) admin_groups_builder = g_strv_builder_new ();
+
+                g_strv_builder_add (admin_groups_builder, ADMIN_GROUP);
+
+                if (EXTRA_ADMIN_GROUPS != NULL && EXTRA_ADMIN_GROUPS[0] != '\0') {
+                        g_auto(GStrv) extra_admin_groups = NULL;
+                        extra_admin_groups = g_strsplit (EXTRA_ADMIN_GROUPS, ",", 0);
+
+                        for (gsize i = 0; extra_admin_groups[i] != NULL; i++) {
+                                if (getgrnam (extra_admin_groups[i]) != NULL)
+                                        g_strv_builder_add (admin_groups_builder, extra_admin_groups[i]);
+                                else
+                                        g_warning ("Extra admin group %s doesn’t exist: not adding the user to it", extra_admin_groups[i]);
+                        }
+                }
+                admin_groups_array = g_strv_builder_end (admin_groups_builder);
+                admin_groups = g_strjoinv (",", admin_groups_array);
 
                 argv[4] = "-G";
                 argv[5] = admin_groups;
@@ -1165,7 +1174,6 @@ daemon_create_user (AccountsAccounts      *accounts,
         daemon_local_check_auth (daemon,
                                  NULL,
                                  "org.freedesktop.accounts.user-administration",
-                                 TRUE,
                                  daemon_create_user_authorized_cb,
                                  context,
                                  data,
@@ -1217,7 +1225,6 @@ daemon_cache_user (AccountsAccounts      *accounts,
         daemon_local_check_auth (daemon,
                                  NULL,
                                  "org.freedesktop.accounts.user-administration",
-                                 TRUE,
                                  daemon_cache_user_authorized_cb,
                                  context,
                                  g_strdup (user_name),
@@ -1267,7 +1274,6 @@ daemon_uncache_user (AccountsAccounts      *accounts,
         daemon_local_check_auth (daemon,
                                  NULL,
                                  "org.freedesktop.accounts.user-administration",
-                                 TRUE,
                                  daemon_uncache_user_authorized_cb,
                                  context,
                                  g_strdup (user_name),
@@ -1293,6 +1299,8 @@ daemon_delete_user_authorized_cb (Daemon                *daemon,
         g_autoptr(GError) error = NULL;
         struct passwd *pwent;
         const gchar *argv[6];
+        const gchar *homedir;
+        gchar *resolved_homedir;
         User *user;
 
         pwent = getpwuid (ud->uid);
@@ -1317,6 +1325,15 @@ daemon_delete_user_authorized_cb (Daemon                *daemon,
         remove_cache_files (pwent->pw_name);
 
         user_set_saved (user, FALSE);
+
+        /* Never delete the root filesystem. */
+        homedir = accounts_user_get_home_directory (ACCOUNTS_USER (user));
+        resolved_homedir = realpath (homedir, NULL);
+        if (resolved_homedir != NULL && g_strcmp0 (resolved_homedir, "/") == 0) {
+                sys_log (context, "Refusing to delete home directory of user '%s' because it is root filesystem", pwent->pw_name);
+                ud->remove_files = FALSE;
+        }
+        free (resolved_homedir);
 
         argv[0] = "/usr/sbin/userdel";
         if (ud->remove_files) {
@@ -1363,7 +1380,6 @@ daemon_delete_user (AccountsAccounts      *accounts,
         daemon_local_check_auth (daemon,
                                  NULL,
                                  "org.freedesktop.accounts.user-administration",
-                                 TRUE,
                                  daemon_delete_user_authorized_cb,
                                  context,
                                  data,
@@ -1433,11 +1449,28 @@ check_auth_cb (PolkitAuthority *authority,
         check_auth_data_free (data);
 }
 
+static gboolean
+get_allow_interaction (GDBusMethodInvocation *invocation)
+{
+    /* GLib 2.46 is when G_DBUS_MESSAGE_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION
+     * was first released.
+     */
+#if GLIB_CHECK_VERSION(2, 46, 0)
+    GDBusMessage *message = g_dbus_method_invocation_get_message (invocation);
+    GDBusMessageFlags message_flags = g_dbus_message_get_flags (message);
+    if (message_flags & G_DBUS_MESSAGE_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION)
+        return TRUE;
+    else
+        return FALSE;
+#else
+    return TRUE;
+#endif
+}
+
 void
 daemon_local_check_auth (Daemon                *daemon,
                          User                  *user,
                          const gchar           *action_id,
-                         gboolean               allow_interaction,
                          AuthorizedCallback     authorized_cb,
                          GDBusMethodInvocation *context,
                          gpointer               authorized_cb_data,
@@ -1447,6 +1480,7 @@ daemon_local_check_auth (Daemon                *daemon,
         CheckAuthData *data;
         PolkitSubject *subject;
         PolkitCheckAuthorizationFlags flags;
+        gboolean allow_interaction = get_allow_interaction (context);
 
         data = g_new0 (CheckAuthData, 1);
         data->daemon = g_object_ref (daemon);
@@ -1522,13 +1556,18 @@ save_autologin (Daemon      *daemon,
         g_autoptr(GKeyFile) keyfile = NULL;
         g_autofree gchar *data = NULL;
         gboolean result;
+        g_autoptr(GError) local_error = NULL;
 
         keyfile = g_key_file_new ();
         if (!g_key_file_load_from_file (keyfile,
                                         PATH_GDM_CUSTOM,
                                         G_KEY_FILE_KEEP_COMMENTS,
-                                        error)) {
-                return FALSE;
+                                        &local_error)) {
+                /* It's OK for custom.conf to not exist, we will make it */
+                if (!g_error_matches (local_error, G_FILE_ERROR, G_FILE_ERROR_NOENT)) {
+                        g_propagate_error (error, g_steal_pointer (&local_error));
+                        return FALSE;
+                }
         }
 
         g_key_file_set_string (keyfile, "daemon", "AutomaticLoginEnable", enabled ? "True" : "False");
@@ -1562,13 +1601,11 @@ daemon_local_set_automatic_login (Daemon    *daemon,
 
         if (priv->autologin != NULL) {
                 g_object_set (priv->autologin, "automatic-login", FALSE, NULL);
-                g_signal_emit_by_name (priv->autologin, "changed", 0);
                 g_clear_object (&priv->autologin);
         }
 
         if (enabled) {
                 g_object_set (user, "automatic-login", TRUE, NULL);
-                g_signal_emit_by_name (user, "changed", 0);
                 g_object_ref (user);
                 priv->autologin = user;
         }

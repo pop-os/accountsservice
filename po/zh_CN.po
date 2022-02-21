@@ -5,13 +5,14 @@
 # Translators:
 # Dz Chen <wsxy162@gmail.com>, 2018
 # kkyeer <kkyeer@gmail.com>, 2011
-# Mingye Wang <arthur200126@gmail.com>, 2015
+# Mingye Wang <arthur200126@gmail.com>, 2015, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: accounts service\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-01-17 09:48-0500\n"
-"PO-Revision-Date: 2019-02-22 14:19+0000\n"
+"Report-Msgid-Bugs-To: https://gitlab.freedesktop.org/accountsservice/"
+"accountsservice/issues\n"
+"POT-Creation-Date: 2020-05-26 15:24+0000\n"
+"PO-Revision-Date: 2021-06-21 17:49+0100\n"
 "Last-Translator: Dz Chen <wsxy162@gmail.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/freedesktop/accountsservice/language/zh_CN/)\n"
 "MIME-Version: 1.0\n"
@@ -20,44 +21,46 @@ msgstr ""
 "Language: zh_CN\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: ../data/org.freedesktop.accounts.policy.in.h:1
+#: ../data/org.freedesktop.accounts.policy.in:11
 msgid "Change your own user data"
 msgstr "修改您的用户数据"
 
-#: ../data/org.freedesktop.accounts.policy.in.h:2
+#: ../data/org.freedesktop.accounts.policy.in:12
 msgid "Authentication is required to change your own user data"
 msgstr "需要授权以修改您的用户数据"
 
-#: ../data/org.freedesktop.accounts.policy.in.h:3
+#: ../data/org.freedesktop.accounts.policy.in:31
 msgid "Manage user accounts"
 msgstr "管理用户账户"
 
-#: ../data/org.freedesktop.accounts.policy.in.h:4
+#: ../data/org.freedesktop.accounts.policy.in:32
 msgid "Authentication is required to change user data"
 msgstr "需要授权以修改用户数据"
 
-#: ../data/org.freedesktop.accounts.policy.in.h:5
+#: ../data/org.freedesktop.accounts.policy.in:41
 msgid "Change the login screen configuration"
 msgstr "修改登录窗口配置"
 
-#: ../data/org.freedesktop.accounts.policy.in.h:6
+#: ../data/org.freedesktop.accounts.policy.in:42
 msgid "Authentication is required to change the login screen configuration"
 msgstr "需要授权以修改登录窗口配置"
 
-#: ../src/main.c:127
+#: ../src/main.c:201
 msgid "Output version information and exit"
 msgstr "输出版本信息并退出"
 
-#: ../src/main.c:128
+#: ../src/main.c:202
 msgid "Replace existing instance"
 msgstr "替换现有实例"
 
-#: ../src/main.c:129
+#: ../src/main.c:203
 msgid "Enable debugging code"
 msgstr "启用调试代码"
 
-#: ../src/main.c:149
+#: ../src/main.c:222
 msgid ""
 "Provides D-Bus interfaces for querying and manipulating\n"
 "user account information."
-msgstr "提供用于查询和操作用户账户信息\n的 D-Bus 接口。"
+msgstr ""
+"提供用于查询和操作用户账户信息\n"
+"的D-Bus 接口"

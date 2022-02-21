@@ -12,10 +12,6 @@ else
 extra_meson_options += -Dgtk_doc=false
 endif
 
-ifeq ($(DEB_HOST_ARCH_OS),linux)
-extra_meson_options += -Dsystemd=true
-endif
-
 %:
 	dh $@ --with=gir
 
@@ -30,6 +26,3 @@ override_dh_auto_configure:
 		-Dsystemdsystemunitdir=/lib/systemd/system \
 		-Dintrospection=true \
 		$(extra_meson_options)
-
-override_dh_installchangelogs:
-	dh_installchangelogs NEWS
