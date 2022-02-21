@@ -66,10 +66,6 @@
  * Mode for setting the user's password.
  */
 
-#define ACT_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST ((klass), ACT_TYPE_USER, ActUserClass))
-#define ACT_IS_USER_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE ((klass), ACT_TYPE_USER))
-#define ACT_USER_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS ((object), ACT_TYPE_USER, ActUserClass))
-
 #define ACCOUNTS_NAME           "org.freedesktop.Accounts"
 #define ACCOUNTS_USER_INTERFACE "org.freedesktop.Accounts.User"
 
@@ -116,11 +112,6 @@ struct _ActUser {
 
         guint           is_loaded : 1;
         guint           nonexistent : 1;
-};
-
-struct _ActUserClass
-{
-        GObjectClass parent_class;
 };
 
 static void act_user_finalize     (GObject      *object);
@@ -249,7 +240,10 @@ act_user_get_property (GObject    *object,
                 if (user->accounts_proxy != NULL) {
                         const char *property_name;
 
-                        property_name = g_param_spec_get_name (pspec);
+                        if (param_id == PROP_X_SESSION)
+                                property_name = "xsession";
+                        else
+                                property_name = g_param_spec_get_name (pspec);
 
                         g_object_get_property (G_OBJECT (user->accounts_proxy), property_name, value);
 
@@ -379,6 +373,22 @@ act_user_class_init (ActUserClass *class)
                                                               "The path to an icon for this user.",
                                                               NULL,
                                                               G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+
+        /**
+         * ActUser:language: (nullable)
+         *
+         * The user’s locale, in the format
+         * `language[_territory][.codeset][@modifier]`, where `language` is an
+         * ISO 639 language code, `territory` is an ISO 3166 country code, and
+         * `codeset` is a character set or encoding identifier like `ISO-8859-1`
+         * or `UTF-8`; as specified by [`setlocale(3)`](man:setlocale(3)).
+         *
+         * The locale may be the empty string, which means the user is using the
+         * system default locale.
+         *
+         * The property may be %NULL if it wasn’t possible to load it from the
+         * daemon.
+         */
         g_object_class_install_property (gobject_class,
                                          PROP_LANGUAGE,
                                          g_param_spec_string ("language",
@@ -1011,9 +1021,11 @@ act_user_get_icon_file (ActUser *user)
  * act_user_get_language:
  * @user: a #ActUser
  *
- * Returns the path to the configured locale of @user.
+ * Returns the value of #ActUser:language.
  *
- * Returns: (transfer none): a path to an icon
+ * Returns: (transfer none) (nullable): the user’s language, or the empty string
+ *    if they are using the system default language, or %NULL if there is no
+ *    connection to the daemon
  */
 const char *
 act_user_get_language (ActUser *user)
@@ -1271,12 +1283,12 @@ act_user_is_loaded (ActUser *user)
 /**
  * act_user_get_password_expiration_policy:
  * @user: the user object to query.
- * @expiration_time: location to write time users password expires
- * @last_change_time: location to write time users password was last changed.
- * @min_days_between_changes: location to write minimum number of days needed between password changes.
- * @max_days_between_changes: location to write maximum number of days password can stay unchanged.
- * @days_to_warn: location to write number of days to warn user password is about to expire.
- * @days_after_expiration_until_lock: location to write number of days account will be locked after password expires.
+ * @expiration_time: (out) (optional): location to write time users password expires
+ * @last_change_time: (out) (optional): location to write time users password was last changed.
+ * @min_days_between_changes: (out) (optional): location to write minimum number of days needed between password changes.
+ * @max_days_between_changes: (out) (optional): location to write maximum number of days password can stay unchanged.
+ * @days_to_warn: (out) (optional): location to write number of days to warn user password is about to expire.
+ * @days_after_expiration_until_lock: (out) (optional): location to write number of days account will be locked after password expires.
  *
  * Get the password expiration policy for a user.
  *
@@ -1297,6 +1309,8 @@ act_user_get_password_expiration_policy (ActUser *user,
         g_return_if_fail (ACCOUNTS_IS_USER (user->accounts_proxy));
 
         if (!accounts_user_call_get_password_expiration_policy_sync (user->accounts_proxy,
+                                                                     G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                                     -1,
                                                                      expiration_time,
                                                                      last_change_time,
                                                                      min_days_between_changes,
@@ -1331,6 +1345,8 @@ act_user_set_email (ActUser    *user,
 
         if (!accounts_user_call_set_email_sync (user->accounts_proxy,
                                                 email,
+                                                G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                -1,
                                                 NULL,
                                                 &error)) {
                 g_warning ("SetEmail call failed: %s", error->message);
@@ -1341,9 +1357,10 @@ act_user_set_email (ActUser    *user,
 /**
  * act_user_set_language:
  * @user: the user object to alter.
- * @language: a locale (e.g. en_US.utf8)
+ * @language: (not nullable): a locale (for example, `en_US.utf8`), or the empty
+ *    string to use the system default locale
  *
- * Assigns a new locale for @user.
+ * Assigns a new locale for @user, setting #ActUser:language.
  *
  * Note this function is synchronous and ignores errors.
  **/
@@ -1359,6 +1376,8 @@ act_user_set_language (ActUser    *user,
 
         if (!accounts_user_call_set_language_sync (user->accounts_proxy,
                                                    language,
+                                                   G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                   -1,
                                                    NULL,
                                                    &error)) {
                 g_warning ("SetLanguage for language %s failed: %s", language, error->message);
@@ -1387,6 +1406,8 @@ act_user_set_x_session (ActUser    *user,
 
         if (!accounts_user_call_set_xsession_sync (user->accounts_proxy,
                                                    x_session,
+                                                   G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                   -1,
                                                    NULL,
                                                    &error)) {
                 g_warning ("SetXSession call failed: %s", error->message);
@@ -1415,6 +1436,8 @@ act_user_set_session (ActUser    *user,
 
         if (!accounts_user_call_set_session_sync (user->accounts_proxy,
                                                   session,
+                                                  G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                  -1,
                                                   NULL,
                                                   &error)) {
                 g_warning ("SetSession call failed: %s", error->message);
@@ -1443,6 +1466,8 @@ act_user_set_session_type (ActUser    *user,
 
         if (!accounts_user_call_set_session_type_sync (user->accounts_proxy,
                                                        session_type,
+                                                       G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                       -1,
                                                        NULL,
                                                        &error)) {
                 g_warning ("SetSessionType call failed: %s", error->message);
@@ -1471,6 +1496,8 @@ act_user_set_location (ActUser    *user,
 
         if (!accounts_user_call_set_location_sync (user->accounts_proxy,
                                                    location,
+                                                   G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                   -1,
                                                    NULL,
                                                    &error)) {
                 g_warning ("SetLocation call failed: %s", error->message);
@@ -1499,6 +1526,8 @@ act_user_set_user_name (ActUser    *user,
 
         if (!accounts_user_call_set_user_name_sync (user->accounts_proxy,
                                                     user_name,
+                                                    G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                    -1,
                                                     NULL,
                                                     &error)) {
                 g_warning ("SetUserName call failed: %s", error->message);
@@ -1527,6 +1556,8 @@ act_user_set_real_name (ActUser    *user,
 
         if (!accounts_user_call_set_real_name_sync (user->accounts_proxy,
                                                     real_name,
+                                                    G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                    -1,
                                                     NULL,
                                                     &error)) {
                 g_warning ("SetRealName call failed: %s", error->message);
@@ -1555,6 +1586,8 @@ act_user_set_icon_file (ActUser    *user,
 
         if (!accounts_user_call_set_icon_file_sync (user->accounts_proxy,
                                                     icon_file,
+                                                    G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                    -1,
                                                     NULL,
                                                     &error)) {
                 g_warning ("SetIconFile call failed: %s", error->message);
@@ -1581,26 +1614,35 @@ act_user_set_account_type (ActUser            *user,
         g_return_if_fail (ACCOUNTS_IS_USER (user->accounts_proxy));
 
         if (!accounts_user_call_set_account_type_sync (user->accounts_proxy,
-                                                    account_type,
-                                                    NULL,
-                                                    &error)) {
+                                                       account_type,
+                                                       G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                       -1,
+                                                       NULL,
+                                                       &error)) {
                 g_warning ("SetAccountType call failed: %s", error->message);
                 return;
         }
 }
 
-static gchar
+#ifdef HAVE_CRYPT_GENSALT
+static gchar *
+generate_salt_for_crypt_hash (void)
+{
+        return g_strdup (crypt_gensalt (NULL, 0, NULL, 0));
+}
+#else
+static const gchar
 salt_char (GRand *rand)
 {
-        gchar salt[] = "ABCDEFGHIJKLMNOPQRSTUVXYZ"
-                       "abcdefghijklmnopqrstuvxyz"
-                       "./0123456789";
+        const gchar salt[] = "ABCDEFGHIJKLMNOPQRSTUVXYZ"
+                             "abcdefghijklmnopqrstuvxyz"
+                             "./0123456789";
 
         return salt[g_rand_int_range (rand, 0, G_N_ELEMENTS (salt))];
 }
 
 static gchar *
-make_crypted (const gchar *plain)
+generate_salt_for_crypt_hash (void)
 {
         g_autoptr(GString) salt = NULL;
         g_autoptr(GRand) rand = NULL;
@@ -1609,14 +1651,24 @@ make_crypted (const gchar *plain)
         rand = g_rand_new ();
         salt = g_string_sized_new (21);
 
-        /* SHA 256 */
+        /* sha512crypt */
         g_string_append (salt, "$6$");
         for (i = 0; i < 16; i++) {
                 g_string_append_c (salt, salt_char (rand));
         }
         g_string_append_c (salt, '$');
 
-        return g_strdup (crypt (plain, salt->str));
+        return g_strdup (salt->str);
+}
+#endif
+
+static gchar *
+make_crypted (const gchar *plain)
+{
+        g_autofree char *salt = NULL;
+
+        salt = generate_salt_for_crypt_hash ();
+        return g_strdup (crypt (plain, salt));
 }
 
 /**
@@ -1646,6 +1698,8 @@ act_user_set_password (ActUser             *user,
         if (!accounts_user_call_set_password_sync (user->accounts_proxy,
                                                    crypted,
                                                    hint,
+                                                   G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                   -1,
                                                    NULL,
                                                    &error)) {
                 g_warning ("SetPassword call failed: %s", error->message);
@@ -1674,6 +1728,8 @@ act_user_set_password_hint (ActUser     *user,
 
         if (!accounts_user_call_set_password_hint_sync (user->accounts_proxy,
                                                         hint,
+                                                        G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                        -1,
                                                         NULL,
                                                         &error)) {
                 g_warning ("SetPasswordHint call failed: %s", error->message);
@@ -1704,6 +1760,8 @@ act_user_set_password_mode (ActUser             *user,
 
         if (!accounts_user_call_set_password_mode_sync (user->accounts_proxy,
                                                         (gint) password_mode,
+                                                        G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                        -1,
                                                         NULL,
                                                         &error)) {
                 g_warning ("SetPasswordMode call failed: %s", error->message);
@@ -1728,6 +1786,8 @@ act_user_set_locked (ActUser  *user,
 
         if (!accounts_user_call_set_locked_sync (user->accounts_proxy,
                                                  locked,
+                                                 G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                 -1,
                                                  NULL,
                                                  &error)) {
                 g_warning ("SetLocked call failed: %s", error->message);
@@ -1757,6 +1817,8 @@ act_user_set_automatic_login (ActUser   *user,
 
         if (!accounts_user_call_set_automatic_login_sync (user->accounts_proxy,
                                                           enabled,
+                                                          G_DBUS_CALL_FLAGS_ALLOW_INTERACTIVE_AUTHORIZATION,
+                                                          -1,
                                                           NULL,
                                                           &error)) {
                 g_warning ("SetAutomaticLogin call failed: %s", error->message);

@@ -1,9 +1,9 @@
 project(
   'accountsservice', 'c',
-  version: '0.6.55',
+  version: run_command(['./generate-version.sh']).stdout().strip(),
   license: 'GPL3+',
   default_options: 'buildtype=debugoptimized',
-  meson_version: '>= 0.46.0',
+  meson_version: '>= 0.50.0',
 )
 
 act_name = meson.project_name()
@@ -78,12 +78,32 @@ foreach func: check_functions
 endforeach
 
 if cc.has_header_symbol('utmpx.h', 'WTMPX_FILENAME', prefix: '#define _GNU_SOURCE')
+  code = '''#define _GNU_SOURCE
+  #include <utmpx.h>
+  int main (int argc, char **argv) {
+    printf ("%s\n", WTMPX_FILENAME);
+    return 0;
+  }
+  '''
+  result = cc.run(code, name : 'value of WTMPX_FILENAME')
+  path_wtmp = result.stdout().strip()
+
   config_h.set('PATH_WTMP', 'WTMPX_FILENAME')
 elif cc.has_header_symbol('paths.h', '_PATH_WTMPX')
+  code = '''#include <paths.h>
+  int main (int argc, char **argv) {
+    printf ("%s\n", _PATH_WTMPX);
+    return 0;
+  }
+  '''
+  result = cc.run(code, name : 'value of _PATH_WTMPX')
+  path_wtmp = result.stdout().strip()
+
   config_h.set('PATH_WTMP', '_PATH_WTMPX')
 else
-  assert(run_command('test', '-e', '/var/log/utx.log').returncode() == 0, 'Do not know which filename to watch for wtmp changes')
-  config_h.set_quoted('PATH_WTMP', '/var/log/utx.log')
+  path_wtmp = '/var/log/utx.log'
+  assert(run_command('test', '-e', path_wtmp).returncode() == 0, 'Do not know which filename to watch for wtmp changes')
+  config_h.set_quoted('PATH_WTMP', path_wtmp)
 endif
 
 # compiler flags
@@ -118,15 +138,36 @@ endif
 
 add_project_arguments(common_flags, language: 'c')
 
-gio_dep = dependency('gio-2.0', version: '>= 2.37.3')
+# Ensure we have the changes from https://gitlab.gnome.org/GNOME/glib/merge_requests/1286
+# and https://gitlab.gnome.org/GNOME/glib/merge_requests/1342
+glib_min_version = '2.63.5'
+gio_dep = dependency('gio-2.0', version: '>= ' + glib_min_version)
 gio_unix_dep = dependency('gio-unix-2.0')
-glib_dep = dependency('glib-2.0', version: '>= 2.44')
+glib_dep = dependency('glib-2.0', version: '>= ' + glib_min_version)
 polkit_gobject_dep = dependency('polkit-gobject-1')
 
-crypt_dep = cc.find_library('crypt')
+# Using libxcrypt >= 4 we can be sure `crypt_gensalt (NULL, 0, NULL, 0)`
+# always returns a setting that is valid to use with `crypt (pw, setting)`.
+#
+# The setting returned will specify (depending on the system's
+# configuration of libxcrypt) in order of preferrence either
+# yescrypt "$y$", (gost-yescrypt "$gy$), bcrypt "$2b$" or sha512crypt "$6$"
+# as hash method, with a sufficient amount of cost or rounds and a random
+# salt drawn from secure system ressources with at least 128 bits.
+# (96 bits for sha512crypt, as more is not supported by this method, since
+# the effectively used maximum is 16 base64-encoded characters)
+crypt_dep = dependency('libxcrypt', required: false, version: '>= 4')
+config_h.set('HAVE_CRYPT_GENSALT', crypt_dep.found())
+if not crypt_dep.found()
+  crypt_dep = cc.find_library('crypt')
+endif
 
 dbus_dep = dependency('dbus-1')
-dbus_conf_dir = join_paths(dbus_dep.get_pkgconfig_variable('sysconfdir', define_variable: ['sysconfdir', act_sysconfdir]), 'dbus-1', 'system.d')
+if dbus_dep.version().version_compare('>=1.9.18')
+  dbus_conf_dir = join_paths(dbus_dep.get_pkgconfig_variable('datadir', define_variable: ['datadir', act_datadir]), 'dbus-1', 'system.d')
+else
+  dbus_conf_dir = join_paths(dbus_dep.get_pkgconfig_variable('sysconfdir', define_variable: ['sysconfdir', act_sysconfdir]), 'dbus-1', 'system.d')
+endif
 dbus_ifaces_dir = dbus_dep.get_pkgconfig_variable('interfaces_dir', define_variable: ['datadir', act_datadir])
 dbus_sys_dir = dbus_dep.get_pkgconfig_variable('system_bus_services_dir', define_variable: ['datadir', act_datadir])
 
@@ -160,25 +201,17 @@ extra_admin_groups = ','.join(get_option('extra_admin_groups'))
 config_h.set_quoted('ADMIN_GROUP', admin_group)
 config_h.set_quoted('EXTRA_ADMIN_GROUPS', extra_admin_groups)
 
-config_h.set('ENABLE_USER_HEURISTICS', get_option('user_heuristics'))
 config_h.set('MINIMUM_UID', get_option('minimum_uid'))
 
 # GDM
 gdm_conf_file = get_option('gdmconffile')
 config_h.set_quoted('PATH_GDM_CUSTOM', gdm_conf_file)
 
-enable_systemd = get_option('systemd')
-enable_elogind = get_option('elogind')
-assert(not enable_systemd or not enable_elogind, 'systemd and elogind support requested, please choose only one.')
-
-if enable_systemd
+if get_option('elogind')
+  logind_dep = dependency('libelogind', version: '>= 229.4')
+else
   logind_dep = dependency('libsystemd', version: '>= 186')
 endif
-
-if enable_elogind
-  logind_dep = dependency('libelogind', version: '>= 229.4')
-endif
-config_h.set('WITH_SYSTEMD', enable_systemd or enable_elogind)
 
 subdir('data')
 subdir('src')
@@ -192,6 +225,8 @@ endif
 if get_option('gtk_doc')
   subdir('doc/libaccountsservice')
 endif
+
+subdir('tests')
 
 configure_file(
   output: 'config.h',
