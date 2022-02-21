@@ -14,7 +14,10 @@ Build-Depends:
  libsystemd-dev (>= 209) [linux-any],
  xmlto,
  policykit-1,
- libdbus-1-dev (>= 1.9.18)
+ libdbus-1-dev (>= 1.9.18),
+ python3-dbus <!nocheck>,
+ python3-dbusmock <!nocheck>,
+ python3-gi <!nocheck>,
 Build-Depends-Indep:
  gtk-doc-tools <!nodoc>,
  libglib2.0-doc <!nodoc>
