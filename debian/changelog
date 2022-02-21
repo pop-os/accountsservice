@@ -6,6 +6,8 @@ accountsservice (22.07.5-1) UNRELEASED; urgency=medium
     - changed to warn when trying to add the user to non existant
       groups rather than erroring out since the list is static and some
       default groups are created by optional packages.
+  * debian/control:
+    - updated libglib and meson requirements
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 13:57:22 +0100
 
