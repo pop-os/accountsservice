@@ -3,25 +3,22 @@ Section: admin
 Priority: optional
 Maintainer: Debian freedesktop.org maintainers <pkg-freedesktop-maintainers@lists.alioth.debian.org>
 Uploaders: Emilio Pozuelo Monfort <pochu@debian.org>
-Build-Depends:
- debhelper-compat (= 13),
- meson (>= 0.50),
- gobject-introspection (>= 0.9.12-4~),
- intltool,
- libgirepository1.0-dev (>= 1.34),
- libglib2.0-dev (>= 2.63.5),
- libpolkit-gobject-1-dev,
- libsystemd-dev (>= 209) [linux-any],
- xmlto,
- policykit-1,
- libdbus-1-dev (>= 1.9.18),
- python3-dbus <!nocheck>,
- python3-dbusmock <!nocheck>,
- python3-gi <!nocheck>,
- valac,
-Build-Depends-Indep:
- gtk-doc-tools <!nodoc>,
- libglib2.0-doc <!nodoc>
+Build-Depends: debhelper-compat (= 13),
+               gobject-introspection (>= 0.9.12-4~),
+               intltool,
+               libdbus-1-dev (>= 1.9.18),
+               libgirepository1.0-dev (>= 1.34),
+               libglib2.0-dev (>= 2.63.5),
+               libpolkit-gobject-1-dev,
+               libsystemd-dev (>= 209) [linux-any],
+               meson (>= 0.50),
+               policykit-1,
+               python3-dbus <!nocheck>,
+               python3-dbusmock <!nocheck>,
+               python3-gi <!nocheck>,
+               valac,
+               xmlto
+Build-Depends-Indep: gtk-doc-tools <!nodoc>, libglib2.0-doc <!nodoc>
 Standards-Version: 4.6.0.1
 Homepage: https://www.freedesktop.org/wiki/Software/AccountsService/
 Vcs-Git: https://salsa.debian.org/freedesktop-team/accountsservice.git
@@ -29,15 +26,12 @@ Vcs-Browser: https://salsa.debian.org/freedesktop-team/accountsservice
 
 Package: accountsservice
 Architecture: any
-Depends:
- dbus (>= 1.9.18),
- libaccountsservice0 (= ${binary:Version}),
- ${misc:Depends},
- ${shlibs:Depends}
-Recommends:
- default-logind | logind,
-Suggests:
- gnome-control-center
+Depends: dbus (>= 1.9.18),
+         libaccountsservice0 (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
+Recommends: default-logind | logind
+Suggests: gnome-control-center
 Description: query and manipulate user account information
  The AccountService project provides a set of D-Bus
  interfaces for querying and manipulating user account
@@ -48,11 +42,8 @@ Package: libaccountsservice0
 Section: libs
 Architecture: any
 Multi-Arch: same
-Depends:
- ${misc:Depends},
- ${shlibs:Depends}
-Breaks:
- accountsservice (<< 0.6.5)
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Breaks: accountsservice (<< 0.6.5)
 Description: query and manipulate user account information - shared libraries
  The AccountService project provides a set of D-Bus
  interfaces for querying and manipulating user account
@@ -66,12 +57,11 @@ Package: libaccountsservice-dev
 Section: libdevel
 Architecture: any
 Multi-Arch: same
-Depends:
- gir1.2-accountsservice-1.0 (= ${binary:Version}),
- libaccountsservice0 (= ${binary:Version}),
- libglib2.0-dev (>= 2.25.11),
- libpolkit-gobject-1-dev,
- ${misc:Depends}
+Depends: gir1.2-accountsservice-1.0 (= ${binary:Version}),
+         libaccountsservice0 (= ${binary:Version}),
+         libglib2.0-dev (>= 2.25.11),
+         libpolkit-gobject-1-dev,
+         ${misc:Depends}
 Description: query and manipulate user account information - header files
  The AccountService project provides a set of D-Bus
  interfaces for querying and manipulating user account
@@ -85,10 +75,7 @@ Package: gir1.2-accountsservice-1.0
 Section: introspection
 Architecture: any
 Multi-Arch: same
-Depends:
- ${gir:Depends},
- ${misc:Depends},
- ${shlibs:Depends}
+Depends: ${gir:Depends}, ${misc:Depends}, ${shlibs:Depends}
 Description: GObject introspection data for AccountService
  The AccountService project provides a set of D-Bus
  interfaces for querying and manipulating user account
@@ -102,8 +89,7 @@ Package: libaccountsservice-doc
 Section: doc
 Architecture: all
 Multi-Arch: foreign
-Depends:
- ${misc:Depends}
+Depends: ${misc:Depends}
 Build-Profiles: <!nodoc>
 Description: query and manipulate user account information - documentation
  The AccountService project provides a set of D-Bus
