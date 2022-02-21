@@ -1,4 +1,4 @@
-accountsservice (22.07.5-1) UNRELEASED; urgency=medium
+accountsservice (22.07.5-1) unstable; urgency=medium
 
   * New upstream version
   * Remove the patches which are included in the update
@@ -21,7 +21,7 @@ accountsservice (22.07.5-1) UNRELEASED; urgency=medium
     - don't try to install the NEWS file which isn't provided anymore
     - remove the non existant systemd option
 
- -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 13:57:22 +0100
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 20:50:26 +0100
 
 accountsservice (0.6.55-3) unstable; urgency=medium
 
