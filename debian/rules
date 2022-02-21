@@ -13,7 +13,7 @@ extra_meson_options += -Dgtk_doc=false
 endif
 
 %:
-	dh $@ --with=gir
+	dh $@ --with=gir,translations
 
 override_dh_makeshlibs:
 	dh_makeshlibs -V -- -c4
@@ -21,8 +21,9 @@ override_dh_makeshlibs:
 override_dh_auto_configure:
 	dh_auto_configure -- \
 		-Ddocbook=true \
-		-Dgdmconffile=/etc/gdm3/daemon.conf \
+		-Dgdmconffile=/etc/gdm3/custom.conf \
 		-Dadmin_group=sudo \
 		-Dsystemdsystemunitdir=/lib/systemd/system \
 		-Dintrospection=true \
+		-Dextra_admin_groups=adm,cdrom,dip,lpadmin,plugdev,sambashare,libvirtd,lxd \
 		$(extra_meson_options)

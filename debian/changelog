@@ -1,3 +1,35 @@
+accountsservice (22.07.5-1ubuntu1) UNRELEASED; urgency=medium
+
+  * Merge with Debian, remaining Ubuntu changes:
+  * debian/control:
+    - Add build-depends on ddh-translations
+  * debian/rules:
+    - Build with translations to update POT file.
+    - set -Dextra_admin_groups to add admin users to the same groups than
+      user-setup is using for the initial account
+    - We use custom.conf, not daemon.conf
+  * debian/libaccountsservice0.symbols:
+    - Add symbols added from patches.
+  * debian/patches/0001-formats-locale-property.patch:
+    - Addition of FormatsLocale property and SetFormatsLocale method.
+  * debian/patches/0005-gdm_config_file_path.patch:
+    - Disabled, as we are using custom.conf.
+  * debian/patches/0010-set-language.patch:
+    - Save user language and regional formats settings to ~/.pam_environment.
+  * debian/patches/0011-add-background-file-support.patch:
+    - Add support for a BackgroundFile property, similar to IconFile.
+  * debian/patches/0012-add-keyboard-layout-support.patch:
+    - Add XKeyboardLayouts property to report a user's keyboard layouts.
+  * debian/patches/0013-add-has-message-support.patch:
+    - Add XHasMessages property to report if a user had unread messages.
+  * debian/patches/0016-add-input-sources-support.patch:
+    - Store input sources in the user object.
+  * debian/patches/0021-support-extrausers.patch:
+    - In addition to watching /etc/{passwd,shadow,group}, also watch those
+      same files in /var/lib/extrausers/, if they exist.
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 20:52:58 +0100
+
 accountsservice (22.07.5-1) unstable; urgency=medium
 
   * New upstream version

@@ -1,5 +1,11 @@
+0001-formats-locale-property.patch
 0002-create-and-manage-groups-like-on-a-debian-system.patch
-0005-gdm_config_file_path.patch
+#0005-gdm_config_file_path.patch
 0007-add-lightdm-support.patch
 0009-language-tools.patch
-
+0010-set-language.patch
+0011-add-background-file-support.patch
+0012-add-keyboard-layout-support.patch
+0013-add-has-message-support.patch
+0016-add-input-sources-support.patch
+0021-support-extrausers.patch
