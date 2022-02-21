@@ -9,6 +9,9 @@ accountsservice (22.07.5-1) UNRELEASED; urgency=medium
   * debian/control:
     - include the build-depends needed for the tests
     - updated libglib and meson requirements
+  * debian/libaccountsservice0.symbols:
+    - updated for the new version, the consolekit option has been removed
+      but those symbols were not part of the public API
   * debian/rules:
     - don't try to install the NEWS file which isn't provided anymore
     - remove the non existant systemd option
