@@ -18,6 +18,7 @@ Build-Depends:
  python3-dbus <!nocheck>,
  python3-dbusmock <!nocheck>,
  python3-gi <!nocheck>,
+ valac,
 Build-Depends-Indep:
  gtk-doc-tools <!nodoc>,
  libglib2.0-doc <!nodoc>

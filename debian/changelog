@@ -9,7 +9,7 @@ accountsservice (22.07.5-1) UNRELEASED; urgency=medium
   * debian/accountsservice.install:
     - install the new user-templates
   * debian/control, debian/compat:
-    - include the build-depends needed for the tests
+    - include the build-depends needed for the tests and the vapis
     - updated libglib and meson requirements
     - use current debhelper and standards versions
   * debian/libaccountsservice0.symbols:
