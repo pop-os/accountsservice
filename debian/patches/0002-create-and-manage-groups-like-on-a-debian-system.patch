@@ -85,7 +85,7 @@ Index: accountsservice/src/daemon.c
                  argv[5] = cd->user_name;
                  argv[6] = NULL;
          }
-@@ -1147,6 +1137,23 @@ daemon_create_user_authorized_cb (Daemon
+@@ -1147,6 +1137,29 @@ daemon_create_user_authorized_cb (Daemon
                  return;
          }
  
@@ -100,9 +100,15 @@ Index: accountsservice/src/daemon.c
 +
 +                extra_admin_groups = g_strsplit (EXTRA_ADMIN_GROUPS ? EXTRA_ADMIN_GROUPS : "", ",", -1);
 +                for (gsize i = 0; extra_admin_groups[i] != NULL; i++) {
-+                        if (!add_user_to_group (context, cd->user_name, extra_admin_groups[i], &error))
-+                                g_warning ("failed to add user %s to group %s: %s",
-+                                             cd->user_name, extra_admin_groups[i], error->message);
++                        if (getgrnam (extra_admin_groups[i]) != NULL) {
++                                if (!add_user_to_group (context, cd->user_name, extra_admin_groups[i], &error)) {
++                                        throw_error (context, ERROR_FAILED, "failed to add user %s to group %s: %s",
++                                                     cd->user_name, extra_admin_groups[i], error->message);
++                                        return;
++                                }
++                        }
++                        else
++                                g_warning ("Extra admin group %s doesnâ€™t exist: not adding the user to it", extra_admin_groups[i]);
 +                }
 +        }
 +

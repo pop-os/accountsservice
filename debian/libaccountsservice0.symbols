@@ -61,15 +61,24 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_call_set_automatic_login@Base 0.6.18
  accounts_user_call_set_automatic_login_finish@Base 0.6.18
  accounts_user_call_set_automatic_login_sync@Base 0.6.18
+ accounts_user_call_set_background_file@Base 0.6.29
+ accounts_user_call_set_background_file_finish@Base 0.6.29
+ accounts_user_call_set_background_file_sync@Base 0.6.29
  accounts_user_call_set_email@Base 0.6.18
  accounts_user_call_set_email_finish@Base 0.6.18
  accounts_user_call_set_email_sync@Base 0.6.18
+ accounts_user_call_set_formats_locale@Base 0.6.29
+ accounts_user_call_set_formats_locale_finish@Base 0.6.29
+ accounts_user_call_set_formats_locale_sync@Base 0.6.29
  accounts_user_call_set_home_directory@Base 0.6.18
  accounts_user_call_set_home_directory_finish@Base 0.6.18
  accounts_user_call_set_home_directory_sync@Base 0.6.18
  accounts_user_call_set_icon_file@Base 0.6.18
  accounts_user_call_set_icon_file_finish@Base 0.6.18
  accounts_user_call_set_icon_file_sync@Base 0.6.18
+ accounts_user_call_set_input_sources@Base 0.6.40
+ accounts_user_call_set_input_sources_finish@Base 0.6.40
+ accounts_user_call_set_input_sources_sync@Base 0.6.40
  accounts_user_call_set_language@Base 0.6.18
  accounts_user_call_set_language_finish@Base 0.6.18
  accounts_user_call_set_language_sync@Base 0.6.18
@@ -103,15 +112,24 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_call_set_user_name@Base 0.6.18
  accounts_user_call_set_user_name_finish@Base 0.6.18
  accounts_user_call_set_user_name_sync@Base 0.6.18
+ accounts_user_call_set_xhas_messages@Base 0.6.29
+ accounts_user_call_set_xhas_messages_finish@Base 0.6.29
+ accounts_user_call_set_xhas_messages_sync@Base 0.6.29
+ accounts_user_call_set_xkeyboard_layouts@Base 0.6.29
+ accounts_user_call_set_xkeyboard_layouts_finish@Base 0.6.29
+ accounts_user_call_set_xkeyboard_layouts_sync@Base 0.6.29
  accounts_user_call_set_xsession@Base 0.6.18
  accounts_user_call_set_xsession_finish@Base 0.6.18
  accounts_user_call_set_xsession_sync@Base 0.6.18
  accounts_user_complete_get_password_expiration_policy@Base 0.6.45
  accounts_user_complete_set_account_type@Base 0.6.18
  accounts_user_complete_set_automatic_login@Base 0.6.18
+ accounts_user_complete_set_background_file@Base 0.6.29
  accounts_user_complete_set_email@Base 0.6.18
+ accounts_user_complete_set_formats_locale@Base 0.6.29
  accounts_user_complete_set_home_directory@Base 0.6.18
  accounts_user_complete_set_icon_file@Base 0.6.18
+ accounts_user_complete_set_input_sources@Base 0.6.40
  accounts_user_complete_set_language@Base 0.6.18
  accounts_user_complete_set_location@Base 0.6.18
  accounts_user_complete_set_locked@Base 0.6.18
@@ -123,10 +141,15 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_complete_set_session_type@Base 0.6.55
  accounts_user_complete_set_shell@Base 0.6.18
  accounts_user_complete_set_user_name@Base 0.6.18
+ accounts_user_complete_set_xhas_messages@Base 0.6.29
+ accounts_user_complete_set_xkeyboard_layouts@Base 0.6.29
  accounts_user_complete_set_xsession@Base 0.6.18
+ accounts_user_dup_background_file@Base 0.6.29
  accounts_user_dup_email@Base 0.6.18
+ accounts_user_dup_formats_locale@Base 0.6.29
  accounts_user_dup_home_directory@Base 0.6.18
  accounts_user_dup_icon_file@Base 0.6.18
+ accounts_user_dup_input_sources@Base 0.6.40
  accounts_user_dup_language@Base 0.6.18
  accounts_user_dup_location@Base 0.6.18
  accounts_user_dup_login_history@Base 0.6.29
@@ -136,13 +159,17 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_dup_session_type@Base 0.6.55
  accounts_user_dup_shell@Base 0.6.18
  accounts_user_dup_user_name@Base 0.6.18
+ accounts_user_dup_xkeyboard_layouts@Base 0.6.29
  accounts_user_dup_xsession@Base 0.6.18
  accounts_user_emit_changed@Base 0.6.18
  accounts_user_get_account_type@Base 0.6.18
  accounts_user_get_automatic_login@Base 0.6.18
+ accounts_user_get_background_file@Base 0.6.29
  accounts_user_get_email@Base 0.6.18
+ accounts_user_get_formats_locale@Base 0.6.29
  accounts_user_get_home_directory@Base 0.6.18
  accounts_user_get_icon_file@Base 0.6.18
+ accounts_user_get_input_sources@Base 0.6.40
  accounts_user_get_language@Base 0.6.18
  accounts_user_get_local_account@Base 0.6.24
  accounts_user_get_location@Base 0.6.18
@@ -161,6 +188,8 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_get_type@Base 0.6.18
  accounts_user_get_uid@Base 0.6.18
  accounts_user_get_user_name@Base 0.6.18
+ accounts_user_get_xhas_messages@Base 0.6.29
+ accounts_user_get_xkeyboard_layouts@Base 0.6.29
  accounts_user_get_xsession@Base 0.6.18
  accounts_user_interface_info@Base 0.6.18
  accounts_user_override_properties@Base 0.6.18
@@ -173,9 +202,12 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_proxy_new_sync@Base 0.6.18
  accounts_user_set_account_type@Base 0.6.18
  accounts_user_set_automatic_login@Base 0.6.18
+ accounts_user_set_background_file@Base 0.6.29
  accounts_user_set_email@Base 0.6.18
+ accounts_user_set_formats_locale@Base 0.6.29
  accounts_user_set_home_directory@Base 0.6.18
  accounts_user_set_icon_file@Base 0.6.18
+ accounts_user_set_input_sources@Base 0.6.40
  accounts_user_set_language@Base 0.6.18
  accounts_user_set_local_account@Base 0.6.24
  accounts_user_set_location@Base 0.6.18
@@ -193,6 +225,8 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  accounts_user_set_system_account@Base 0.6.18
  accounts_user_set_uid@Base 0.6.18
  accounts_user_set_user_name@Base 0.6.18
+ accounts_user_set_xhas_messages@Base 0.6.29
+ accounts_user_set_xkeyboard_layouts@Base 0.6.29
  accounts_user_set_xsession@Base 0.6.18
  accounts_user_skeleton_get_type@Base 0.6.18
  accounts_user_skeleton_new@Base 0.6.18
@@ -200,9 +234,12 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_collate@Base 0.6.8
  act_user_get_account_type@Base 0.6.8
  act_user_get_automatic_login@Base 0.6.8
+ act_user_get_background_file@Base 0.6.29
  act_user_get_email@Base 0.6.8
+ act_user_get_formats_locale@Base 0.6.29
  act_user_get_home_dir@Base 0.6.8
  act_user_get_icon_file@Base 0.6.8
+ act_user_get_input_sources@Base 0.6.40
  act_user_get_language@Base 0.6.8
  act_user_get_location@Base 0.6.8
  act_user_get_locked@Base 0.6.8
@@ -224,6 +261,8 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_get_type@Base 0.6.8
  act_user_get_uid@Base 0.6.8
  act_user_get_user_name@Base 0.6.8
+ act_user_get_x_has_messages@Base 0.6.29
+ act_user_get_x_keyboard_layouts@Base 0.6.29
  act_user_get_x_session@Base 0.6.8
  act_user_is_loaded@Base 0.6.8
  act_user_is_local_account@Base 0.6.24
@@ -257,8 +296,11 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_password_mode_get_type@Base 0.6.8
  act_user_set_account_type@Base 0.6.8
  act_user_set_automatic_login@Base 0.6.8
+ act_user_set_background_file@Base 0.6.29
  act_user_set_email@Base 0.6.8
+ act_user_set_formats_locale@Base 0.6.29
  act_user_set_icon_file@Base 0.6.8
+ act_user_set_input_sources@Base 0.6.40
  act_user_set_language@Base 0.6.8
  act_user_set_location@Base 0.6.8
  act_user_set_locked@Base 0.6.8
@@ -269,4 +311,6 @@ libaccountsservice.so.0 libaccountsservice0 #MINVER#
  act_user_set_session@Base 0.6.55
  act_user_set_session_type@Base 0.6.55
  act_user_set_user_name@Base 0.6.8
+ act_user_set_x_has_messages@Base 0.6.29
+ act_user_set_x_keyboard_layouts@Base 0.6.29
  act_user_set_x_session@Base 0.6.8
