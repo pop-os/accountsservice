@@ -1,8 +1,8 @@
-accountsservice (22.07.5-1ubuntu1) UNRELEASED; urgency=medium
+accountsservice (22.07.5-2ubuntu1) UNRELEASED; urgency=medium
 
   * Merge with Debian, remaining Ubuntu changes:
   * debian/control:
-    - Add build-depends on ddh-translations
+    - Add build-depends on dh-translations
   * debian/rules:
     - Build with translations to update POT file.
     - set -Dextra_admin_groups to add admin users to the same groups than
@@ -29,6 +29,17 @@ accountsservice (22.07.5-1ubuntu1) UNRELEASED; urgency=medium
       same files in /var/lib/extrausers/, if they exist.
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 20:52:58 +0100
+
+accountsservice (22.07.5-2) unstable; urgency=medium
+
+  * d/p/0002-create-and-manage-groups-like-on-a-debian-system.patch:
+    - change back to error out if adding the user to a group fails but
+      don't try to use a non existant group instead
+  * d/p/0009-language-tools.patch:
+    - restore permission marker that got lost by doing a quilt refresh,
+      without those the script lack +x permission
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 22 Feb 2022 12:10:38 +0100
 
 accountsservice (22.07.5-1) unstable; urgency=medium
 
