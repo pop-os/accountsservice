@@ -10,3 +10,4 @@
 0016-add-input-sources-support.patch
 0021-support-extrausers.patch
 gitlab_change_types.patch
+gitlab_shared_tmp.patch

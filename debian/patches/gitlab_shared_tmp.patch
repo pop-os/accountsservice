@@ -1,0 +1,28 @@
+From dfe93aaee369c746e7efd26b41c41884dc153a8a Mon Sep 17 00:00:00 2001
+From: Sebastien Bacher <seb128@ubuntu.com>
+Date: Tue, 22 Feb 2022 13:13:17 +0100
+Subject: [PATCH] Set PrivateTmp to false in the systemd service
+
+Sometime the API users store data in tmp, without the restriction set
+settings fail to set the user icon for example.
+---
+ data/accounts-daemon.service.in | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/data/accounts-daemon.service.in b/data/accounts-daemon.service.in
+index 46c65d4..4513f73 100644
+--- a/data/accounts-daemon.service.in
++++ b/data/accounts-daemon.service.in
+@@ -25,7 +25,8 @@ ProtectKernelModules=true
+ ProtectControlGroups=true
+ # Write access is needed to create home directories:
+ ProtectHome=false
+-PrivateTmp=true
++# Needed sometime for data shared like icons
++PrivateTmp=false
+ PrivateNetwork=true
+ # We need access to the canonical user database:
+ PrivateUsers=false
+-- 
+2.32.0
+

@@ -29,6 +29,8 @@ accountsservice (22.07.5-2ubuntu1) UNRELEASED; urgency=medium
       same files in /var/lib/extrausers/, if they exist.
   * debian/patches/gitlab_change_types.patch:
     - fix changing account types failing on missing groups
+  * debian/patches/gitlab_shared_tmp.patch:
+    - don't use a private tmp since API clients sometime store files there
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 20:52:58 +0100
 
