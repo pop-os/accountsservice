@@ -26,10 +26,11 @@ Subject: [PATCH 05/12] Help files for dealing with language/locale settings.
  create mode 100755 data/langtools/set-language-helper
  create mode 100755 data/langtools/update-langlist
 
-Index: accountsservice/data/langtools/Makefile.am
-===================================================================
+diff --git a/data/langtools/Makefile.am b/data/langtools/Makefile.am
+new file mode 100644
+index 0000000..ca345e0
 --- /dev/null
-+++ accountsservice/data/langtools/Makefile.am
++++ b/data/langtools/Makefile.am
 @@ -0,0 +1,17 @@
 +langtoolsdir = ${datadir}/language-tools
 +
@@ -48,10 +49,11 @@ Index: accountsservice/data/langtools/Makefile.am
 +	$(INSTALL_SCRIPT)  set-language-helper       $(DESTDIR)$(langtoolsdir)/set-language-helper
 +	$(INSTALL_SCRIPT)  update-langlist           $(DESTDIR)$(langtoolsdir)/update-langlist
 +
-Index: accountsservice/data/langtools/language-options
-===================================================================
+diff --git a/data/langtools/language-options b/data/langtools/language-options
+new file mode 100755
+index 0000000..b1cc1f3
 --- /dev/null
-+++ accountsservice/data/langtools/language-options
++++ b/data/langtools/language-options
 @@ -0,0 +1,84 @@
 +#!/usr/bin/perl
 +use strict;
@@ -137,10 +139,11 @@ Index: accountsservice/data/langtools/language-options
 +# print the resulting list of language options
 +print join("\n", sort keys %intersection) || 'en';
 +
-Index: accountsservice/data/langtools/language-validate
-===================================================================
+diff --git a/data/langtools/language-validate b/data/langtools/language-validate
+new file mode 100755
+index 0000000..b87c132
 --- /dev/null
-+++ accountsservice/data/langtools/language-validate
++++ b/data/langtools/language-validate
 @@ -0,0 +1,82 @@
 +#!/bin/sh -e
 +
@@ -224,10 +227,11 @@ Index: accountsservice/data/langtools/language-validate
 +
 +echo $validated_language
 +
-Index: accountsservice/data/langtools/language2locale
-===================================================================
+diff --git a/data/langtools/language2locale b/data/langtools/language2locale
+new file mode 100755
+index 0000000..874b357
 --- /dev/null
-+++ accountsservice/data/langtools/language2locale
++++ b/data/langtools/language2locale
 @@ -0,0 +1,70 @@
 +#!/bin/sh -e
 +#
@@ -299,10 +303,11 @@ Index: accountsservice/data/langtools/language2locale
 +
 +echo $locale_name
 +
-Index: accountsservice/data/langtools/locale2papersize
-===================================================================
+diff --git a/data/langtools/locale2papersize b/data/langtools/locale2papersize
+new file mode 100755
+index 0000000..3fcc13b
 --- /dev/null
-+++ accountsservice/data/langtools/locale2papersize
++++ b/data/langtools/locale2papersize
 @@ -0,0 +1,18 @@
 +#!/bin/sh -e
 +#
@@ -322,10 +327,11 @@ Index: accountsservice/data/langtools/locale2papersize
 +
 +echo $size
 +
-Index: accountsservice/data/langtools/main-countries
-===================================================================
+diff --git a/data/langtools/main-countries b/data/langtools/main-countries
+new file mode 100644
+index 0000000..c6bbd32
 --- /dev/null
-+++ accountsservice/data/langtools/main-countries
++++ b/data/langtools/main-countries
 @@ -0,0 +1,28 @@
 +# If multiple country codes are present among the available locales for
 +# a language, we may want to map the language code to the language's
@@ -355,10 +361,11 @@ Index: accountsservice/data/langtools/main-countries
 +ti	ti_ER
 +tr	tr_TR
 +
-Index: accountsservice/data/langtools/meson.build
-===================================================================
+diff --git a/data/langtools/meson.build b/data/langtools/meson.build
+new file mode 100644
+index 0000000..ed024a7
 --- /dev/null
-+++ accountsservice/data/langtools/meson.build
++++ b/data/langtools/meson.build
 @@ -0,0 +1,25 @@
 +langtools_dir = join_paths(get_option('datadir'), 'language-tools')
 +
@@ -385,10 +392,11 @@ Index: accountsservice/data/langtools/meson.build
 +  data,
 +  install_dir: langtools_dir,
 +)
-Index: accountsservice/data/langtools/save-to-pam-env
-===================================================================
+diff --git a/data/langtools/save-to-pam-env b/data/langtools/save-to-pam-env
+new file mode 100755
+index 0000000..2492957
 --- /dev/null
-+++ accountsservice/data/langtools/save-to-pam-env
++++ b/data/langtools/save-to-pam-env
 @@ -0,0 +1,40 @@
 +#!/bin/sh -e
 +#
@@ -430,10 +438,11 @@ Index: accountsservice/data/langtools/save-to-pam-env
 +
 +exit 0
 +
-Index: accountsservice/data/langtools/set-language-helper
-===================================================================
+diff --git a/data/langtools/set-language-helper b/data/langtools/set-language-helper
+new file mode 100755
+index 0000000..efbb394
 --- /dev/null
-+++ accountsservice/data/langtools/set-language-helper
++++ b/data/langtools/set-language-helper
 @@ -0,0 +1,27 @@
 +#!/bin/sh -e
 +
@@ -462,10 +471,11 @@ Index: accountsservice/data/langtools/set-language-helper
 +
 +echo $validated_language
 +
-Index: accountsservice/data/langtools/update-langlist
-===================================================================
+diff --git a/data/langtools/update-langlist b/data/langtools/update-langlist
+new file mode 100755
+index 0000000..317a60b
 --- /dev/null
-+++ accountsservice/data/langtools/update-langlist
++++ b/data/langtools/update-langlist
 @@ -0,0 +1,48 @@
 +#!/bin/sh -e
 +#
@@ -515,11 +525,11 @@ Index: accountsservice/data/langtools/update-langlist
 +
 +echo $renewed_langlist
 +
-Index: accountsservice/data/meson.build
-===================================================================
---- accountsservice.orig/data/meson.build
-+++ accountsservice/data/meson.build
-@@ -61,3 +61,5 @@ install_data(
+diff --git a/data/meson.build b/data/meson.build
+index 4987937..58ee672 100644
+--- a/data/meson.build
++++ b/data/meson.build
+@@ -61,3 +61,5 @@
    'standard',
    install_dir: join_paths(act_datadir, 'accountsservice', 'user-templates'),
  )
