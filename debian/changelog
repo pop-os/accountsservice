@@ -1,4 +1,4 @@
-accountsservice (22.07.5-2ubuntu1) UNRELEASED; urgency=medium
+accountsservice (22.07.5-2ubuntu1) jammy; urgency=medium
 
   * Merge with Debian, remaining Ubuntu changes:
   * debian/control:
@@ -32,7 +32,7 @@ accountsservice (22.07.5-2ubuntu1) UNRELEASED; urgency=medium
   * debian/patches/gitlab_shared_tmp.patch:
     - don't use a private tmp since API clients sometime store files there
 
- -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 20:52:58 +0100
+ -- Sebastien Bacher <seb128@ubuntu.com>  Tue, 22 Feb 2022 16:27:56 +0100
 
 accountsservice (22.07.5-2) unstable; urgency=medium
 
