@@ -1,0 +1,25 @@
+From e8d6b06af6953b8a6459501ce92f03ed5dfd0b10 Mon Sep 17 00:00:00 2001
+From: Sebastien Bacher <seb128@ubuntu.com>
+Date: Tue, 22 Feb 2022 12:33:51 +0100
+Subject: [PATCH] Handle missing admin groups when changing account types
+
+---
+ src/util.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/util.c b/src/util.c
+index 424cab2..e8a70de 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -303,7 +303,7 @@ get_admin_groups (gid_t  *admin_gid_out,
+                 struct group *extra_group;
+                 extra_group = getgrnam (extra_admin_groups[i]);
+                 if (extra_group == NULL)
+-                        goto out;
++                        continue;
+                 if (extra_group->gr_gid == admin_gid)
+                         continue;
+ 
+-- 
+2.32.0
+

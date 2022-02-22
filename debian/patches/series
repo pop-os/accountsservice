@@ -9,3 +9,4 @@
 0013-add-has-message-support.patch
 0016-add-input-sources-support.patch
 0021-support-extrausers.patch
+gitlab_change_types.patch

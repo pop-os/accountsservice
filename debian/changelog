@@ -27,6 +27,8 @@ accountsservice (22.07.5-2ubuntu1) UNRELEASED; urgency=medium
   * debian/patches/0021-support-extrausers.patch:
     - In addition to watching /etc/{passwd,shadow,group}, also watch those
       same files in /var/lib/extrausers/, if they exist.
+  * debian/patches/gitlab_change_types.patch:
+    - fix changing account types failing on missing groups
 
  -- Sebastien Bacher <seb128@ubuntu.com>  Mon, 21 Feb 2022 20:52:58 +0100
 
