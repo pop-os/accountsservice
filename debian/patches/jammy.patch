@@ -1,0 +1,12 @@
+Index: accountsservice/data/meson.build
+===================================================================
+--- accountsservice.orig/data/meson.build
++++ accountsservice/data/meson.build
+@@ -29,7 +29,6 @@ configure_file(
+ policy = act_namespace.to_lower() + '.policy'
+ 
+ i18n.merge_file(
+-  policy,
+   input: policy + '.in',
+   output: policy,
+   po_dir: po_dir,
