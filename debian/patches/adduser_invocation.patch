@@ -1,0 +1,29 @@
+From c588aea01bcc20353f8d28a78125e211bdc25097 Mon Sep 17 00:00:00 2001
+From: Peter Hutterer <peter.hutterer@who-t.net>
+Date: Mon, 4 Apr 2022 13:06:07 +1000
+Subject: tests: fix invocation of AddUser
+
+AddUser is a DBus method with a signature so we need to provide all
+required arguments, we can't rely on python defaults. This worked
+before dbusmock commit f8709a9 because these methods were never really
+looked at.
+---
+ tests/dbusmock/accounts_service.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tests/dbusmock/accounts_service.py b/tests/dbusmock/accounts_service.py
+index 7016ef8..969bf60 100644
+--- a/tests/dbusmock/accounts_service.py
++++ b/tests/dbusmock/accounts_service.py
+@@ -171,7 +171,7 @@ def CreateUser(self, name, fullname, account_type):
+     self.users_auto_uids += 1
+ 
+     return self.AddUser(self.users_auto_uids, name, DEFAULT_USER_PASSWORD, {
+-        'RealName': fullname, 'AccountType': account_type})
++        'RealName': fullname, 'AccountType': account_type}, {})
+ 
+ 
+ @dbus.service.method(MAIN_IFACE, in_signature='xb')
+-- 
+cgit v1.2.1
+

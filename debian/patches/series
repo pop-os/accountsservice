@@ -11,3 +11,5 @@
 0021-support-extrausers.patch
 gitlab_change_types.patch
 gitlab_shared_tmp.patch
+adduser_invocation.patch
+setlocked_signature.patch
