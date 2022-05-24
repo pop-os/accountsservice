@@ -1,3 +1,20 @@
+accountsservice (22.07.5-2ubuntu1.3) jammy-security; urgency=medium
+
+  * SECURITY UPDATE: accountsservice incorrect privilege dropping
+    (LP: #1974250)
+    - debian/patches/0009-language-tools.patch: updated to not reset
+      effective uid, and migrate root-owned .pam_environment file.
+    - This change was originally known as CVE-2020-16126 and got reverted
+      by mistake in 0.6.55-3ubuntu1.
+    - CVE-2022-1804
+  * Fix FTBFS with a newer python-dbusmock package:
+    - debian/patches/adduser_invocation.patch: fix invocation of AddUser in
+      tests/dbusmock/accounts_service.py.
+    - debian/patches/setlocked_signature.patch: fix the signature for the
+      SetLocked call in tests/dbusmock/accounts_service.py.
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Thu, 19 May 2022 20:02:04 -0400
+
 accountsservice (22.07.5-2ubuntu1) jammy; urgency=medium
 
   * Merge with Debian, remaining Ubuntu changes:
