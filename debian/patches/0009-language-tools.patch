@@ -2,6 +2,12 @@ From: Gunnar Hjalmarsson <gunnarhj@ubuntu.com>
 Date: Thu, 21 Dec 2017 15:09:24 +1300
 Subject: [PATCH 05/12] Help files for dealing with language/locale settings.
 
+Updated: 2022-05-19
+
+#
+# Do not drop shebang changes in this file when merging from Debian!
+#
+
 ---
  data/langtools/Makefile.am         | 17 ++++++++
  data/langtools/language-options    | 84 ++++++++++++++++++++++++++++++++++++++
@@ -145,7 +151,7 @@ index 0000000..b87c132
 --- /dev/null
 +++ b/data/langtools/language-validate
 @@ -0,0 +1,82 @@
-+#!/bin/sh -e
++#!/bin/sh -pe
 +
 +lang=$1
 +validated_language=
@@ -233,7 +239,7 @@ index 0000000..874b357
 --- /dev/null
 +++ b/data/langtools/language2locale
 @@ -0,0 +1,70 @@
-+#!/bin/sh -e
++#!/bin/sh -pe
 +#
 +# - takes the first choice language in the LANGUAGE priority list as argument
 +# - outputs locale name corresponding to that language
@@ -309,7 +315,7 @@ index 0000000..3fcc13b
 --- /dev/null
 +++ b/data/langtools/locale2papersize
 @@ -0,0 +1,18 @@
-+#!/bin/sh -e
++#!/bin/sh -pe
 +#
 +# locale2papersize outputs the paper size "a4" or "letter" based on
 +# the height and width in the locale that is passed as an argument.
@@ -397,8 +403,8 @@ new file mode 100755
 index 0000000..2492957
 --- /dev/null
 +++ b/data/langtools/save-to-pam-env
-@@ -0,0 +1,40 @@
-+#!/bin/sh -e
+@@ -0,0 +1,48 @@
++#!/bin/sh -pe
 +#
 +# updates the ~/.pam_environment config file
 +
@@ -409,6 +415,14 @@ index 0000000..2492957
 +[ -n "$homedir" -a -n "$locale_name" ] || exit 1
 +
 +langtoolsdir=/usr/share/language-tools
++
++# Fix incorrect permissions caused by CVE-2022-1804
++if [ -f "$homedir/.pam_environment" -a ! -w "$homedir/.pam_environment" ]; then
++    temp=$(mktemp -u 'XXXXXXXX')
++    mv "$homedir/.pam_environment" "$homedir/.pam_environment.$temp"
++    cp "$homedir/.pam_environment.$temp" "$homedir/.pam_environment"
++    rm -f "$homedir/.pam_environment.$temp"
++fi
 +
 +# create ~/.pam_environment if it doesn't exist
 +touch "$homedir/.pam_environment" || exit 1
@@ -444,7 +458,7 @@ index 0000000..efbb394
 --- /dev/null
 +++ b/data/langtools/set-language-helper
 @@ -0,0 +1,27 @@
-+#!/bin/sh -e
++#!/bin/sh -pe
 +
 +homedir=$1
 +language=$2
@@ -477,7 +491,7 @@ index 0000000..317a60b
 --- /dev/null
 +++ b/data/langtools/update-langlist
 @@ -0,0 +1,48 @@
-+#!/bin/sh -e
++#!/bin/sh -pe
 +#
 +# update-langlist maintains the LANGUAGE priority list. It does so in
 +# a simplified manner, unlike the UI in language-selector-gnome for
@@ -529,7 +543,7 @@ diff --git a/data/meson.build b/data/meson.build
 index 4987937..58ee672 100644
 --- a/data/meson.build
 +++ b/data/meson.build
-@@ -61,3 +61,5 @@
+@@ -61,3 +61,5 @@ install_data(
    'standard',
    install_dir: join_paths(act_datadir, 'accountsservice', 'user-templates'),
  )
