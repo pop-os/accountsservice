@@ -1,3 +1,9 @@
+accountsservice (22.07.5-2ubuntu1.3pop1) jammy; urgency=medium
+
+  * Pop!_OS Updates
+
+ -- Brock <brock@szu.email>  Thu, 09 Feb 2023 14:15:35 -0700
+
 accountsservice (22.07.5-2ubuntu1.3) jammy-security; urgency=medium
 
   * SECURITY UPDATE: accountsservice incorrect privilege dropping
