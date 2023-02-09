@@ -1,20 +1,13 @@
-Description: Add the adm and lpadmin groups to new administrator accounts
- .
- accountsservice (0.6.50-0ubuntu1~pop1) disco; urgency=medium
- .
-   * Add the adm group to new administrator accounts
-Author: Michael Aaron Murphy <michael@system76.com>
-
-Index: accountsservice/src/daemon.c
+Index: accountsservice/meson_options.txt
 ===================================================================
---- accountsservice.orig/src/daemon.c
-+++ accountsservice/src/daemon.c
-@@ -1136,6 +1136,8 @@ daemon_create_user_authorized_cb (Daemon
-         }
+--- accountsservice.orig/meson_options.txt
++++ accountsservice/meson_options.txt
+@@ -2,7 +2,7 @@ option('systemdsystemunitdir', type: 'st
+ option('gdmconffile', type: 'string', value: '/etc/gdm/custom.conf', description: 'GDM configuration file')
  
-         if (cd->account_type == ACCOUNT_TYPE_ADMINISTRATOR) {
-+                add_user_to_group(context, cd->user_name, "adm");
-+                add_user_to_group(context, cd->user_name, "lpadmin");
-                 add_user_to_group (context, cd->user_name, "sudo");
-         }
+ option('admin_group', type: 'string', value: '', description: 'Set group for administrative accounts')
+-option('extra_admin_groups', type: 'array', value: [], description: 'Comma-separated list of extra groups that administrator users are part of')
++option('extra_admin_groups', type: 'array', value: ['adm,lpadmin'], description: 'Comma-separated list of extra groups that administrator users are part of')
+ option('minimum_uid', type: 'integer', value: 1000, description: 'Set minimum uid for human users')
  
+ option('elogind', type: 'boolean', value: false, description: 'Use elogind')
