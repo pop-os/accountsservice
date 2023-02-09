@@ -1,3 +1,9 @@
+accountsservice (22.07.5-2ubuntu1.5pop0) jammy; urgency=medium
+
+  * Pop!_OS Patches
+
+ -- Jeremy Soller <jeremy@system76.com>  Thu, 03 Oct 2024 06:31:26 -0600
+
 accountsservice (22.07.5-2ubuntu1.5) jammy-security; urgency=medium
 
   * SECURITY UPDATE: possible encrypted password disclosure
