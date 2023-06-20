@@ -4,16 +4,14 @@ Date: Fri, 09 Oct 2020 13:29:00 +0200
 Subject: [PATCH 06/12] Save user language and regional formats settings to
  ~/.pam_environment.
 
-Updated: 2021-11-09
+Updated: 2023-06-16
 
 ---
  src/user.c | 389 +++++++++++++++++++++++++++++++++++++++++++++++++++-
  1 file changed, 384 insertions(+), 5 deletions(-)
 
-Index: accountsservice/src/user.c
-===================================================================
---- accountsservice.orig/src/user.c
-+++ accountsservice/src/user.c
+--- a/src/user.c
++++ b/src/user.c
 @@ -27,6 +27,7 @@
  #include <stdlib.h>
  #include <sys/types.h>
@@ -361,9 +359,9 @@ Index: accountsservice/src/user.c
 +                                g_dir_close (homedir);
 +                                user_regain_privileges ();
 +                                return FALSE;
-+                        } else
++                        } else {
 +                                g_free (path_to_entry);
-+                                break;
++                                break; }
 +                } while (TRUE);
 +        }
 +
@@ -426,7 +424,7 @@ Index: accountsservice/src/user.c
  static void
  user_change_language_authorized_cb (Daemon                *daemon,
                                      User                  *user,
-@@ -1322,14 +1681,44 @@ user_change_language_authorized_cb (Daem
+@@ -1322,10 +1681,46 @@ user_change_language_authorized_cb (Daem
                                      gpointer               data)
  
  {
@@ -440,7 +438,7 @@ Index: accountsservice/src/user.c
 +                   Hence don't save anything, or else accountsservice
 +                   and ~/.pam_environment would become out of sync. */
 +                throw_error (context, ERROR_FAILED, "not access to HOME yet so language not saved");
-+                goto out;
++                return;
 +        }
  
          if (g_strcmp0 (accounts_user_get_language (ACCOUNTS_USER (user)), language) != 0) {
@@ -449,8 +447,10 @@ Index: accountsservice/src/user.c
 +                                                                  (gchar *) language,
 +                                                                  "set-language-helper",
 +                                                                  context);
-+                if (lang != NULL)
-+                        accounts_user_set_language (ACCOUNTS_USER (user), lang);
++                if (lang == NULL)
++                    return;
++
++                accounts_user_set_language (ACCOUNTS_USER (user), lang);
 +
 +                if (!is_in_pam_environment (user, "FormatsLocale")) {
 +
@@ -458,33 +458,38 @@ Index: accountsservice/src/user.c
 +                           in order to prevent surprises when LANG is changed */
 +                        gchar *fallback_locale = user_get_fallback_value (user, "FormatsLocale");
 +                        g_autofree gchar *validated_locale = user_locale_validate (user, fallback_locale, context);
++                        if (validated_locale == NULL)
++                                return;
++
 +                        g_autofree gchar *formats_locale = user_update_environment (user,
 +                                                                                    validated_locale,
 +                                                                                    "save-to-pam-env",
 +                                                                                    context);
-+                        if (formats_locale != NULL)
-+                                accounts_user_set_formats_locale (ACCOUNTS_USER (user), formats_locale);
++                        if (formats_locale == NULL)
++                                return;
++
++                        accounts_user_set_formats_locale (ACCOUNTS_USER (user), formats_locale);
 +                }
  
                  save_extra_data (user);
          }
- 
-+out:
-         accounts_user_complete_set_language (ACCOUNTS_USER (user), context);
- }
- 
-@@ -1471,7 +1860,13 @@ user_change_formats_locale_authorized_cb
+@@ -1471,7 +1866,18 @@ user_change_formats_locale_authorized_cb
          const gchar *formats_locale = user_data;
  
          if (g_strcmp0 (accounts_user_get_formats_locale (ACCOUNTS_USER (user)), formats_locale) != 0) {
 -                accounts_user_set_formats_locale (ACCOUNTS_USER (user), formats_locale);
 +                g_autofree gchar *validated_locale = user_locale_validate (user, formats_locale, context);
++                if (validated_locale == NULL)
++                    return;
++
 +                g_autofree gchar *locale = user_update_environment (user,
 +                                                                    validated_locale,
 +                                                                    "save-to-pam-env",
 +                                                                    context);
-+                if (locale != NULL)
-+                        accounts_user_set_formats_locale (ACCOUNTS_USER (user), locale);
++                if (locale == NULL)
++                        return;
++
++                accounts_user_set_formats_locale (ACCOUNTS_USER (user), locale);
  
                  save_extra_data (user);
          }

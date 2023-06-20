@@ -1,3 +1,12 @@
+accountsservice (22.07.5-2ubuntu1.4) jammy-security; urgency=medium
+
+  * SECURITY UPDATE: use-after-free in user.c (LP: #2024182)
+    - debian/patches/0010-set-language.patch: updated to properly return
+      from functions after throw_error() has been called.
+    - CVE-2023-3297
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Tue, 20 Jun 2023 07:25:34 -0400
+
 accountsservice (22.07.5-2ubuntu1.3) jammy-security; urgency=medium
 
   * SECURITY UPDATE: accountsservice incorrect privilege dropping
