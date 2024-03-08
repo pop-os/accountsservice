@@ -1,3 +1,12 @@
+accountsservice (22.07.5-2ubuntu1.5) jammy-security; urgency=medium
+
+  * SECURITY UPDATE: possible encrypted password disclosure
+    - debian/patches/CVE-2012-6655.patch: replace usermod -p with
+      chpasswd -e in src/user.c, src/util.c, src/util.h.
+    - CVE-2012-6655
+
+ -- Marc Deslauriers <marc.deslauriers@ubuntu.com>  Fri, 08 Mar 2024 11:55:23 -0500
+
 accountsservice (22.07.5-2ubuntu1.4) jammy-security; urgency=medium
 
   * SECURITY UPDATE: use-after-free in user.c (LP: #2024182)
